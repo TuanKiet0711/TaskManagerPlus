@@ -1,0 +1,243 @@
+﻿# Task Manager Plus - Quản lý tiến trình nâng cao
+
+## Mô tả
+Task Manager Plus là ứng dụng quản lý tiến trình nâng cao được xây dựng bằng C# WinForms với giao diện hiện đại, cho phép theo dõi và quản lý các tiến trình đang chạy trên hệ thống.
+
+## ✨ Tính năng mới (v2.0)
+
+### 🎨 Giao diện hiện đại với Tabs
+- **Tab Tiến trình**: Quản lý và theo dõi processes
+- **Tab Hiệu năng**: Biểu đồ real-time CPU & RAM
+- Thiết kế Material-inspired với màu sắc hiện đại
+- Header màu xanh chuyên nghiệp
+- Icons và typography cải tiến
+
+### ⚡ Tối ưu hiệu năng
+- **Async/Await**: Không block UI thread khi load data
+- **Double Buffering**: DataGridView mượt mà hơn
+- **Lazy Loading**: Chỉ load tab đang xem
+- **Intelligent Refresh**: Tăng interval mặc định lên 3 giây
+- **Custom Drawing**: Biểu đồ vẽ bằng GDI+ thay vì Chart control
+- **Cải thiện tốc độ**: Giảm lag đáng kể khi có nhiều processes
+
+## Tính năng chính
+
+### 1. Tab Tiến trình
+- ✅ Hiển thị danh sách tiến trình với:
+  - Tên tiến trình và Process ID (PID)
+  - Bộ nhớ sử dụng (MB/GB)
+  - CPU usage (%) với format 1 số thập phân
+  - Số lượng luồng (threads)
+  - Mô tả chi tiết
+- ✅ **Sắp xếp thông minh**: Click vào header để sort
+- ✅ **Tìm kiếm nhanh**: Lọc theo tên, PID hoặc mô tả
+- ✅ **Kết thúc tiến trình**: Với xác nhận an toàn
+- ✅ **Giao diện clean**: Border-less DataGridView
+
+### 2. Tab Hiệu năng
+- 📊 **Biểu đồ CPU real-time**: 
+  - Gradient fill effect
+  - Anti-aliased smooth lines
+  - 60 điểm dữ liệu lịch sử
+  - Màu xanh dương (#0D6EFD)
+- 📊 **Biểu đồ RAM real-time**:
+  - Gradient fill effect
+  - Lịch sử 60 giây
+  - Màu xanh lá (#198754)
+- 📈 **Progress bars trực quan**
+- 📌 **Thống kê chi tiết**:
+  - Phần trăm CPU với mã màu cảnh báo
+  - RAM đã dùng/tổng RAM
+  - Số tiến trình & luồng
+
+### 3. Thanh điều khiển
+- 🔄 **Nút Làm mới**: Cập nhật thủ công
+- ⚙️ **Tự động cập nhật**: On/Off switch
+- ⏱️ **Tùy chỉnh interval**: 1-60 giây
+- 📊 **Status indicator**: Hiển thị trạng thái cập nhật
+
+## Cấu trúc dự án
+
+```
+TaskManagerPlus/
+│
+├── Models/
+│   └── ProcessInfo.cs              # Model chứa thông tin process
+│
+├── Services/
+│   └── ProcessMonitor.cs           # Service giám sát hệ thống
+│
+├── Controls/
+│   ├── ProcessesTab.cs             # User Control tab Processes
+│   ├── ProcessesTab.Designer.cs
+│   ├── PerformanceTab.cs           # User Control tab Performance
+│   └── PerformanceTab.Designer.cs
+│
+├── Form1.cs                         # Main form với TabControl
+├── Form1.Designer.cs
+└── Program.cs                       # Entry point
+```
+
+## Yêu cầu hệ thống
+- .NET Framework 4.7.2 trở lên
+- Windows 7/8/10/11
+- Quyền admin (khuyến nghị)
+
+## Hướng dẫn sử dụng
+
+### Tab Tiến trình
+
+#### 1. Xem danh sách
+- Danh sách tự động load khi mở tab
+- Sắp xếp mặc định: RAM giảm dần
+
+#### 2. Sắp xếp
+- Click vào header cột để sort
+- Click lại để đảo chiều sắp xếp
+
+#### 3. Tìm kiếm
+- Nhập vào ô search góc phải
+- Tự động filter theo từ khóa
+
+#### 4. Kết thúc tiến trình
+- Chọn process trong danh sách
+- Click "Kết thúc tiến trình" (đỏ)
+- Xác nhận trong dialog
+
+### Tab Hiệu năng
+
+#### 1. Xem biểu đồ
+- CPU: Biểu đồ màu xanh dương phía trên
+- RAM: Biểu đồ màu xanh lá phía dưới
+- Tự động cập nhật mỗi 3 giây
+
+#### 2. Đọc thông tin
+- **Số to**: Phần trăm hiện tại
+- **Màu xanh**: < 60% (bình thường)
+- **Màu cam**: 60-80% (cảnh báo)
+- **Màu đỏ**: > 80% (nghiêm trọng)
+
+### Cài đặt cập nhật
+
+#### Thay đổi tốc độ refresh
+1. Tìm "Cập nhật mỗi (giây)" ở footer
+2. Chọn từ 1-60 giây
+3. Mặc định: 3 giây (khuyến nghị)
+
+#### Tạm dừng cập nhật
+- Bỏ tick "Tự động cập nhật"
+- Dùng nút "🔄 Làm mới" để update thủ công
+
+## Chi tiết kỹ thuật
+
+### Tối ưu hiệu năng
+
+#### ProcessesTab.cs
+```csharp
+// Async loading để không block UI
+public async Task LoadProcessesAsync()
+{
+    allProcesses = await Task.Run(() => 
+        processMonitor.GetAllProcesses());
+}
+
+// Double buffering cho DataGridView
+dataGridViewProcesses.DoubleBuffered(true);
+
+// BindingList thay vì BindingSource.ResetBindings()
+```
+
+#### PerformanceTab.cs
+```csharp
+// Custom drawing với GDI+
+private void DrawChart(Graphics g, Queue<double> data, 
+    Color lineColor, int width, int height)
+{
+    // Anti-aliasing cho đường mượt
+    g.SmoothingMode = SmoothingMode.AntiAlias;
+    
+    // Gradient fill
+    using (GraphicsPath path = new GraphicsPath())
+    {
+        // Tạo area dưới đường line
+    }
+}
+```
+
+#### Form1.cs
+```csharp
+// Prevent concurrent updates
+private bool isUpdating = false;
+
+private async Task UpdateAllDataAsync()
+{
+    if (isUpdating) return;
+    isUpdating = true;
+    try
+    {
+        // Only update active tab
+        if (tabControl.SelectedTab == tabProcesses)
+            await processesTab.LoadProcessesAsync();
+        
+        await performanceTab.UpdatePerformanceAsync();
+    }
+    finally
+    {
+        isUpdating = false;
+    }
+}
+```
+
+### ProcessMonitor.cs
+- `GetAllProcesses()`: Lấy danh sách processes với error handling
+- `GetCpuUsage()`: Tính CPU dựa trên delta time
+- `GetSystemInfo()`: Thông tin tổng quan hệ thống
+- `KillProcess()`: Kết thúc process an toàn
+- `Cleanup()`: Giải phóng tài nguyên
+
+### Color Scheme
+
+```csharp
+// Primary colors
+Blue:   #0D6EFD (13, 110, 253)   // CPU, Headers, Buttons
+Green:  #198754 (25, 135, 84)    // RAM, Success
+Red:    #DC3545 (220, 53, 69)    // Danger, Kill button
+Orange: #FFC107 (255, 193, 7)    // Warning
+
+// Neutral colors
+Dark:   #343A40 (52, 58, 64)     // Text
+Gray:   #6C757D (108, 117, 125)  // Secondary text
+Light:  #F8F9FA (248, 249, 250)  // Backgrounds
+```
+
+## Các cải tiến trong tương lai
+- [ ] Lưu & export process list ra CSV/Excel
+- [ ] Tab Services management
+- [ ] Tab Network monitoring
+- [ ] Tab Startup programs
+- [ ] Detailed process info window
+- [ ] CPU temperature monitoring
+- [ ] Disk usage tracking
+- [ ] Dark mode toggle
+- [ ] Multi-language support
+- [ ] Tray icon with quick actions
+- [ ] Process priority management
+- [ ] Historical data export
+
+## So sánh v1.0 vs v2.0
+
+| Tính năng | v1.0 | v2.0 |
+|-----------|------|------|
+| Giao diện | Single window | Modern tabs |
+| Hiệu suất | Đồng bộ (lag) | Async (mượt) |
+| Biểu đồ | Không có | Real-time charts |
+| Tìm kiếm | Basic | Advanced filter |
+| Sắp xếp | Memory only | All columns |
+| Refresh | 2s fixed | 1-60s tunable |
+| UI responsiveness | ★★☆☆☆ | ★★★★★ |
+
+## Giấy phép
+MIT License - Tự do sử dụng và chỉnh sửa
+
+## Tác giả
+TaskManagerPlus Team - 2024

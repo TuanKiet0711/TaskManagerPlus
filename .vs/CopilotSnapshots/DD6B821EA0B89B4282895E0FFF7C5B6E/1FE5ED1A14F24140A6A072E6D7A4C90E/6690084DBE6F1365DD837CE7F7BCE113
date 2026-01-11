@@ -1,0 +1,277 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using TaskManagerPlus.Services;
+using TaskManagerPlus.Models;
+
+namespace TaskManagerPlus.Controls
+{
+    public partial class PerformanceTab : UserControl
+    {
+        private ProcessMonitor processMonitor;
+        private HardwareMonitor hardwareMonitor;
+        private Queue<double> cpuHistory;
+        private Queue<double> ramHistory;
+        private List<Queue<double>> gpuHistories;
+        private List<Queue<double>> diskHistories;
+        private List<Queue<double>> networkHistories;
+        private const int MaxHistoryPoints = 60;
+        private int selectedHardwareIndex = 0;
+
+        public ProcessMonitor ProcessMonitor
+        {
+            get { return processMonitor; }
+            set { processMonitor = value; }
+        }
+
+        public PerformanceTab()
+        {
+            InitializeComponent();
+            hardwareMonitor = new HardwareMonitor();
+            cpuHistory = new Queue<double>();
+            ramHistory = new Queue<double>();
+            gpuHistories = new List<Queue<double>>();
+            diskHistories = new List<Queue<double>>();
+            networkHistories = new List<Queue<double>>();
+        }
+
+        public void Initialize()
+        {
+            pictureBoxMain.Paint += PictureBoxMain_Paint;
+            sidebar.ItemSelected += Sidebar_ItemSelected;
+            LoadHardwareItems();
+        }
+
+        private void Sidebar_ItemSelected(object sender, int index)
+        {
+            selectedHardwareIndex = index;
+            UpdateDetailView();
+        }
+
+        private void LoadHardwareItems()
+        {
+            sidebar.ClearItems();
+            sidebar.AddItem("CPU", "0%", cpuHistory, Color.FromArgb(13, 110, 253));
+            sidebar.AddItem("Memory", "0%", ramHistory, Color.FromArgb(25, 135, 84));
+
+            var gpus = hardwareMonitor.GetGpuInfo();
+            for (int i = 0; i < gpus.Count; i++)
+            {
+                gpuHistories.Add(new Queue<double>());
+                sidebar.AddItem($"GPU {i}", "0%", gpuHistories[i], Color.FromArgb(108, 117, 125));
+            }
+
+            var disks = hardwareMonitor.GetDiskInfo();
+            for (int i = 0; i < disks.Count; i++)
+            {
+                diskHistories.Add(new Queue<double>());
+                sidebar.AddItem(disks[i].Name, "0%", diskHistories[i], Color.FromArgb(32, 201, 151));
+            }
+
+            var networks = hardwareMonitor.GetNetworkInfo();
+            for (int i = 0; i < networks.Count; i++)
+            {
+                networkHistories.Add(new Queue<double>());
+                sidebar.AddItem(networks[i].Name, "0 KB/s", networkHistories[i], Color.FromArgb(255, 193, 7));
+            }
+        }
+
+        private void PictureBoxMain_Paint(object sender, PaintEventArgs e)
+        {
+            Queue<double> dataToDisplay = null;
+            Color lineColor = Color.Blue;
+
+            if (selectedHardwareIndex == 0)
+            {
+                dataToDisplay = cpuHistory;
+                lineColor = Color.FromArgb(13, 110, 253);
+            }
+            else if (selectedHardwareIndex == 1)
+            {
+                dataToDisplay = ramHistory;
+                lineColor = Color.FromArgb(25, 135, 84);
+            }
+            else
+            {
+                int gpuCount = gpuHistories.Count;
+                int diskCount = diskHistories.Count;
+
+                if (selectedHardwareIndex - 2 < gpuCount)
+                {
+                    dataToDisplay = gpuHistories[selectedHardwareIndex - 2];
+                    lineColor = Color.FromArgb(108, 117, 125);
+                }
+                else if (selectedHardwareIndex - 2 - gpuCount < diskCount)
+                {
+                    dataToDisplay = diskHistories[selectedHardwareIndex - 2 - gpuCount];
+                    lineColor = Color.FromArgb(32, 201, 151);
+                }
+                else
+                {
+                    int networkIndex = selectedHardwareIndex - 2 - gpuCount - diskCount;
+                    if (networkIndex < networkHistories.Count)
+                    {
+                        dataToDisplay = networkHistories[networkIndex];
+                        lineColor = Color.FromArgb(255, 193, 7);
+                    }
+                }
+            }
+
+            if (dataToDisplay != null)
+            {
+                DrawChart(e.Graphics, dataToDisplay, lineColor, pictureBoxMain.Width, pictureBoxMain.Height);
+            }
+        }
+
+        private void DrawChart(Graphics g, Queue<double> data, Color lineColor, int width, int height)
+        {
+            g.Clear(Color.White);
+
+            if (data.Count < 2)
+                return;
+
+            // Draw grid
+            using (Pen gridPen = new Pen(Color.FromArgb(230, 230, 230)))
+            {
+                for (int i = 0; i <= 4; i++)
+                {
+                    int y = (int)(height * i / 4.0);
+                    g.DrawLine(gridPen, 0, y, width, y);
+                }
+
+                for (int i = 0; i <= 6; i++)
+                {
+                    int x = (int)(width * i / 6.0);
+                    g.DrawLine(gridPen, x, 0, x, height);
+                }
+            }
+
+            // Draw data line
+            var points = new List<PointF>();
+            var dataArray = data.ToArray();
+
+            for (int i = 0; i < dataArray.Length; i++)
+            {
+                float x = (float)(width * i / (MaxHistoryPoints - 1.0));
+                float y = (float)(height - (height * dataArray[i] / 100.0));
+                points.Add(new PointF(x, y));
+            }
+
+            if (points.Count > 1)
+            {
+                // Draw gradient fill
+                using (GraphicsPath path = new GraphicsPath())
+                {
+                    path.AddLines(points.ToArray());
+                    path.AddLine(points[points.Count - 1].X, points[points.Count - 1].Y, points[points.Count - 1].X, height);
+                    path.AddLine(points[points.Count - 1].X, height, points[0].X, height);
+                    path.CloseFigure();
+
+                    Color fillColor = Color.FromArgb(50, lineColor);
+                    using (SolidBrush brush = new SolidBrush(fillColor))
+                    {
+                        g.FillPath(brush, path);
+                    }
+                }
+
+                // Draw line
+                using (Pen linePen = new Pen(lineColor, 2))
+                {
+                    linePen.LineJoin = LineJoin.Round;
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    g.DrawLines(linePen, points.ToArray());
+                }
+            }
+        }
+
+        public async Task UpdatePerformanceAsync()
+        {
+            if (processMonitor == null) return;
+
+            try
+            {
+                var systemInfo = await Task.Run(() => processMonitor.GetSystemInfo());
+
+                // Update CPU
+                cpuHistory.Enqueue(systemInfo.CpuUsage);
+                if (cpuHistory.Count > MaxHistoryPoints)
+                    cpuHistory.Dequeue();
+
+                // Update RAM
+                double ramPercent = (systemInfo.UsedRAM / systemInfo.TotalRAM) * 100;
+                ramHistory.Enqueue(ramPercent);
+                if (ramHistory.Count > MaxHistoryPoints)
+                    ramHistory.Dequeue();
+
+                // Update GPU
+                var gpus = hardwareMonitor.GetGpuInfo();
+                for (int i = 0; i < gpus.Count && i < gpuHistories.Count; i++)
+                {
+                    gpuHistories[i].Enqueue(gpus[i].Usage);
+                    if (gpuHistories[i].Count > MaxHistoryPoints)
+                        gpuHistories[i].Dequeue();
+                }
+
+                // Update Disk
+                var disks = hardwareMonitor.GetDiskInfo();
+                for (int i = 0; i < disks.Count && i < diskHistories.Count; i++)
+                {
+                    diskHistories[i].Enqueue(disks[i].ActiveTime);
+                    if (diskHistories[i].Count > MaxHistoryPoints)
+                        diskHistories[i].Dequeue();
+                }
+
+                // Update Network
+                var networks = hardwareMonitor.GetNetworkInfo();
+                for (int i = 0; i < networks.Count && i < networkHistories.Count; i++)
+                {
+                    double networkUsage = Math.Min((networks[i].SendSpeed + networks[i].ReceiveSpeed) / 10, 100);
+                    networkHistories[i].Enqueue(networkUsage);
+                    if (networkHistories[i].Count > MaxHistoryPoints)
+                        networkHistories[i].Dequeue();
+                }
+
+                // Update sidebar
+                sidebar.UpdateItem(0, $"{systemInfo.CpuUsage:F1}%", cpuHistory);
+                sidebar.UpdateItem(1, $"{ramPercent:F1}%", ramHistory);
+
+                int sidebarIndex = 2;
+                for (int i = 0; i < gpus.Count; i++)
+                {
+                    sidebar.UpdateItem(sidebarIndex++, $"{gpus[i].Usage:F1}%", gpuHistories[i]);
+                }
+                for (int i = 0; i < disks.Count; i++)
+                {
+                    sidebar.UpdateItem(sidebarIndex++, $"{disks[i].ActiveTime:F0}%", diskHistories[i]);
+                }
+                for (int i = 0; i < networks.Count; i++)
+                {
+                    sidebar.UpdateItem(sidebarIndex++, networks[i].UsageText, networkHistories[i]);
+                }
+
+                pictureBoxMain.Invalidate();
+                UpdateDetailView();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"L?i c?p nh?t hi?u n?ng: {ex.Message}");
+            }
+        }
+
+        private void UpdateDetailView()
+        {
+            // Update detail labels based on selected hardware
+            // This will be implemented in the designer
+        }
+
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            hardwareMonitor?.Cleanup();
+            base.OnHandleDestroyed(e);
+        }
+    }
+}

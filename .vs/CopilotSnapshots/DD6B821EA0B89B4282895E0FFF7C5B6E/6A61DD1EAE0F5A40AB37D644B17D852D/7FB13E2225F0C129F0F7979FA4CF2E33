@@ -1,0 +1,132 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
+using TaskManagerPlus.Services;
+
+namespace TaskManagerPlus.Controls
+{
+    public partial class PerformanceTab : UserControl
+    {
+        private ProcessMonitor processMonitor;
+        private Queue<double> cpuHistory;
+        private Queue<double> ramHistory;
+        private const int MaxHistoryPoints = 60;
+
+        public ProcessMonitor ProcessMonitor
+        {
+            get { return processMonitor; }
+            set { processMonitor = value; }
+        }
+
+        public PerformanceTab()
+        {
+            InitializeComponent();
+            cpuHistory = new Queue<double>();
+            ramHistory = new Queue<double>();
+        }
+
+        public void Initialize()
+        {
+            SetupCharts();
+        }
+
+        private void SetupCharts()
+        {
+            SetupChart(chartCpu, "CPU Usage (%)", Color.FromArgb(13, 110, 253));
+            SetupChart(chartRam, "RAM Usage (%)", Color.FromArgb(25, 135, 84));
+        }
+
+        private void SetupChart(Chart chart, string title, Color lineColor)
+        {
+            chart.ChartAreas.Clear();
+            chart.Series.Clear();
+
+            ChartArea chartArea = new ChartArea("MainArea");
+            chartArea.AxisX.MajorGrid.LineColor = Color.LightGray;
+            chartArea.AxisY.MajorGrid.LineColor = Color.LightGray;
+            chartArea.AxisX.LabelStyle.Enabled = false;
+            chartArea.AxisY.Maximum = 100;
+            chartArea.AxisY.Minimum = 0;
+            chartArea.BackColor = Color.White;
+            chart.ChartAreas.Add(chartArea);
+
+            Series series = new Series("Data");
+            series.ChartType = SeriesChartType.Line;
+            series.Color = lineColor;
+            series.BorderWidth = 2;
+            series.IsValueShownAsLabel = false;
+            chart.Series.Add(series);
+
+            chart.Titles.Clear();
+            Title chartTitle = new Title(title);
+            chartTitle.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            chartTitle.ForeColor = Color.FromArgb(52, 58, 64);
+            chart.Titles.Add(chartTitle);
+
+            chart.BackColor = Color.White;
+        }
+
+        public async Task UpdatePerformanceAsync()
+        {
+            if (processMonitor == null) return;
+
+            try
+            {
+                var systemInfo = await Task.Run(() => processMonitor.GetSystemInfo());
+
+                cpuHistory.Enqueue(systemInfo.CpuUsage);
+                if (cpuHistory.Count > MaxHistoryPoints)
+                    cpuHistory.Dequeue();
+
+                double ramPercent = (systemInfo.UsedRAM / systemInfo.TotalRAM) * 100;
+                ramHistory.Enqueue(ramPercent);
+                if (ramHistory.Count > MaxHistoryPoints)
+                    ramHistory.Dequeue();
+
+                UpdateChart(chartCpu, cpuHistory);
+                UpdateChart(chartRam, ramHistory);
+
+                lblCpuValue.Text = $"{systemInfo.CpuUsage:F1}%";
+                lblCpuValue.ForeColor = GetColorForPercentage(systemInfo.CpuUsage);
+
+                lblRamValue.Text = $"{ramPercent:F1}%";
+                lblRamValue.ForeColor = GetColorForPercentage(ramPercent);
+
+                lblRamDetails.Text = $"{systemInfo.UsedRAM:F0} MB / {systemInfo.TotalRAM:F0} MB";
+                lblProcessCount.Text = $"{systemInfo.ProcessCount} ti?n trình";
+                lblThreadCount.Text = $"{systemInfo.ThreadCount} lu?ng";
+
+                progressCpu.Value = Math.Min((int)systemInfo.CpuUsage, 100);
+                progressRam.Value = Math.Min((int)ramPercent, 100);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"L?i c?p nh?t hi?u n?ng: {ex.Message}");
+            }
+        }
+
+        private void UpdateChart(Chart chart, Queue<double> data)
+        {
+            chart.Series[0].Points.Clear();
+            int index = 0;
+            foreach (var value in data)
+            {
+                chart.Series[0].Points.AddXY(index++, value);
+            }
+        }
+
+        private Color GetColorForPercentage(double percent)
+        {
+            if (percent > 80)
+                return Color.FromArgb(220, 53, 69);
+            else if (percent > 60)
+                return Color.FromArgb(255, 193, 7);
+            else
+                return Color.FromArgb(25, 135, 84);
+        }
+    }
+}

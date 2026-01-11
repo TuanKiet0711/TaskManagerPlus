@@ -1,0 +1,36 @@
+﻿using System;
+using System.Drawing;
+
+namespace TaskManagerPlus.Models
+{
+    public class ProcessInfo
+    {
+        public int ProcessId { get; set; }
+        public string ProcessName { get; set; }
+        public string MemoryUsage { get; set; }
+        public long MemoryBytes { get; set; }
+        public double CpuUsage { get; set; }
+        public int ThreadCount { get; set; }
+        public string Status { get; set; }
+        public string Description { get; set; }
+        public Icon ProcessIcon { get; set; }
+        public string FilePath { get; set; }
+
+        public ProcessInfo()
+        {
+            Status = "Running";
+        }
+
+        public string GetMemoryFormatted()
+        {
+            if (MemoryBytes < 1024)
+                return $"{MemoryBytes} B";
+            else if (MemoryBytes < 1024 * 1024)
+                return $"{MemoryBytes / 1024.0:F2} KB";
+            else if (MemoryBytes < 1024 * 1024 * 1024)
+                return $"{MemoryBytes / (1024.0 * 1024.0):F2} MB";
+            else
+                return $"{MemoryBytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
+        }
+    }
+}

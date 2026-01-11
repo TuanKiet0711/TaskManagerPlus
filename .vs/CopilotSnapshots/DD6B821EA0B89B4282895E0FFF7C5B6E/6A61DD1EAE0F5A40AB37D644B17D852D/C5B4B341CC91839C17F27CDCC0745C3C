@@ -1,0 +1,196 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Management;
+using TaskManagerPlus.Models;
+
+namespace TaskManagerPlus.Services
+{
+    public class ProcessMonitor
+    {
+        private Dictionary<int, PerformanceCounter> cpuCounters;
+        private Dictionary<int, DateTime> lastCpuCheckTime;
+        private Dictionary<int, TimeSpan> lastCpuTime;
+
+        public ProcessMonitor()
+        {
+            cpuCounters = new Dictionary<int, PerformanceCounter>();
+            lastCpuCheckTime = new Dictionary<int, DateTime>();
+            lastCpuTime = new Dictionary<int, TimeSpan>();
+        }
+
+        public List<ProcessInfo> GetAllProcesses()
+        {
+            List<ProcessInfo> processList = new List<ProcessInfo>();
+            Process[] processes = Process.GetProcesses();
+
+            foreach (Process process in processes)
+            {
+                try
+                {
+                    ProcessInfo info = new ProcessInfo
+                    {
+                        ProcessId = process.Id,
+                        ProcessName = process.ProcessName,
+                        MemoryBytes = process.WorkingSet64,
+                        MemoryUsage = FormatBytes(process.WorkingSet64),
+                        ThreadCount = process.Threads.Count,
+                        CpuUsage = GetCpuUsage(process),
+                        Description = GetProcessDescription(process)
+                    };
+
+                    processList.Add(info);
+                }
+                catch (Exception)
+                {
+                    // B? qua các process không có quy?n truy c?p
+                }
+            }
+
+            return processList.OrderByDescending(p => p.MemoryBytes).ToList();
+        }
+
+        private double GetCpuUsage(Process process)
+        {
+            try
+            {
+                int processId = process.Id;
+                DateTime currentTime = DateTime.Now;
+                TimeSpan currentCpuTime = process.TotalProcessorTime;
+
+                if (lastCpuCheckTime.ContainsKey(processId) && lastCpuTime.ContainsKey(processId))
+                {
+                    double cpuUsedMs = (currentCpuTime - lastCpuTime[processId]).TotalMilliseconds;
+                    double totalMsPassed = (currentTime - lastCpuCheckTime[processId]).TotalMilliseconds;
+
+                    if (totalMsPassed > 0)
+                    {
+                        double cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
+                        lastCpuCheckTime[processId] = currentTime;
+                        lastCpuTime[processId] = currentCpuTime;
+                        return cpuUsageTotal * 100;
+                    }
+                }
+
+                lastCpuCheckTime[processId] = currentTime;
+                lastCpuTime[processId] = currentCpuTime;
+                return 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private string FormatBytes(long bytes)
+        {
+            if (bytes < 1024)
+                return $"{bytes} B";
+            else if (bytes < 1024 * 1024)
+                return $"{bytes / 1024.0:F2} KB";
+            else if (bytes < 1024 * 1024 * 1024)
+                return $"{bytes / (1024.0 * 1024.0):F2} MB";
+            else
+                return $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
+        }
+
+        private string GetProcessDescription(Process process)
+        {
+            try
+            {
+                return process.MainModule?.FileVersionInfo.FileDescription ?? "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        public void KillProcess(int processId)
+        {
+            try
+            {
+                Process process = Process.GetProcessById(processId);
+                process.Kill();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Không th? k?t thúc process: {ex.Message}");
+            }
+        }
+
+        public SystemInfo GetSystemInfo()
+        {
+            SystemInfo info = new SystemInfo();
+
+            try
+            {
+                PerformanceCounter cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+                PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
+
+                cpuCounter.NextValue();
+                System.Threading.Thread.Sleep(100);
+                info.CpuUsage = cpuCounter.NextValue();
+                info.AvailableRAM = ramCounter.NextValue();
+
+                info.TotalRAM = GetTotalPhysicalMemory();
+                info.UsedRAM = info.TotalRAM - info.AvailableRAM;
+                info.ProcessCount = Process.GetProcesses().Length;
+                info.ThreadCount = Process.GetProcesses().Sum(p => 
+                {
+                    try { return p.Threads.Count; } 
+                    catch { return 0; }
+                });
+            }
+            catch (Exception)
+            {
+                // S? d?ng giá tr? m?c ??nh
+            }
+
+            return info;
+        }
+
+        private float GetTotalPhysicalMemory()
+        {
+            try
+            {
+                ObjectQuery query = new ObjectQuery("SELECT Capacity FROM Win32_PhysicalMemory");
+                ManagementObjectSearcher searcher = new ManagementObjectSearcher(query);
+                
+                long totalBytes = 0;
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    totalBytes += Convert.ToInt64(obj["Capacity"]);
+                }
+                
+                return totalBytes / (1024f * 1024f);
+            }
+            catch
+            {
+                return 8192;
+            }
+        }
+
+        public void Cleanup()
+        {
+            foreach (var counter in cpuCounters.Values)
+            {
+                counter?.Dispose();
+            }
+            cpuCounters.Clear();
+            lastCpuCheckTime.Clear();
+            lastCpuTime.Clear();
+        }
+    }
+
+    public class SystemInfo
+    {
+        public double CpuUsage { get; set; }
+        public float TotalRAM { get; set; }
+        public float UsedRAM { get; set; }
+        public float AvailableRAM { get; set; }
+        public int ProcessCount { get; set; }
+        public int ThreadCount { get; set; }
+    }
+}

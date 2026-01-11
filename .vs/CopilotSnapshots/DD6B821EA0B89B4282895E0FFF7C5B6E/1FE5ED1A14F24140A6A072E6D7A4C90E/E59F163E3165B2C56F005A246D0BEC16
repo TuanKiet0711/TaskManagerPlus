@@ -1,0 +1,266 @@
+﻿# Task Manager Plus - Quản lý tiến trình nâng cao
+
+## Mô tả
+Task Manager Plus là ứng dụng quản lý tiến trình nâng cao được xây dựng bằng C# WinForms với giao diện hiện đại giống Windows Task Manager, cho phép theo dõi chi tiết và quản lý hệ thống.
+
+## ✨ Tính năng mới (v3.0) - MAJOR UPDATE!
+
+### 🎯 **Tab Processes - Nâng cao**
+- ✅ **Process Icons**: Hiển thị icon của từng ứng dụng
+- ✅ **Smart Sorting**: Click vào bất kỳ column nào để sắp xếp
+  - Sort indicators (▲▼)
+  - Sort by: Name, PID, CPU, Memory, Threads
+- ✅ **Color-coded CPU**: 
+  - 🟢 < 25%: Normal
+  - 🟠 25-50%: Moderate
+  - 🔴 > 50%: High
+- ✅ **Icon caching**: Tối ưu hiệu năng
+- ✅ **Row height**: 24px với icons đẹp
+
+### 📊 **Tab Performance - Chi tiết đầy đủ**
+- **CPU Information**:
+  - ✅ CPU Name (AMD Ryzen, Intel Core, etc.)
+  - ✅ Base speed (GHz)
+  - ✅ Current speed (GHz)
+  - ✅ Cores count
+  - ✅ Logical processors (threads)
+  - ✅ Temperature (°C) nếu hỗ trợ
+  
+- **Memory Information**:
+  - ✅ Total RAM
+  - ✅ In use / Available
+  - ✅ Usage percentage
+  - ✅ Committed memory
+
+- **GPU Information** (Multi-GPU support):
+  - ✅ GPU Name
+  - ✅ Dedicated memory
+  - ✅ GPU usage %
+  - ✅ Driver version
+  - ✅ Temperature
+  
+- **Disk Information** (All drives):
+  - ✅ Disk type (SSD/HDD detection)
+  - ✅ Active time %
+  - ✅ Read speed (MB/s)
+  - ✅ Write speed (MB/s)
+  - ✅ Capacity / Used space
+  - ✅ Temperature
+
+- **Network Information** (All adapters):
+  - ✅ Adapter name
+  - ✅ Connection type (Ethernet, WiFi, etc.)
+  - ✅ Send speed (KB/s, MB/s)
+  - ✅ Receive speed
+  - ✅ Link speed (Mbps/Gbps)
+  - ✅ IP Address
+
+### 🌡️ **Tab Temperature - MỚI!**
+- 📈 **Real-time Temperature Monitoring**
+- ✅ CPU Temperature with history chart
+- ✅ GPU Temperature (multi-GPU)
+- ✅ Disk Temperature (SMART data)
+- ✅ Color-coded status:
+  - 🟢 Cool: < 50°C
+  - 🔵 Normal: 50-70°C
+  - 🟠 High: 70-80°C
+  - 🔴 Critical: > 80°C
+- ✅ 60-second history graphs
+- ✅ Auto-scroll panel
+
+### 🚀 **Tab Startup**
+- ✅ Manage startup applications
+- ✅ Enable/Disable apps
+- ✅ Publisher information
+- ✅ Startup impact indicators
+- ✅ Registry-based detection
+
+### 📱 **Tab App History** (Placeholder)
+- Coming soon!
+
+## 🎨 Giao diện
+
+### Layout
+```
+┌─────────────────────────────────────────────────────┐
+│ [Logo TM+]  Task Manager+                           │
+├──────┬──────┬──────┬──────┬──────────────────────┤
+│Processes│Perf│Temp│Startup│App history          │ ← 5 Tabs
+├────────┴──────┴──────┴──────┴──────────────────────┤
+│                                                     │
+│  [Icon] Process Name    PID   CPU    Memory  ...   │ ← Processes
+│                                                     │
+│  ┌─────┐ CPU         ┌────────────────────┐       │
+│  │ 5%  │ RAM         │  Biểu đồ chi tiết  │       │ ← Performance
+│  │▁▂▃▄ │ GPU 0       │  + Detail panel    │       │
+│  └─────┘ Disk        └────────────────────┘       │
+│                                                     │
+│  🌡️ CPU: 45°C ──────────▁▂▃▄▃▂▁────────         │ ← Temperature
+│  🌡️ GPU: 55°C ──────────▁▂▃▄▅▄▃────────         │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+│ [🔄 Refresh] [Auto refresh] [3 sec] | Status      │
+└─────────────────────────────────────────────────────┘
+```
+
+## 🚀 Cải tiến hiệu năng
+
+### Processes Tab
+- Icon extraction với caching
+- Efficient sorting algorithms
+- Double buffering
+- Lazy loading
+
+### Performance Tab
+- Async data fetching
+- Separated hardware monitoring
+- Optimized WMI queries
+- Performance counter pooling
+
+### Temperature Tab
+- Custom GDI+ rendering
+- Gradient fills
+- Anti-aliased charts
+- Minimal resource usage
+
+## 📋 Yêu cầu hệ thống
+- .NET Framework 4.7.2+
+- Windows 7/8/10/11
+- Admin rights (khuyến nghị cho full features)
+- WMI support
+- SMART-capable drives (for temperatures)
+
+## 🔧 Chi tiết kỹ thuật
+
+### Models
+```csharp
+- ProcessInfo: Process data + Icon
+- HardwareInfo: Base hardware class
+- CpuInfo: CPU cores, threads, speeds
+- GpuInfo: GPU memory, drivers
+- DiskInfo: SSD/HDD, speeds, temps
+- NetworkInfo: Adapters, IP, speeds
+- StartupApp: Registry startup items
+```
+
+### Services
+```csharp
+- ProcessMonitor:
+  - GetAllProcesses() with icons
+  - CPU usage tracking
+  - Icon caching
+  
+- HardwareMonitor:
+  - GetCpuInfo() - detailed CPU data
+  - GetGpuInfo() - multi-GPU support
+  - GetDiskInfo() - SSD detection
+  - GetNetworkInfo() - real-time speeds
+  - Temperature readings (WMI/SMART)
+```
+
+### Controls (UserControls)
+```csharp
+- ProcessesTab: Enhanced with icons + sorting
+- PerformanceTab: Sidebar + detail views
+- PerformanceSidebar: Mini charts
+- TemperatureTab: Temperature monitoring
+- StartupTab: Startup management
+```
+
+## 🎯 So sánh Windows Task Manager
+
+| Tính năng | Windows TM | TM Plus v3.0 |
+|-----------|------------|--------------|
+| Process Icons | ✅ | ✅ |
+| CPU Cores/Threads | ✅ | ✅ |
+| GPU Monitoring | ✅ | ✅ (Multi-GPU) |
+| Disk Speed | ✅ | ✅ (Read+Write) |
+| Network Speed | ✅ | ✅ (Per adapter) |
+| Temperature | ❌ | ✅ (**NEW!**) |
+| Startup Manager | ✅ | ✅ |
+| Custom Icons | ❌ | ✅ |
+| Sorting | ✅ | ✅ (All columns) |
+| Color Coding | Partial | ✅ (Full) |
+
+## 📊 Color Scheme
+
+```csharp
+// Hardware colors
+CPU:     #0D6EFD (Blue)
+RAM:     #198754 (Green)  
+GPU:     #6C757D (Gray)
+Disk:    #20C997 (Teal)
+Network: #FFC107 (Yellow)
+
+// Status colors
+Cool:     #198754 (Green)  < 50°C
+Normal:   #0D6EFD (Blue)   50-70°C
+High:     #FFC107 (Orange) 70-80°C
+Critical: #DC3545 (Red)    > 80°C
+
+// Text
+Dark:  #343A40
+Gray:  #6C757D
+Light: #F8F9FA
+```
+
+## 🛠️ Troubleshooting
+
+### Icons không hiển thị
+- Chạy với quyền Admin
+- Một số system processes không có icons
+
+### Temperature hiển thị "N/A"
+- Cần driver hỗ trợ WMI
+- Một số hardware không expose temperature
+- Có thể cần OpenHardwareMonitor
+
+### Disk type shows "Unknown"
+- WMI query limitations
+- Fallback to generic detection
+
+### Network speed = 0
+- Cần thời gian để tính delta
+- Chờ 1-2 refresh cycles
+
+## 🎉 Changelog
+
+### v3.0 (Current)
+- ✨ NEW: Temperature monitoring tab
+- ✨ NEW: Process icons with caching
+- ✨ NEW: Full hardware details (cores, threads, speeds)
+- ✨ NEW: Disk type detection (SSD/HDD)
+- ✨ NEW: Network link speed
+- ✨ IMPROVED: Sorting on all columns
+- ✨ IMPROVED: Color-coded CPU usage
+- ✨ IMPROVED: Performance tab details
+- 🐛 FIXED: Lag issues with async operations
+- 🐛 FIXED: Memory leaks
+
+### v2.0
+- Giao diện tabs
+- Performance sidebar
+- Multi-hardware support
+- Async operations
+
+### v1.0
+- Basic process listing
+- Simple CPU/RAM monitoring
+
+## 🔮 Roadmap
+
+- [ ] Export data to CSV/Excel
+- [ ] Services tab
+- [ ] Users tab
+- [ ] Details tab (handles, modules)
+- [ ] Dark mode
+- [ ] OpenHardwareMonitor integration
+- [ ] Notification system
+- [ ] Process affinity management
+- [ ] Custom refresh rates per tab
+
+## 📝 Giấy phép
+MIT License
+
+## 👨‍💻 Contributors
+TaskManagerPlus Team - 2024

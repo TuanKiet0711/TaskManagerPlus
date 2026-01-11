@@ -1,0 +1,63 @@
+﻿using System;
+
+namespace TaskManagerPlus.Models
+{
+    public class HardwareInfo
+    {
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public double Usage { get; set; }
+        public string UsageText { get; set; }
+        public double Temperature { get; set; }
+        public string Details { get; set; }
+        public string Speed { get; set; }
+        public string Capacity { get; set; }
+    }
+
+    public class CpuInfo : HardwareInfo
+    {
+        public int Cores { get; set; }
+        public int LogicalProcessors { get; set; }
+        public double BaseSpeed { get; set; }
+        public double CurrentSpeed { get; set; }
+        public string CacheL1 { get; set; }
+        public string CacheL2 { get; set; }
+        public string CacheL3 { get; set; }
+    }
+
+    public class GpuInfo : HardwareInfo
+    {
+        public string DedicatedMemory { get; set; }
+        public string SharedMemory { get; set; }
+        public double GpuMemoryUsage { get; set; }
+    }
+
+    public class DiskInfo : HardwareInfo
+    {
+        public string DriveLetter { get; set; }
+        public long TotalSize { get; set; }
+        public long FreeSpace { get; set; }
+        public double ActiveTime { get; set; }
+        public double ReadSpeed { get; set; }
+        public double WriteSpeed { get; set; }
+    }
+
+    public class NetworkInfo : HardwareInfo
+    {
+        public string AdapterName { get; set; }
+        public double SendSpeed { get; set; }
+        public double ReceiveSpeed { get; set; }
+        public string IpAddress { get; set; }
+        public string ConnectionType { get; set; }
+    }
+
+    public class StartupApp
+    {
+        public string Name { get; set; }
+        public string Publisher { get; set; }
+        public string Status { get; set; }
+        public string StartupImpact { get; set; }
+        public string Location { get; set; }
+        public bool IsEnabled { get; set; }
+    }
+}

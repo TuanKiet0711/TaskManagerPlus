@@ -1,0 +1,327 @@
+﻿using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Management;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace TaskManagerPlus.Controls
+{
+    public partial class BatteryTab : UserControl
+    {
+        private BatteryInfo currentBatteryInfo;
+        private Timer updateTimer;
+
+        public BatteryTab()
+        {
+            InitializeComponent();
+            currentBatteryInfo = new BatteryInfo();
+            
+            updateTimer = new Timer();
+            updateTimer.Interval = 2000; // Update every 2 seconds
+            updateTimer.Tick += async (s, e) => await UpdateBatteryInfoAsync();
+        }
+
+        public void Initialize()
+        {
+            pictureBoxBattery.Paint += PictureBoxBattery_Paint;
+            updateTimer.Start();
+        }
+
+        public async Task UpdateBatteryInfoAsync()
+        {
+            try
+            {
+                currentBatteryInfo = await Task.Run(() => GetBatteryInfo());
+                pictureBoxBattery.Invalidate();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating battery: {ex.Message}");
+            }
+        }
+
+        private BatteryInfo GetBatteryInfo()
+        {
+            var info = new BatteryInfo();
+
+            try
+            {
+                PowerStatus powerStatus = SystemInformation.PowerStatus;
+                
+                info.ChargePercent = (int)(powerStatus.BatteryLifePercent * 100);
+                info.IsCharging = powerStatus.PowerLineStatus == PowerLineStatus.Online;
+                info.TimeRemaining = powerStatus.BatteryLifeRemaining;
+                
+                // Get detailed battery info from WMI
+                using (ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Battery"))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        info.BatteryName = obj["Name"]?.ToString() ?? "Battery";
+                        info.DesignCapacity = Convert.ToInt32(obj["DesignCapacity"] ?? 0);
+                        info.FullChargeCapacity = Convert.ToInt32(obj["FullChargeCapacity"] ?? 0);
+                        info.BatteryStatus = obj["BatteryStatus"]?.ToString() ?? "Unknown";
+                        info.EstimatedChargeRemaining = Convert.ToInt32(obj["EstimatedChargeRemaining"] ?? 0);
+                        
+                        // Calculate battery health
+                        if (info.DesignCapacity > 0)
+                        {
+                            info.BatteryHealth = (int)((double)info.FullChargeCapacity / info.DesignCapacity * 100);
+                        }
+                    }
+                }
+
+                // Get power plan
+                try
+                {
+                    using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(@"root\CIMV2\power", "SELECT * FROM Win32_PowerPlan WHERE IsActive=True"))
+                    {
+                        foreach (ManagementObject obj in searcher.Get())
+                        {
+                            info.PowerPlan = obj["ElementName"]?.ToString() ?? "Unknown";
+                        }
+                    }
+                }
+                catch { }
+            }
+            catch (Exception ex)
+            {
+                info.ErrorMessage = ex.Message;
+            }
+
+            return info;
+        }
+
+        private void PictureBoxBattery_Paint(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.Clear(Color.White);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            if (!string.IsNullOrEmpty(currentBatteryInfo.ErrorMessage))
+            {
+                DrawNoBatteryMessage(g);
+                return;
+            }
+
+            int centerX = pictureBoxBattery.Width / 2;
+            int yPos = 30;
+
+            // Draw large battery icon
+            DrawBatteryIcon(g, centerX - 100, yPos, 200, 120, currentBatteryInfo.ChargePercent);
+            yPos += 140;
+
+            // Draw charge percentage
+            using (Font largeFont = new Font("Segoe UI", 48F, FontStyle.Bold))
+            using (SolidBrush textBrush = new SolidBrush(GetBatteryColor(currentBatteryInfo.ChargePercent)))
+            {
+                string percentText = $"{currentBatteryInfo.ChargePercent}%";
+                SizeF textSize = g.MeasureString(percentText, largeFont);
+                g.DrawString(percentText, largeFont, textBrush, centerX - textSize.Width / 2, yPos);
+            }
+            yPos += 70;
+
+            // Draw status
+            string status = currentBatteryInfo.IsCharging ? "🔌 Charging" : "🔋 On Battery";
+            using (Font statusFont = new Font("Segoe UI", 16F, FontStyle.Bold))
+            using (SolidBrush statusBrush = new SolidBrush(currentBatteryInfo.IsCharging ? Color.FromArgb(25, 135, 84) : Color.FromArgb(52, 58, 64)))
+            {
+                SizeF statusSize = g.MeasureString(status, statusFont);
+                g.DrawString(status, statusFont, statusBrush, centerX - statusSize.Width / 2, yPos);
+            }
+            yPos += 50;
+
+            // Draw time remaining
+            if (!currentBatteryInfo.IsCharging && currentBatteryInfo.TimeRemaining > 0)
+            {
+                TimeSpan time = TimeSpan.FromSeconds(currentBatteryInfo.TimeRemaining);
+                string timeText = $"{time.Hours}h {time.Minutes}m remaining";
+                using (Font timeFont = new Font("Segoe UI", 12F))
+                using (SolidBrush timeBrush = new SolidBrush(Color.FromArgb(108, 117, 125)))
+                {
+                    SizeF timeSize = g.MeasureString(timeText, timeFont);
+                    g.DrawString(timeText, timeFont, timeBrush, centerX - timeSize.Width / 2, yPos);
+                }
+                yPos += 40;
+            }
+
+            // Draw details panel
+            DrawDetailsPanel(g, 50, yPos, pictureBoxBattery.Width - 100, 250);
+        }
+
+        private void DrawBatteryIcon(Graphics g, int x, int y, int width, int height, int chargePercent)
+        {
+            // Battery body
+            Rectangle batteryBody = new Rectangle(x + 10, y, width - 20, height);
+            
+            // Battery tip
+            Rectangle batteryTip = new Rectangle(x + width - 10, y + height / 3, 10, height / 3);
+
+            // Draw battery outline
+            using (Pen outlinePen = new Pen(Color.FromArgb(100, 100, 100), 4))
+            {
+                g.DrawRectangle(outlinePen, batteryBody);
+                g.FillRectangle(Brushes.Gray, batteryTip);
+            }
+
+            // Draw charge level
+            int chargeHeight = (int)(batteryBody.Height * chargePercent / 100.0);
+            int chargeY = batteryBody.Bottom - chargeHeight;
+            Rectangle chargeRect = new Rectangle(batteryBody.X + 5, chargeY + 5, batteryBody.Width - 10, chargeHeight - 10);
+
+            Color chargeColor = GetBatteryColor(chargePercent);
+            using (LinearGradientBrush chargeBrush = new LinearGradientBrush(
+                chargeRect,
+                Color.FromArgb(200, chargeColor),
+                chargeColor,
+                LinearGradientMode.Vertical))
+            {
+                g.FillRectangle(chargeBrush, chargeRect);
+            }
+        }
+
+        private void DrawDetailsPanel(Graphics g, int x, int y, int width, int height)
+        {
+            // Background
+            using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(248, 249, 250)))
+            using (Pen borderPen = new Pen(Color.FromArgb(200, 200, 200)))
+            {
+                g.FillRectangle(bgBrush, x, y, width, height);
+                g.DrawRectangle(borderPen, x, y, width, height);
+            }
+
+            int yPos = y + 20;
+            int leftCol = x + 30;
+            int rightCol = x + width / 2 + 30;
+
+            // Title
+            using (Font titleFont = new Font("Segoe UI Semibold", 14F, FontStyle.Bold))
+            using (SolidBrush titleBrush = new SolidBrush(Color.FromArgb(0, 120, 212)))
+            {
+                g.DrawString("Battery Details", titleFont, titleBrush, leftCol, yPos);
+            }
+            yPos += 45;
+
+            // Details
+            DrawDetail(g, "Battery Name:", currentBatteryInfo.BatteryName, leftCol, yPos);
+            DrawDetail(g, "Power Plan:", currentBatteryInfo.PowerPlan, rightCol, yPos);
+            yPos += 35;
+
+            DrawDetail(g, "Battery Health:", $"{currentBatteryInfo.BatteryHealth}%", leftCol, yPos);
+            DrawDetail(g, "Charge Status:", currentBatteryInfo.IsCharging ? "Charging" : "Discharging", rightCol, yPos);
+            yPos += 35;
+
+            if (currentBatteryInfo.DesignCapacity > 0)
+            {
+                DrawDetail(g, "Design Capacity:", $"{currentBatteryInfo.DesignCapacity} mWh", leftCol, yPos);
+                DrawDetail(g, "Full Charge Capacity:", $"{currentBatteryInfo.FullChargeCapacity} mWh", rightCol, yPos);
+                yPos += 35;
+            }
+
+            // Battery health bar
+            yPos += 10;
+            DrawHealthBar(g, leftCol, yPos, width - 60, currentBatteryInfo.BatteryHealth);
+        }
+
+        private void DrawDetail(Graphics g, string label, string value, int x, int y)
+        {
+            using (Font labelFont = new Font("Segoe UI", 9F))
+            using (Font valueFont = new Font("Segoe UI Semibold", 10F, FontStyle.Bold))
+            using (SolidBrush labelBrush = new SolidBrush(Color.FromArgb(108, 117, 125)))
+            using (SolidBrush valueBrush = new SolidBrush(Color.FromArgb(52, 58, 64)))
+            {
+                g.DrawString(label, labelFont, labelBrush, x, y);
+                g.DrawString(value, valueFont, valueBrush, x, y + 15);
+            }
+        }
+
+        private void DrawHealthBar(Graphics g, int x, int y, int width, int health)
+        {
+            using (Font labelFont = new Font("Segoe UI", 9F))
+            using (SolidBrush labelBrush = new SolidBrush(Color.FromArgb(108, 117, 125)))
+            {
+                g.DrawString("Battery Health:", labelFont, labelBrush, x, y);
+            }
+
+            int barY = y + 25;
+            int barHeight = 25;
+
+            // Background
+            using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(220, 220, 220)))
+            {
+                g.FillRectangle(bgBrush, x, barY, width, barHeight);
+            }
+
+            // Health bar
+            int healthWidth = (int)(width * health / 100.0);
+            Color healthColor = health >= 80 ? Color.FromArgb(25, 135, 84) : 
+                              health >= 50 ? Color.FromArgb(255, 193, 7) : 
+                              Color.FromArgb(220, 53, 69);
+
+            using (SolidBrush healthBrush = new SolidBrush(healthColor))
+            {
+                g.FillRectangle(healthBrush, x, barY, healthWidth, barHeight);
+            }
+
+            // Text
+            using (Font percentFont = new Font("Segoe UI Semibold", 10F, FontStyle.Bold))
+            using (SolidBrush textBrush = new SolidBrush(Color.White))
+            {
+                string healthText = $"{health}%";
+                SizeF textSize = g.MeasureString(healthText, percentFont);
+                g.DrawString(healthText, percentFont, textBrush, x + width / 2 - textSize.Width / 2, barY + 4);
+            }
+        }
+
+        private void DrawNoBatteryMessage(Graphics g)
+        {
+            using (Font font = new Font("Segoe UI", 14F))
+            using (SolidBrush brush = new SolidBrush(Color.FromArgb(108, 117, 125)))
+            {
+                StringFormat sf = new StringFormat();
+                sf.Alignment = StringAlignment.Center;
+                sf.LineAlignment = StringAlignment.Center;
+                g.DrawString("No battery detected.\nThis device may be using AC power only.",
+                    font, brush, new RectangleF(0, 0, pictureBoxBattery.Width, pictureBoxBattery.Height), sf);
+            }
+        }
+
+        private Color GetBatteryColor(int percent)
+        {
+            if (percent >= 50)
+                return Color.FromArgb(25, 135, 84); // Green
+            else if (percent >= 20)
+                return Color.FromArgb(255, 193, 7); // Yellow
+            else
+                return Color.FromArgb(220, 53, 69); // Red
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                updateTimer?.Stop();
+                updateTimer?.Dispose();
+                components?.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        private class BatteryInfo
+        {
+            public string BatteryName { get; set; } = "Battery";
+            public int ChargePercent { get; set; }
+            public bool IsCharging { get; set; }
+            public int TimeRemaining { get; set; }
+            public int DesignCapacity { get; set; }
+            public int FullChargeCapacity { get; set; }
+            public int BatteryHealth { get; set; } = 100;
+            public string BatteryStatus { get; set; } = "Unknown";
+            public int EstimatedChargeRemaining { get; set; }
+            public string PowerPlan { get; set; } = "Balanced";
+            public string ErrorMessage { get; set; }
+        }
+    }
+}

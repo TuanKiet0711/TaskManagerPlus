@@ -1,0 +1,228 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Drawing;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using TaskManagerPlus.Services;
+
+namespace TaskManagerPlus.Controls
+{
+    public partial class AppHistoryTab : UserControl
+    {
+        private AppUsageDatabase database;
+        private BindingList<AppHistoryItem> historyItems;
+        private DateTime selectedStartDate;
+        private DateTime selectedEndDate;
+
+        public AppHistoryTab()
+        {
+            InitializeComponent();
+            database = new AppUsageDatabase();
+            historyItems = new BindingList<AppHistoryItem>();
+            selectedStartDate = DateTime.Today.AddDays(-7);
+            selectedEndDate = DateTime.Today;
+        }
+
+        public void Initialize()
+        {
+            SetupDataGridView();
+            SetupDatePickers();
+        }
+
+        private void SetupDatePickers()
+        {
+            dateTimePickerStart.Value = selectedStartDate;
+            dateTimePickerEnd.Value = selectedEndDate;
+            
+            dateTimePickerStart.ValueChanged += DatePicker_ValueChanged;
+            dateTimePickerEnd.ValueChanged += DatePicker_ValueChanged;
+        }
+
+        private void SetupDataGridView()
+        {
+            dataGridViewHistory.AutoGenerateColumns = false;
+            dataGridViewHistory.Columns.Clear();
+            dataGridViewHistory.DoubleBuffered(true);
+            dataGridViewHistory.RowTemplate.Height = 28;
+
+            dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "ProcessName",
+                HeaderText = "Application",
+                Width = 250,
+                FillWeight = 30
+            });
+
+            dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "FormattedDuration",
+                HeaderText = "Total Runtime",
+                Width = 120,
+                FillWeight = 15,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "AverageCpu",
+                HeaderText = "Avg CPU",
+                Width = 100,
+                FillWeight = 12,
+                DefaultCellStyle = new DataGridViewCellStyle 
+                { 
+                    Alignment = DataGridViewContentAlignment.MiddleRight,
+                    Format = "F1"
+                }
+            });
+
+            dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "FormattedMemory",
+                HeaderText = "Avg Memory",
+                Width = 120,
+                FillWeight = 15,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "LaunchCount",
+                HeaderText = "Launch Count",
+                Width = 100,
+                FillWeight = 12,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dataGridViewHistory.DataSource = historyItems;
+            dataGridViewHistory.CellFormatting += DataGridViewHistory_CellFormatting;
+        }
+
+        private void DataGridViewHistory_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (dataGridViewHistory.Columns[e.ColumnIndex].DataPropertyName == "AverageCpu" && e.RowIndex >= 0)
+            {
+                if (e.Value != null && double.TryParse(e.Value.ToString(), out double cpuValue))
+                {
+                    if (cpuValue > 50)
+                        e.CellStyle.ForeColor = Color.FromArgb(220, 53, 69);
+                    else if (cpuValue > 25)
+                        e.CellStyle.ForeColor = Color.FromArgb(255, 193, 7);
+                }
+            }
+        }
+
+        public async Task LoadHistoryAsync()
+        {
+            try
+            {
+                var items = await Task.Run(() => database.GetAppHistory(selectedStartDate, selectedEndDate));
+                
+                historyItems.Clear();
+                foreach (var item in items)
+                {
+                    historyItems.Add(item);
+                }
+
+                UpdateStatistics(items);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading history: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Alias for compatibility
+        public async Task LoadAppHistoryAsync()
+        {
+            await LoadHistoryAsync();
+        }
+
+        private void UpdateStatistics(List<AppHistoryItem> items)
+        {
+            if (items.Count == 0)
+            {
+                lblTotalApps.Text = "Total Apps: 0";
+                lblTotalTime.Text = "Total Time: 0h";
+                lblMostUsed.Text = "Most Used: N/A";
+                return;
+            }
+
+            lblTotalApps.Text = $"Total Apps: {items.Count}";
+            
+            int totalSeconds = items.Sum(i => i.TotalDuration);
+            TimeSpan totalTime = TimeSpan.FromSeconds(totalSeconds);
+            lblTotalTime.Text = $"Total Time: {(int)totalTime.TotalHours}h {totalTime.Minutes}m";
+
+            var mostUsed = items.OrderByDescending(i => i.TotalDuration).FirstOrDefault();
+            if (mostUsed != null)
+            {
+                lblMostUsed.Text = $"Most Used: {mostUsed.ProcessName} ({mostUsed.FormattedDuration})";
+            }
+        }
+
+        private async void DatePicker_ValueChanged(object sender, EventArgs e)
+        {
+            selectedStartDate = dateTimePickerStart.Value.Date;
+            selectedEndDate = dateTimePickerEnd.Value.Date;
+            await LoadHistoryAsync();
+        }
+
+        private async void btnRefresh_Click(object sender, EventArgs e)
+        {
+            btnRefresh.Enabled = false;
+            await LoadHistoryAsync();
+            btnRefresh.Enabled = true;
+        }
+
+        private void btnLast7Days_Click(object sender, EventArgs e)
+        {
+            dateTimePickerStart.Value = DateTime.Today.AddDays(-7);
+            dateTimePickerEnd.Value = DateTime.Today;
+        }
+
+        private void btnLast30Days_Click(object sender, EventArgs e)
+        {
+            dateTimePickerStart.Value = DateTime.Today.AddDays(-30);
+            dateTimePickerEnd.Value = DateTime.Today;
+        }
+
+        private void btnClearData_Click(object sender, EventArgs e)
+        {
+            DialogResult result = MessageBox.Show(
+                "Are you sure you want to clear all app history data? This cannot be undone.",
+                "Confirm Clear Data",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
+            if (result == DialogResult.Yes)
+            {
+                try
+                {
+                    database.CleanOldData(0); // Delete all
+                    LoadHistoryAsync();
+                    MessageBox.Show("App history data cleared successfully.", "Success",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error clearing data: {ex.Message}", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+    }
+
+    public static class DataGridViewExtensions
+    {
+        public static void DoubleBuffered(this DataGridView dgv, bool setting)
+        {
+            Type dgvType = dgv.GetType();
+            System.Reflection.PropertyInfo pi = dgvType.GetProperty("DoubleBuffered",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            pi?.SetValue(dgv, setting, null);
+        }
+    }
+}

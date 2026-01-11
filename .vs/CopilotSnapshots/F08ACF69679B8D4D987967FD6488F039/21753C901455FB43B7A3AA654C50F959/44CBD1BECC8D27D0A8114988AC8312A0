@@ -1,0 +1,339 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Data.SQLite;
+using System.IO;
+using System.Linq;
+
+namespace TaskManagerPlus.Services
+{
+    public class AppUsageDatabase
+    {
+        private string connectionString;
+        private string dbPath;
+
+        public AppUsageDatabase()
+        {
+            string appDataPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "TaskManagerPlus");
+            
+            if (!Directory.Exists(appDataPath))
+            {
+                Directory.CreateDirectory(appDataPath);
+            }
+
+            dbPath = Path.Combine(appDataPath, "AppUsage.db");
+            connectionString = $"Data Source={dbPath};Version=3;";
+            
+            InitializeDatabase();
+        }
+
+        private void InitializeDatabase()
+        {
+            using (var connection = new SQLiteConnection(connectionString))
+            {
+                connection.Open();
+
+                string createAppSessionsTable = @"
+                    CREATE TABLE IF NOT EXISTS AppSessions (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ProcessName TEXT NOT NULL,
+                        ExecutablePath TEXT,
+                        StartTime DATETIME NOT NULL,
+                        EndTime DATETIME,
+                        Duration INTEGER,
+                        IsActive INTEGER DEFAULT 1
+                    )";
+
+                string createAppStatsTable = @"
+                    CREATE TABLE IF NOT EXISTS AppStats (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ProcessName TEXT NOT NULL,
+                        RecordTime DATETIME NOT NULL,
+                        CpuUsage REAL,
+                        MemoryUsage INTEGER,
+                        DiskUsage REAL,
+                        NetworkUsage REAL
+                    )";
+
+                string createDailySummaryTable = @"
+                    CREATE TABLE IF NOT EXISTS DailySummary (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Date TEXT NOT NULL,
+                        ProcessName TEXT NOT NULL,
+                        TotalDuration INTEGER,
+                        AverageCpu REAL,
+                        AverageMemory INTEGER,
+                        LaunchCount INTEGER,
+                        UNIQUE(Date, ProcessName)
+                    )";
+
+                using (var command = new SQLiteCommand(createAppSessionsTable, connection))
+                {
+                    command.ExecuteNonQuery();
+                }
+
+                using (var command = new SQLiteCommand(createAppStatsTable, connection))
+                {
+                    command.ExecuteNonQuery();
+                }
+
+                using (var command = new SQLiteCommand(createDailySummaryTable, connection))
+                {
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void StartAppSession(string processName, string executablePath)
+        {
+            using (var connection = new SQLiteConnection(connectionString))
+            {
+                connection.Open();
+
+                string query = @"
+                    INSERT INTO AppSessions (ProcessName, ExecutablePath, StartTime, IsActive)
+                    VALUES (@ProcessName, @ExecutablePath, @StartTime, 1)";
+
+                using (var command = new SQLiteCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@ProcessName", processName);
+                    command.Parameters.AddWithValue("@ExecutablePath", executablePath ?? "");
+                    command.Parameters.AddWithValue("@StartTime", DateTime.Now);
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void EndAppSession(string processName)
+        {
+            using (var connection = new SQLiteConnection(connectionString))
+            {
+                connection.Open();
+
+                DateTime now = DateTime.Now;
+                
+                string query = @"
+                    UPDATE AppSessions 
+                    SET EndTime = @EndTime, 
+                        Duration = CAST((julianday(@EndTime) - julianday(StartTime)) * 86400 AS INTEGER),
+                        IsActive = 0
+                    WHERE ProcessName = @ProcessName AND IsActive = 1";
+
+                using (var command = new SQLiteCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@EndTime", now);
+                    command.Parameters.AddWithValue("@ProcessName", processName);
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void RecordAppStats(string processName, double cpuUsage, long memoryUsage, double diskUsage, double networkUsage)
+        {
+            using (var connection = new SQLiteConnection(connectionString))
+            {
+                connection.Open();
+
+                string query = @"
+                    INSERT INTO AppStats (ProcessName, RecordTime, CpuUsage, MemoryUsage, DiskUsage, NetworkUsage)
+                    VALUES (@ProcessName, @RecordTime, @CpuUsage, @MemoryUsage, @DiskUsage, @NetworkUsage)";
+
+                using (var command = new SQLiteCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@ProcessName", processName);
+                    command.Parameters.AddWithValue("@RecordTime", DateTime.Now);
+                    command.Parameters.AddWithValue("@CpuUsage", cpuUsage);
+                    command.Parameters.AddWithValue("@MemoryUsage", memoryUsage);
+                    command.Parameters.AddWithValue("@DiskUsage", diskUsage);
+                    command.Parameters.AddWithValue("@NetworkUsage", networkUsage);
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void UpdateDailySummary()
+        {
+            using (var connection = new SQLiteConnection(connectionString))
+            {
+                connection.Open();
+
+                string today = DateTime.Today.ToString("yyyy-MM-dd");
+
+                string query = @"
+                    INSERT OR REPLACE INTO DailySummary (Date, ProcessName, TotalDuration, AverageCpu, AverageMemory, LaunchCount)
+                    SELECT 
+                        @Date,
+                        ProcessName,
+                        SUM(Duration) as TotalDuration,
+                        AVG(CpuUsage) as AverageCpu,
+                        AVG(MemoryUsage) as AverageMemory,
+                        COUNT(DISTINCT Id) as LaunchCount
+                    FROM (
+                        SELECT s.ProcessName, s.Duration, a.CpuUsage, a.MemoryUsage, s.Id
+                        FROM AppSessions s
+                        LEFT JOIN AppStats a ON s.ProcessName = a.ProcessName AND DATE(a.RecordTime) = @Date
+                        WHERE DATE(s.StartTime) = @Date
+                    )
+                    GROUP BY ProcessName";
+
+                using (var command = new SQLiteCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Date", today);
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public List<AppHistoryItem> GetAppHistory(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var items = new List<AppHistoryItem>();
+
+            using (var connection = new SQLiteConnection(connectionString))
+            {
+                connection.Open();
+
+                string query = @"
+                    SELECT 
+                        ProcessName,
+                        SUM(Duration) as TotalDuration,
+                        AVG(CpuUsage) as AverageCpu,
+                        AVG(MemoryUsage) as AverageMemory,
+                        COUNT(DISTINCT s.Id) as LaunchCount
+                    FROM AppSessions s
+                    LEFT JOIN AppStats a ON s.ProcessName = a.ProcessName
+                    WHERE (@StartDate IS NULL OR DATE(s.StartTime) >= @StartDate)
+                      AND (@EndDate IS NULL OR DATE(s.StartTime) <= @EndDate)
+                    GROUP BY ProcessName
+                    ORDER BY TotalDuration DESC";
+
+                using (var command = new SQLiteCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@StartDate", startDate?.ToString("yyyy-MM-dd") ?? (object)DBNull.Value);
+                    command.Parameters.AddWithValue("@EndDate", endDate?.ToString("yyyy-MM-dd") ?? (object)DBNull.Value);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            items.Add(new AppHistoryItem
+                            {
+                                ProcessName = reader.GetString(0),
+                                TotalDuration = reader.IsDBNull(1) ? 0 : reader.GetInt32(1),
+                                AverageCpu = reader.IsDBNull(2) ? 0 : reader.GetDouble(2),
+                                AverageMemory = reader.IsDBNull(3) ? 0 : reader.GetInt64(3),
+                                LaunchCount = reader.GetInt32(4)
+                            });
+                        }
+                    }
+                }
+            }
+
+            return items;
+        }
+
+        public List<DailySummaryItem> GetDailySummary(int days = 7)
+        {
+            var items = new List<DailySummaryItem>();
+
+            using (var connection = new SQLiteConnection(connectionString))
+            {
+                connection.Open();
+
+                string query = @"
+                    SELECT Date, ProcessName, TotalDuration, AverageCpu, AverageMemory, LaunchCount
+                    FROM DailySummary
+                    WHERE Date >= DATE('now', '-' || @Days || ' days')
+                    ORDER BY Date DESC, TotalDuration DESC";
+
+                using (var command = new SQLiteCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Days", days);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            items.Add(new DailySummaryItem
+                            {
+                                Date = reader.GetString(0),
+                                ProcessName = reader.GetString(1),
+                                TotalDuration = reader.GetInt32(2),
+                                AverageCpu = reader.IsDBNull(3) ? 0 : reader.GetDouble(3),
+                                AverageMemory = reader.IsDBNull(4) ? 0 : reader.GetInt64(4),
+                                LaunchCount = reader.GetInt32(5)
+                            });
+                        }
+                    }
+                }
+            }
+
+            return items;
+        }
+
+        public void CleanOldData(int daysToKeep = 30)
+        {
+            using (var connection = new SQLiteConnection(connectionString))
+            {
+                connection.Open();
+
+                string query = @"
+                    DELETE FROM AppSessions WHERE DATE(StartTime) < DATE('now', '-' || @Days || ' days');
+                    DELETE FROM AppStats WHERE DATE(RecordTime) < DATE('now', '-' || @Days || ' days');
+                    DELETE FROM DailySummary WHERE Date < DATE('now', '-' || @Days || ' days');";
+
+                using (var command = new SQLiteCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Days", daysToKeep);
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+    }
+
+    public class AppHistoryItem
+    {
+        public string ProcessName { get; set; }
+        public int TotalDuration { get; set; }
+        public double AverageCpu { get; set; }
+        public long AverageMemory { get; set; }
+        public int LaunchCount { get; set; }
+
+        public string FormattedDuration
+        {
+            get
+            {
+                TimeSpan ts = TimeSpan.FromSeconds(TotalDuration);
+                if (ts.TotalHours >= 1)
+                    return $"{(int)ts.TotalHours}h {ts.Minutes}m";
+                else
+                    return $"{ts.Minutes}m {ts.Seconds}s";
+            }
+        }
+
+        public string FormattedMemory
+        {
+            get
+            {
+                if (AverageMemory < 1024)
+                    return $"{AverageMemory} B";
+                else if (AverageMemory < 1024 * 1024)
+                    return $"{AverageMemory / 1024.0:F1} KB";
+                else if (AverageMemory < 1024 * 1024 * 1024)
+                    return $"{AverageMemory / (1024.0 * 1024.0):F1} MB";
+                else
+                    return $"{AverageMemory / (1024.0 * 1024.0 * 1024.0):F2} GB";
+            }
+        }
+    }
+
+    public class DailySummaryItem
+    {
+        public string Date { get; set; }
+        public string ProcessName { get; set; }
+        public int TotalDuration { get; set; }
+        public double AverageCpu { get; set; }
+        public long AverageMemory { get; set; }
+        public int LaunchCount { get; set; }
+    }
+}

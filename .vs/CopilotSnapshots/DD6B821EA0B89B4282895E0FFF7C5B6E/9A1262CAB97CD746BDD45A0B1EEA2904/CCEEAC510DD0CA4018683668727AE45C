@@ -1,0 +1,103 @@
+﻿# Task Manager Plus - Qu?n lý ti?n trình nâng cao
+
+## Mô t?
+Task Manager Plus là ?ng d?ng qu?n lý ti?n trình nâng cao ???c xây d?ng b?ng C# WinForms, cho phép theo dõi và qu?n lý các ti?n trình ?ang ch?y trên h? th?ng.
+
+## Tính n?ng chính
+
+### 1. Hi?n th? danh sách ti?n trình
+- Tên ti?n trình và Process ID (PID)
+- B? nh? s? d?ng (hi?n th? ? d?ng MB/GB)
+- CPU usage (%) - Ph?n tr?m CPU ?ang s? d?ng
+- S? l??ng lu?ng (threads)
+- Mô t? c?a ti?n trình
+
+### 2. Thông tin h? th?ng
+- **CPU Usage**: Hi?n th? ph?n tr?m CPU ?ang s? d?ng
+  - Màu xanh: < 50%
+  - Màu cam: 50-80%
+  - Màu ??: > 80%
+- **RAM Usage**: Hi?n th? RAM ?ã dùng/t?ng RAM
+  - Màu xanh: < 60%
+  - Màu cam: 60-80%
+  - Màu ??: > 80%
+- **S? ti?n trình**: T?ng s? ti?n trình ?ang ch?y
+- **S? lu?ng**: T?ng s? lu?ng trong h? th?ng
+
+### 3. Ch?c n?ng qu?n lý
+- **Làm m?i**: C?p nh?t danh sách ti?n trình th? công
+- **K?t thúc ti?n trình**: D?ng ti?n trình ?ã ch?n (c?n quy?n admin cho m?t s? ti?n trình)
+- **T? ??ng làm m?i**: T? ??ng c?p nh?t m?i 2 giây
+- **Tìm ki?m**: Tìm ki?m ti?n trình theo tên, PID ho?c mô t?
+
+## C?u trúc d? án
+
+```
+TaskManagerPlus/
+?
+??? Models/
+?   ??? ProcessInfo.cs          # Model ch?a thông tin process
+?
+??? Services/
+?   ??? ProcessMonitor.cs       # Service ?? giám sát và l?y thông tin process
+?
+??? Form1.cs                     # Code-behind c?a form chính
+??? Form1.Designer.cs            # Designer code c?a form
+??? Program.cs                   # Entry point c?a ?ng d?ng
+```
+
+## Yêu c?u h? th?ng
+- .NET Framework 4.7.2 tr? lên
+- Windows 7/8/10/11
+- Quy?n admin (khuy?n ngh? ?? k?t thúc m?t s? ti?n trình h? th?ng)
+
+## H??ng d?n s? d?ng
+
+### 1. Xem danh sách ti?n trình
+- Kh?i ??ng ?ng d?ng
+- Danh sách ti?n trình s? t? ??ng hi?n th?, s?p x?p theo m?c s? d?ng RAM gi?m d?n
+
+### 2. Tìm ki?m ti?n trình
+- Nh?p tên ti?n trình, PID ho?c mô t? vào ô "Tìm ki?m"
+- Danh sách s? t? ??ng l?c theo t? khóa
+
+### 3. K?t thúc ti?n trình
+- Ch?n ti?n trình mu?n k?t thúc trong danh sách
+- Nh?n nút "K?t thúc ti?n trình"
+- Xác nh?n trong h?p tho?i
+
+### 4. T? ??ng c?p nh?t
+- ?ánh d?u vào "T? ??ng làm m?i" ?? c?p nh?t liên t?c
+- B? ?ánh d?u ?? d?ng c?p nh?t t? ??ng
+- S? d?ng nút "Làm m?i" ?? c?p nh?t th? công
+
+## L?u ý k? thu?t
+
+### ProcessInfo.cs
+- Model ch?a các thu?c tính c?a ti?n trình
+- Hàm `GetMemoryFormatted()` ?? format b? nh? theo ??n v? phù h?p
+
+### ProcessMonitor.cs  
+- `GetAllProcesses()`: L?y danh sách t?t c? ti?n trình
+- `GetCpuUsage()`: Tính toán CPU usage theo th?i gian
+- `GetSystemInfo()`: L?y thông tin t?ng quan h? th?ng
+- `KillProcess()`: K?t thúc ti?n trình theo PID
+- `Cleanup()`: Gi?i phóng tài nguyên khi ?óng ?ng d?ng
+
+### Form1.cs
+- `SetupDataGridView()`: C?u hình các c?t hi?n th?
+- `LoadProcesses()`: Load và hi?n th? danh sách ti?n trình
+- `FilterAndDisplayProcesses()`: L?c ti?n trình theo tìm ki?m
+- `UpdateSystemInfo()`: C?p nh?t thông tin h? th?ng v?i màu s?c t??ng ?ng
+
+## Các c?i ti?n có th? thêm
+- [ ] Hi?n th? bi?u ?? CPU/RAM theo th?i gian
+- [ ] Export danh sách ti?n trình ra file CSV/Excel
+- [ ] Thêm tab qu?n lý Services
+- [ ] Thêm tab theo dõi Network usage
+- [ ] Hi?n th? thông tin chi ti?t h?n v? t?ng process (modules, handles)
+- [ ] Thêm dark mode
+- [ ] L?u cài ??t ng??i dùng (refresh interval, c?t hi?n th?)
+
+## Gi?y phép
+MIT License - T? do s? d?ng và ch?nh s?a

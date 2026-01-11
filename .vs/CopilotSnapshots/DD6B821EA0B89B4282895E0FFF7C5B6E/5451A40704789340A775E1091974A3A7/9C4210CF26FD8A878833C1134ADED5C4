@@ -1,0 +1,158 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using TaskManagerPlus.Services;
+
+namespace TaskManagerPlus.Controls
+{
+    public partial class PerformanceTab : UserControl
+    {
+        private ProcessMonitor processMonitor;
+        private Queue<double> cpuHistory;
+        private Queue<double> ramHistory;
+        private const int MaxHistoryPoints = 60;
+
+        public ProcessMonitor ProcessMonitor
+        {
+            get { return processMonitor; }
+            set { processMonitor = value; }
+        }
+
+        public PerformanceTab()
+        {
+            InitializeComponent();
+            cpuHistory = new Queue<double>();
+            ramHistory = new Queue<double>();
+        }
+
+        public void Initialize()
+        {
+            pictureBoxCpu.Paint += PictureBoxCpu_Paint;
+            pictureBoxRam.Paint += PictureBoxRam_Paint;
+        }
+
+        private void PictureBoxCpu_Paint(object sender, PaintEventArgs e)
+        {
+            DrawChart(e.Graphics, cpuHistory, Color.FromArgb(13, 110, 253), pictureBoxCpu.Width, pictureBoxCpu.Height);
+        }
+
+        private void PictureBoxRam_Paint(object sender, PaintEventArgs e)
+        {
+            DrawChart(e.Graphics, ramHistory, Color.FromArgb(25, 135, 84), pictureBoxRam.Width, pictureBoxRam.Height);
+        }
+
+        private void DrawChart(Graphics g, Queue<double> data, Color lineColor, int width, int height)
+        {
+            g.Clear(Color.White);
+            
+            if (data.Count < 2)
+                return;
+
+            // Draw grid
+            using (Pen gridPen = new Pen(Color.FromArgb(230, 230, 230)))
+            {
+                for (int i = 0; i <= 4; i++)
+                {
+                    int y = (int)(height * i / 4.0);
+                    g.DrawLine(gridPen, 0, y, width, y);
+                }
+            }
+
+            // Draw baseline
+            using (Pen baselinePen = new Pen(Color.FromArgb(200, 200, 200)))
+            {
+                g.DrawLine(baselinePen, 0, height - 1, width, height - 1);
+            }
+
+            // Draw data line
+            var points = new List<PointF>();
+            var dataArray = data.ToArray();
+            
+            for (int i = 0; i < dataArray.Length; i++)
+            {
+                float x = (float)(width * i / (MaxHistoryPoints - 1.0));
+                float y = (float)(height - (height * dataArray[i] / 100.0));
+                points.Add(new PointF(x, y));
+            }
+
+            if (points.Count > 1)
+            {
+                // Draw gradient fill
+                using (GraphicsPath path = new GraphicsPath())
+                {
+                    path.AddLines(points.ToArray());
+                    path.AddLine(points[points.Count - 1].X, points[points.Count - 1].Y, points[points.Count - 1].X, height);
+                    path.AddLine(points[points.Count - 1].X, height, points[0].X, height);
+                    path.CloseFigure();
+
+                    Color fillColor = Color.FromArgb(50, lineColor);
+                    using (SolidBrush brush = new SolidBrush(fillColor))
+                    {
+                        g.FillPath(brush, path);
+                    }
+                }
+
+                // Draw line
+                using (Pen linePen = new Pen(lineColor, 2))
+                {
+                    linePen.LineJoin = LineJoin.Round;
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    g.DrawLines(linePen, points.ToArray());
+                }
+            }
+        }
+
+        public async Task UpdatePerformanceAsync()
+        {
+            if (processMonitor == null) return;
+
+            try
+            {
+                var systemInfo = await Task.Run(() => processMonitor.GetSystemInfo());
+
+                cpuHistory.Enqueue(systemInfo.CpuUsage);
+                if (cpuHistory.Count > MaxHistoryPoints)
+                    cpuHistory.Dequeue();
+
+                double ramPercent = (systemInfo.UsedRAM / systemInfo.TotalRAM) * 100;
+                ramHistory.Enqueue(ramPercent);
+                if (ramHistory.Count > MaxHistoryPoints)
+                    ramHistory.Dequeue();
+
+                pictureBoxCpu.Invalidate();
+                pictureBoxRam.Invalidate();
+
+                lblCpuValue.Text = $"{systemInfo.CpuUsage:F1}%";
+                lblCpuValue.ForeColor = GetColorForPercentage(systemInfo.CpuUsage);
+
+                lblRamValue.Text = $"{ramPercent:F1}%";
+                lblRamValue.ForeColor = GetColorForPercentage(ramPercent);
+
+                lblRamDetails.Text = $"{systemInfo.UsedRAM:F0} MB / {systemInfo.TotalRAM:F0} MB";
+                lblProcessCount.Text = $"{systemInfo.ProcessCount} ti?n trình";
+                lblThreadCount.Text = $"{systemInfo.ThreadCount} lu?ng";
+
+                progressCpu.Value = Math.Min((int)systemInfo.CpuUsage, 100);
+                progressRam.Value = Math.Min((int)ramPercent, 100);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"L?i c?p nh?t hi?u n?ng: {ex.Message}");
+            }
+        }
+
+        private Color GetColorForPercentage(double percent)
+        {
+            if (percent > 80)
+                return Color.FromArgb(220, 53, 69);
+            else if (percent > 60)
+                return Color.FromArgb(255, 193, 7);
+            else
+                return Color.FromArgb(25, 135, 84);
+        }
+    }
+}

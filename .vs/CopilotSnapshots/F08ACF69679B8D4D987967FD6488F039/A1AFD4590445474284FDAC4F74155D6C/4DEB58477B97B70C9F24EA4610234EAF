@@ -1,0 +1,287 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using TaskManagerPlus.Models;
+using TaskManagerPlus.Services;
+
+namespace TaskManagerPlus.Controls
+{
+    public partial class ProcessesTab : UserControl
+    {
+        private ProcessMonitor processMonitor;
+        private List<ProcessInfo> allProcesses;
+        private BindingList<ProcessInfo> displayedProcesses;
+        private string currentSortColumn = "MemoryBytes";
+        private bool sortAscending = false;
+
+        public ProcessMonitor ProcessMonitor
+        {
+            get { return processMonitor; }
+            set { processMonitor = value; }
+        }
+
+        public ProcessesTab()
+        {
+            InitializeComponent();
+            displayedProcesses = new BindingList<ProcessInfo>();
+        }
+
+        public void Initialize()
+        {
+            SetupDataGridView();
+        }
+
+        private void SetupDataGridView()
+        {
+            dataGridViewProcesses.AutoGenerateColumns = false;
+            dataGridViewProcesses.Columns.Clear();
+            dataGridViewProcesses.DoubleBuffered(true);
+            dataGridViewProcesses.RowTemplate.Height = 24;
+
+            // Icon column
+            DataGridViewImageColumn iconColumn = new DataGridViewImageColumn
+            {
+                HeaderText = "",
+                Width = 24,
+                ImageLayout = DataGridViewImageCellLayout.Zoom,
+                Resizable = DataGridViewTriState.False
+            };
+            dataGridViewProcesses.Columns.Add(iconColumn);
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "ProcessName",
+                HeaderText = "Tên tiến trình",
+                Width = 250,
+                FillWeight = 30
+            });
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "ProcessId",
+                HeaderText = "PID",
+                Width = 80,
+                FillWeight = 10,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "CpuUsage",
+                HeaderText = "CPU (%)",
+                Width = 100,
+                FillWeight = 12,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Alignment = DataGridViewContentAlignment.MiddleRight,
+                    Format = "F1"
+                }
+            });
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "MemoryUsage",
+                HeaderText = "Bộ nhớ",
+                Width = 120,
+                FillWeight = 15,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "ThreadCount",
+                HeaderText = "Luồng",
+                Width = 80,
+                FillWeight = 10,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Description",
+                HeaderText = "Mô tả",
+                Width = 300,
+                FillWeight = 35
+            });
+
+            dataGridViewProcesses.DataSource = displayedProcesses;
+            dataGridViewProcesses.ColumnHeaderMouseClick += DataGridViewProcesses_ColumnHeaderMouseClick;
+            dataGridViewProcesses.CellFormatting += DataGridViewProcesses_CellFormatting;
+        }
+
+        private void DataGridViewProcesses_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.ColumnIndex == 0 && e.RowIndex >= 0) // Icon column
+            {
+                ProcessInfo process = displayedProcesses[e.RowIndex];
+                if (process.ProcessIcon != null)
+                {
+                    e.Value = process.ProcessIcon.ToBitmap();
+                }
+            }
+            else if (dataGridViewProcesses.Columns[e.ColumnIndex].DataPropertyName == "CpuUsage" && e.RowIndex >= 0)
+            {
+                ProcessInfo process = displayedProcesses[e.RowIndex];
+                if (process.CpuUsage > 50)
+                {
+                    e.CellStyle.ForeColor = Color.FromArgb(220, 53, 69); // Red
+                }
+                else if (process.CpuUsage > 25)
+                {
+                    e.CellStyle.ForeColor = Color.FromArgb(255, 193, 7); // Orange
+                }
+            }
+        }
+
+        private void DataGridViewProcesses_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.ColumnIndex == 0) return; // Skip icon column
+
+            string columnName = dataGridViewProcesses.Columns[e.ColumnIndex].DataPropertyName;
+            
+            if (currentSortColumn == columnName)
+            {
+                sortAscending = !sortAscending;
+            }
+            else
+            {
+                currentSortColumn = columnName;
+                sortAscending = false;
+            }
+
+            // Update column headers to show sort direction
+            foreach (DataGridViewColumn col in dataGridViewProcesses.Columns)
+            {
+                col.HeaderCell.SortGlyphDirection = SortOrder.None;
+            }
+            dataGridViewProcesses.Columns[e.ColumnIndex].HeaderCell.SortGlyphDirection =
+                sortAscending ? SortOrder.Ascending : SortOrder.Descending;
+
+            SortProcesses();
+        }
+
+        private void SortProcesses()
+        {
+            if (allProcesses == null) return;
+
+            IEnumerable<ProcessInfo> sorted = allProcesses;
+
+            switch (currentSortColumn)
+            {
+                case "ProcessName":
+                    sorted = sortAscending ? allProcesses.OrderBy(p => p.ProcessName) : allProcesses.OrderByDescending(p => p.ProcessName);
+                    break;
+                case "ProcessId":
+                    sorted = sortAscending ? allProcesses.OrderBy(p => p.ProcessId) : allProcesses.OrderByDescending(p => p.ProcessId);
+                    break;
+                case "MemoryBytes":
+                case "MemoryUsage":
+                    sorted = sortAscending ? allProcesses.OrderBy(p => p.MemoryBytes) : allProcesses.OrderByDescending(p => p.MemoryBytes);
+                    break;
+                case "CpuUsage":
+                    sorted = sortAscending ? allProcesses.OrderBy(p => p.CpuUsage) : allProcesses.OrderByDescending(p => p.CpuUsage);
+                    break;
+                case "ThreadCount":
+                    sorted = sortAscending ? allProcesses.OrderBy(p => p.ThreadCount) : allProcesses.OrderByDescending(p => p.ThreadCount);
+                    break;
+            }
+
+            UpdateDisplayedProcesses(sorted.ToList());
+        }
+
+        public async Task LoadProcessesAsync()
+        {
+            if (processMonitor == null) return;
+
+            try
+            {
+                allProcesses = await Task.Run(() => processMonitor.GetAllProcesses());
+                FilterAndDisplay();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi khi tải tiến trình: {ex.Message}");
+            }
+        }
+
+        private void FilterAndDisplay()
+        {
+            if (allProcesses == null) return;
+
+            var filtered = allProcesses;
+
+            if (!string.IsNullOrWhiteSpace(txtSearch.Text))
+            {
+                string searchText = txtSearch.Text.ToLower();
+                filtered = allProcesses.Where(p =>
+                    p.ProcessName.ToLower().Contains(searchText) ||
+                    p.ProcessId.ToString().Contains(searchText) ||
+                    (p.Description != null && p.Description.ToLower().Contains(searchText))
+                ).ToList();
+            }
+
+            SortProcesses();
+        }
+
+        private void UpdateDisplayedProcesses(List<ProcessInfo> processes)
+        {
+            displayedProcesses.Clear();
+            foreach (var process in processes)
+            {
+                displayedProcesses.Add(process);
+            }
+        }
+
+        private void txtSearch_TextChanged(object sender, EventArgs e)
+        {
+            FilterAndDisplay();
+        }
+
+        private async void btnKillProcess_Click(object sender, EventArgs e)
+        {
+            if (dataGridViewProcesses.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Vui lòng chọn một tiến trình để kết thúc.",
+                    "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            ProcessInfo selectedProcess = dataGridViewProcesses.SelectedRows[0].DataBoundItem as ProcessInfo;
+            if (selectedProcess == null) return;
+
+            DialogResult result = MessageBox.Show(
+                $"Bạn có chắc chắn muốn kết thúc tiến trình '{selectedProcess.ProcessName}' (PID: {selectedProcess.ProcessId})?",
+                "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+            if (result == DialogResult.Yes)
+            {
+                try
+                {
+                    processMonitor.KillProcess(selectedProcess.ProcessId);
+                    await LoadProcessesAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Không thể kết thúc tiến trình: {ex.Message}",
+                        "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+    }
+
+    public static class ExtensionMethods
+    {
+        public static void DoubleBuffered(this DataGridView dgv, bool setting)
+        {
+            Type dgvType = dgv.GetType();
+            System.Reflection.PropertyInfo pi = dgvType.GetProperty("DoubleBuffered",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            pi.SetValue(dgv, setting, null);
+        }
+    }
+}

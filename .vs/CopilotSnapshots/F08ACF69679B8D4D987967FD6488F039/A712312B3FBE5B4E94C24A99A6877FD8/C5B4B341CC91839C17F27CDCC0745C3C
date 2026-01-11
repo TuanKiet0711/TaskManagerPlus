@@ -1,0 +1,323 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.Linq;
+using System.Management;
+using TaskManagerPlus.Models;
+
+namespace TaskManagerPlus.Services
+{
+    public class ProcessMonitor
+    {
+        private Dictionary<int, PerformanceCounter> cpuCounters;
+        private Dictionary<int, DateTime> lastCpuCheckTime;
+        private Dictionary<int, TimeSpan> lastCpuTime;
+        private Dictionary<string, Icon> iconCache;
+
+        public ProcessMonitor()
+        {
+            cpuCounters = new Dictionary<int, PerformanceCounter>();
+            lastCpuCheckTime = new Dictionary<int, DateTime>();
+            lastCpuTime = new Dictionary<int, TimeSpan>();
+            iconCache = new Dictionary<string, Icon>();
+        }
+
+        public List<ProcessInfo> GetAllProcesses()
+        {
+            List<ProcessInfo> processList = new List<ProcessInfo>();
+            Process[] processes = Process.GetProcesses();
+
+            foreach (Process process in processes)
+            {
+                try
+                {
+                    string filePath = GetProcessFilePath(process);
+
+                    ProcessInfo info = new ProcessInfo
+                    {
+                        ProcessId = process.Id,
+                        ProcessName = process.ProcessName,
+                        MemoryBytes = process.WorkingSet64,
+                        MemoryUsage = FormatBytes(process.WorkingSet64),
+                        ThreadCount = process.Threads.Count,
+                        CpuUsage = GetCpuUsage(process),
+                        Description = GetProcessDescription(process),
+                        FilePath = filePath,
+                        ProcessIcon = GetProcessIcon(filePath),
+                        IsApp = IsUserApplication(process),
+                        HasWindow = process.MainWindowHandle != IntPtr.Zero
+                    };
+
+                    processList.Add(info);
+                }
+                catch (Exception)
+                {
+                    // Bỏ qua các process không có quyền truy cập
+                }
+            }
+
+            return processList.OrderByDescending(p => p.MemoryBytes).ToList();
+        }
+
+        public Dictionary<string, List<ProcessInfo>> GetGroupedProcesses()
+        {
+            var allProcesses = GetAllProcesses();
+            var grouped = new Dictionary<string, List<ProcessInfo>>();
+
+            // Nhóm Apps - processes có cửa sổ hoặc là ứng dụng người dùng
+            var apps = allProcesses
+                .Where(p => p.IsApp || p.HasWindow)
+                .GroupBy(p => string.IsNullOrEmpty(p.Description) ? p.ProcessName : p.Description)
+                .Select(g => new ProcessInfo
+                {
+                    ProcessName = g.Key,
+                    Description = g.Key,
+                    ProcessId = g.First().ProcessId,
+                    MemoryBytes = g.Sum(p => p.MemoryBytes),
+                    MemoryUsage = FormatBytes(g.Sum(p => p.MemoryBytes)),
+                    CpuUsage = g.Sum(p => p.CpuUsage),
+                    ThreadCount = g.Sum(p => p.ThreadCount),
+                    ProcessIcon = g.First().ProcessIcon,
+                    FilePath = g.First().FilePath,
+                    IsGroup = g.Count() > 1,
+                    ChildProcesses = g.ToList()
+                })
+                .OrderBy(p => p.ProcessName)
+                .ToList();
+
+            // Nhóm Background processes - tất cả các process còn lại
+            var backgroundProcesses = allProcesses
+                .Where(p => !p.IsApp && !p.HasWindow)
+                .GroupBy(p => p.ProcessName)
+                .Select(g => new ProcessInfo
+                {
+                    ProcessName = g.Key,
+                    Description = g.First().Description,
+                    ProcessId = g.First().ProcessId,
+                    MemoryBytes = g.Sum(p => p.MemoryBytes),
+                    MemoryUsage = FormatBytes(g.Sum(p => p.MemoryBytes)),
+                    CpuUsage = g.Sum(p => p.CpuUsage),
+                    ThreadCount = g.Sum(p => p.ThreadCount),
+                    ProcessIcon = g.First().ProcessIcon,
+                    FilePath = g.First().FilePath,
+                    IsGroup = g.Count() > 1,
+                    ChildProcesses = g.ToList()
+                })
+                .OrderBy(p => p.ProcessName)
+                .ToList();
+
+            grouped["Apps"] = apps;
+            grouped["Background processes"] = backgroundProcesses;
+
+            return grouped;
+        }
+
+        private bool IsUserApplication(Process process)
+        {
+            try
+            {
+                // Kiểm tra nếu process có main window
+                if (process.MainWindowHandle != IntPtr.Zero)
+                    return true;
+
+                // Kiểm tra path - apps thường nằm trong Program Files hoặc AppData
+                string filePath = GetProcessFilePath(process);
+                if (!string.IsNullOrEmpty(filePath))
+                {
+                    string lowerPath = filePath.ToLower();
+                    if (lowerPath.Contains("program files") ||
+                        lowerPath.Contains("microsoft\\edge") ||
+                        lowerPath.Contains("google\\chrome") ||
+                        lowerPath.Contains("mozilla firefox") ||
+                        lowerPath.Contains("\\windowsapps\\"))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private string GetProcessFilePath(Process process)
+        {
+            try
+            {
+                return process.MainModule?.FileName ?? "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        private Icon GetProcessIcon(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath))
+                return null;
+
+            try
+            {
+                if (iconCache.ContainsKey(filePath))
+                    return iconCache[filePath];
+
+                Icon icon = Icon.ExtractAssociatedIcon(filePath);
+                if (icon != null)
+                {
+                    iconCache[filePath] = icon;
+                    return icon;
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        private double GetCpuUsage(Process process)
+        {
+            try
+            {
+                int processId = process.Id;
+                DateTime currentTime = DateTime.Now;
+                TimeSpan currentCpuTime = process.TotalProcessorTime;
+
+                if (lastCpuCheckTime.ContainsKey(processId) && lastCpuTime.ContainsKey(processId))
+                {
+                    double cpuUsedMs = (currentCpuTime - lastCpuTime[processId]).TotalMilliseconds;
+                    double totalMsPassed = (currentTime - lastCpuCheckTime[processId]).TotalMilliseconds;
+
+                    if (totalMsPassed > 0)
+                    {
+                        double cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
+                        lastCpuCheckTime[processId] = currentTime;
+                        lastCpuTime[processId] = currentCpuTime;
+                        return cpuUsageTotal * 100;
+                    }
+                }
+
+                lastCpuCheckTime[processId] = currentTime;
+                lastCpuTime[processId] = currentCpuTime;
+                return 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private string FormatBytes(long bytes)
+        {
+            if (bytes < 1024)
+                return $"{bytes} B";
+            else if (bytes < 1024 * 1024)
+                return $"{bytes / 1024.0:F2} KB";
+            else if (bytes < 1024 * 1024 * 1024)
+                return $"{bytes / (1024.0 * 1024.0):F2} MB";
+            else
+                return $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
+        }
+
+        private string GetProcessDescription(Process process)
+        {
+            try
+            {
+                return process.MainModule?.FileVersionInfo.FileDescription ?? "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        public void KillProcess(int processId)
+        {
+            try
+            {
+                Process process = Process.GetProcessById(processId);
+                process.Kill();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Không thể kết thúc process: {ex.Message}");
+            }
+        }
+
+        public SystemInfo GetSystemInfo()
+        {
+            SystemInfo info = new SystemInfo();
+
+            try
+            {
+                PerformanceCounter cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+                PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
+
+                cpuCounter.NextValue();
+                System.Threading.Thread.Sleep(100);
+                info.CpuUsage = cpuCounter.NextValue();
+                info.AvailableRAM = ramCounter.NextValue();
+
+                info.TotalRAM = GetTotalPhysicalMemory();
+                info.UsedRAM = info.TotalRAM - info.AvailableRAM;
+                info.ProcessCount = Process.GetProcesses().Length;
+                info.ThreadCount = Process.GetProcesses().Sum(p =>
+                {
+                    try { return p.Threads.Count; }
+                    catch { return 0; }
+                });
+            }
+            catch (Exception)
+            {
+                // Sử dụng giá trị mặc định
+            }
+
+            return info;
+        }
+
+        private float GetTotalPhysicalMemory()
+        {
+            try
+            {
+                ObjectQuery query = new ObjectQuery("SELECT Capacity FROM Win32_PhysicalMemory");
+                ManagementObjectSearcher searcher = new ManagementObjectSearcher(query);
+
+                long totalBytes = 0;
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    totalBytes += Convert.ToInt64(obj["Capacity"]);
+                }
+
+                return totalBytes / (1024f * 1024f);
+            }
+            catch
+            {
+                return 8192;
+            }
+        }
+
+        public void Cleanup()
+        {
+            foreach (var counter in cpuCounters.Values)
+            {
+                counter?.Dispose();
+            }
+            cpuCounters.Clear();
+            lastCpuCheckTime.Clear();
+            lastCpuTime.Clear();
+        }
+    }
+
+    public class SystemInfo
+    {
+        public double CpuUsage { get; set; }
+        public float TotalRAM { get; set; }
+        public float UsedRAM { get; set; }
+        public float AvailableRAM { get; set; }
+        public int ProcessCount { get; set; }
+        public int ThreadCount { get; set; }
+    }
+}

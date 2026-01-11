@@ -1,0 +1,12 @@
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.csproj.AssemblyReference.cache
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.Properties.Resources.resources
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.csproj.GenerateResource.cache
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.csproj.CoreCompileInputs.cache
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\bin\Debug\TaskManagerPlus.exe.config
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\bin\Debug\TaskManagerPlus.exe
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\bin\Debug\TaskManagerPlus.pdb
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.Form1.resources
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.exe
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.pdb
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.Controls.ProcessesTab.resources
+C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.Controls.PerformanceTab.resources

@@ -1,0 +1,203 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace TaskManagerPlus.Controls
+{
+    public partial class PerformanceSidebar : UserControl
+    {
+        private List<HardwareItem> hardwareItems;
+        private int selectedIndex = 0;
+
+        public event EventHandler<int> ItemSelected;
+
+        public PerformanceSidebar()
+        {
+            InitializeComponent();
+            hardwareItems = new List<HardwareItem>();
+            this.DoubleBuffered = true;
+            this.BackColor = Color.FromArgb(240, 240, 240);
+        }
+
+        public void AddItem(string name, string usage, Queue<double> history, Color color)
+        {
+            var item = new HardwareItem
+            {
+                Name = name,
+                Usage = usage,
+                History = new Queue<double>(history),
+                Color = color
+            };
+            hardwareItems.Add(item);
+            this.Invalidate();
+        }
+
+        public void UpdateItem(int index, string usage, Queue<double> history)
+        {
+            if (index >= 0 && index < hardwareItems.Count)
+            {
+                hardwareItems[index].Usage = usage;
+                hardwareItems[index].History = new Queue<double>(history);
+                this.Invalidate();
+            }
+        }
+
+        public void ClearItems()
+        {
+            hardwareItems.Clear();
+            this.Invalidate();
+        }
+
+        public void SetSelectedIndex(int index)
+        {
+            if (index >= 0 && index < hardwareItems.Count)
+            {
+                selectedIndex = index;
+                this.Invalidate();
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            int yPos = 10;
+            int itemHeight = 80;
+            int itemWidth = this.Width - 20;
+
+            for (int i = 0; i < hardwareItems.Count; i++)
+            {
+                DrawHardwareItem(g, hardwareItems[i], 10, yPos, itemWidth, itemHeight, i == selectedIndex);
+                yPos += itemHeight + 5;
+            }
+        }
+
+        private void DrawHardwareItem(Graphics g, HardwareItem item, int x, int y, int width, int height, bool isSelected)
+        {
+            // Background
+            Color bgColor = isSelected ? Color.FromArgb(225, 225, 225) : Color.White;
+            using (SolidBrush bgBrush = new SolidBrush(bgColor))
+            {
+                g.FillRectangle(bgBrush, x, y, width, height);
+            }
+
+            // Border
+            using (Pen borderPen = new Pen(Color.FromArgb(200, 200, 200)))
+            {
+                g.DrawRectangle(borderPen, x, y, width, height);
+            }
+
+            // Mini chart
+            int chartX = x + 10;
+            int chartY = y + 30;
+            int chartWidth = 60;
+            int chartHeight = 40;
+            DrawMiniChart(g, item.History, item.Color, chartX, chartY, chartWidth, chartHeight);
+
+            // Text
+            using (Font nameFont = new Font("Segoe UI", 9F, FontStyle.Regular))
+            using (Font usageFont = new Font("Segoe UI", 9F, FontStyle.Bold))
+            using (SolidBrush textBrush = new SolidBrush(Color.FromArgb(52, 58, 64)))
+            {
+                g.DrawString(item.Name, nameFont, textBrush, chartX + chartWidth + 10, y + 10);
+                g.DrawString(item.Usage, usageFont, textBrush, chartX + chartWidth + 10, y + 30);
+            }
+        }
+
+        private void DrawMiniChart(Graphics g, Queue<double> data, Color lineColor, int x, int y, int width, int height)
+        {
+            if (data == null || data.Count < 2) return;
+
+            var points = new List<PointF>();
+            var dataArray = data.ToArray();
+
+            for (int i = 0; i < dataArray.Length; i++)
+            {
+                float xPos = x + (float)(width * i / (dataArray.Length - 1.0));
+                float yPos = y + height - (float)(height * dataArray[i] / 100.0);
+                points.Add(new PointF(xPos, yPos));
+            }
+
+            if (points.Count > 1)
+            {
+                // Fill area
+                using (GraphicsPath path = new GraphicsPath())
+                {
+                    path.AddLines(points.ToArray());
+                    path.AddLine(points[points.Count - 1].X, points[points.Count - 1].Y, points[points.Count - 1].X, y + height);
+                    path.AddLine(points[points.Count - 1].X, y + height, points[0].X, y + height);
+                    path.CloseFigure();
+
+                    using (SolidBrush brush = new SolidBrush(Color.FromArgb(50, lineColor)))
+                    {
+                        g.FillPath(brush, path);
+                    }
+                }
+
+                // Draw line
+                using (Pen linePen = new Pen(lineColor, 1.5f))
+                {
+                    g.DrawLines(linePen, points.ToArray());
+                }
+            }
+        }
+
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            base.OnMouseClick(e);
+
+            int itemHeight = 85;
+            int index = (e.Y - 10) / itemHeight;
+
+            if (index >= 0 && index < hardwareItems.Count)
+            {
+                selectedIndex = index;
+                this.Invalidate();
+                ItemSelected?.Invoke(this, index);
+            }
+        }
+
+        private class HardwareItem
+        {
+            public string Name { get; set; }
+            public string Usage { get; set; }
+            public Queue<double> History { get; set; }
+            public Color Color { get; set; }
+        }
+    }
+
+    partial class PerformanceSidebar
+    {
+        private System.ComponentModel.IContainer components = null;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+            // 
+            // PerformanceSidebar
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.Name = "PerformanceSidebar";
+            this.Size = new System.Drawing.Size(200, 600);
+            this.ResumeLayout(false);
+        }
+    }
+}

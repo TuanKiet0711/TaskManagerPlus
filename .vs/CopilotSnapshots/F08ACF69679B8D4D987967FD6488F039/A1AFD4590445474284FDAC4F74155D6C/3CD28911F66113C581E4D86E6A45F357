@@ -1,0 +1,234 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using TaskManagerPlus.Models;
+using TaskManagerPlus.Services;
+
+namespace TaskManagerPlus.Controls
+{
+    public partial class TemperatureTab : UserControl
+    {
+        private HardwareMonitor hardwareMonitor;
+        private Dictionary<string, Queue<double>> temperatureHistory;
+        private const int MaxHistoryPoints = 60;
+
+        public TemperatureTab()
+        {
+            InitializeComponent();
+            hardwareMonitor = new HardwareMonitor();
+            temperatureHistory = new Dictionary<string, Queue<double>>();
+        }
+
+        public void Initialize()
+        {
+            pictureBoxTemp.Paint += PictureBoxTemp_Paint;
+        }
+
+        public async Task UpdateTemperaturesAsync()
+        {
+            try
+            {
+                var cpuInfo = await Task.Run(() => hardwareMonitor.GetCpuInfo());
+                var gpuInfo = await Task.Run(() => hardwareMonitor.GetGpuInfo());
+                var diskInfo = await Task.Run(() => hardwareMonitor.GetDiskInfo());
+
+                // Update CPU temperature
+                UpdateTemperature("CPU", cpuInfo.Temperature, cpuInfo.Name);
+
+                // Update GPU temperatures
+                for (int i = 0; i < gpuInfo.Count; i++)
+                {
+                    UpdateTemperature($"GPU{i}", gpuInfo[i].Temperature, gpuInfo[i].Name);
+                }
+
+                // Update Disk temperatures
+                for (int i = 0; i < diskInfo.Count; i++)
+                {
+                    UpdateTemperature($"Disk{i}", diskInfo[i].Temperature, diskInfo[i].Name);
+                }
+
+                pictureBoxTemp.Invalidate();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"L?i c?p nh?t nhi?t ??: {ex.Message}");
+            }
+        }
+
+        private void UpdateTemperature(string key, double temperature, string name)
+        {
+            if (!temperatureHistory.ContainsKey(key))
+            {
+                temperatureHistory[key] = new Queue<double>();
+            }
+
+            temperatureHistory[key].Enqueue(temperature);
+            if (temperatureHistory[key].Count > MaxHistoryPoints)
+            {
+                temperatureHistory[key].Dequeue();
+            }
+        }
+
+        private void PictureBoxTemp_Paint(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.Clear(Color.White);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            int yPos = 20;
+            int itemHeight = 150;
+            int chartWidth = pictureBoxTemp.Width - 350;
+            int chartHeight = 100;
+
+            foreach (var kvp in temperatureHistory)
+            {
+                if (kvp.Value.Count > 0)
+                {
+                    double currentTemp = kvp.Value.ToArray()[kvp.Value.Count - 1];
+                    
+                    if (currentTemp > 0) // Only show if temperature is available
+                    {
+                        string displayName = GetDisplayName(kvp.Key);
+                        DrawTemperatureItem(g, displayName, currentTemp, kvp.Value, 20, yPos, chartWidth, chartHeight);
+                        yPos += itemHeight + 20;
+                    }
+                }
+            }
+        }
+
+        private string GetDisplayName(string key)
+        {
+            if (key.StartsWith("CPU")) return "CPU";
+            if (key.StartsWith("GPU")) return key.Replace("GPU", "GPU ");
+            if (key.StartsWith("Disk")) return key.Replace("Disk", "Disk ");
+            return key;
+        }
+
+        private void DrawTemperatureItem(Graphics g, string name, double temperature, Queue<double> history, int x, int y, int width, int height)
+        {
+            // Draw background panel
+            using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(248, 249, 250)))
+            {
+                g.FillRectangle(bgBrush, x, y, width + 320, height + 30);
+            }
+
+            // Draw border
+            using (Pen borderPen = new Pen(Color.FromArgb(200, 200, 200)))
+            {
+                g.DrawRectangle(borderPen, x, y, width + 320, height + 30);
+            }
+
+            // Draw title and temperature
+            using (Font titleFont = new Font("Segoe UI Semibold", 12F, FontStyle.Bold))
+            using (Font tempFont = new Font("Segoe UI", 24F, FontStyle.Bold))
+            using (SolidBrush textBrush = new SolidBrush(Color.FromArgb(52, 58, 64)))
+            {
+                g.DrawString(name, titleFont, textBrush, x + 15, y + 10);
+                
+                Color tempColor = GetTemperatureColor(temperature);
+                using (SolidBrush tempBrush = new SolidBrush(tempColor))
+                {
+                    g.DrawString($"{temperature:F1}°C", tempFont, tempBrush, x + width + 50, y + 40);
+                }
+            }
+
+            // Draw temperature status
+            string status = GetTemperatureStatus(temperature);
+            Color statusColor = GetTemperatureColor(temperature);
+            using (Font statusFont = new Font("Segoe UI", 9F))
+            using (SolidBrush statusBrush = new SolidBrush(statusColor))
+            {
+                g.DrawString(status, statusFont, statusBrush, x + width + 50, y + 90);
+            }
+
+            // Draw history chart
+            if (history.Count > 1)
+            {
+                DrawMiniTemperatureChart(g, history, x + 15, y + 40, width - 30, height - 50);
+            }
+        }
+
+        private void DrawMiniTemperatureChart(Graphics g, Queue<double> data, int x, int y, int width, int height)
+        {
+            var dataArray = data.ToArray();
+            var points = new List<PointF>();
+
+            double maxTemp = dataArray.Length > 0 ? dataArray.Max() : 100;
+            maxTemp = Math.Max(maxTemp, 60); // Minimum scale of 60°C
+
+            for (int i = 0; i < dataArray.Length; i++)
+            {
+                float xPos = x + (float)(width * i / (MaxHistoryPoints - 1.0));
+                float yPos = y + height - (float)(height * dataArray[i] / maxTemp);
+                points.Add(new PointF(xPos, yPos));
+            }
+
+            if (points.Count > 1)
+            {
+                // Draw grid
+                using (Pen gridPen = new Pen(Color.FromArgb(220, 220, 220)))
+                {
+                    for (int i = 0; i <= 3; i++)
+                    {
+                        int gridY = y + (int)(height * i / 3.0);
+                        g.DrawLine(gridPen, x, gridY, x + width, gridY);
+                    }
+                }
+
+                // Draw fill area
+                using (GraphicsPath path = new GraphicsPath())
+                {
+                    path.AddLines(points.ToArray());
+                    path.AddLine(points[points.Count - 1].X, points[points.Count - 1].Y, points[points.Count - 1].X, y + height);
+                    path.AddLine(points[points.Count - 1].X, y + height, points[0].X, y + height);
+                    path.CloseFigure();
+
+                    Color lineColor = GetTemperatureColor(dataArray[dataArray.Length - 1]);
+                    using (SolidBrush brush = new SolidBrush(Color.FromArgb(30, lineColor)))
+                    {
+                        g.FillPath(brush, path);
+                    }
+                }
+
+                // Draw line
+                Color currentColor = GetTemperatureColor(dataArray[dataArray.Length - 1]);
+                using (Pen linePen = new Pen(currentColor, 2))
+                {
+                    linePen.LineJoin = LineJoin.Round;
+                    g.DrawLines(linePen, points.ToArray());
+                }
+            }
+        }
+
+        private Color GetTemperatureColor(double temperature)
+        {
+            if (temperature >= 80)
+                return Color.FromArgb(220, 53, 69); // Red - Critical
+            else if (temperature >= 70)
+                return Color.FromArgb(255, 193, 7); // Orange - High
+            else if (temperature >= 50)
+                return Color.FromArgb(13, 110, 253); // Blue - Normal
+            else
+                return Color.FromArgb(25, 135, 84); // Green - Cool
+        }
+
+        private string GetTemperatureStatus(double temperature)
+        {
+            if (temperature >= 80)
+                return "Critical";
+            else if (temperature >= 70)
+                return "High";
+            else if (temperature >= 50)
+                return "Normal";
+            else if (temperature > 0)
+                return "Cool";
+            else
+                return "N/A";
+        }
+    }
+}

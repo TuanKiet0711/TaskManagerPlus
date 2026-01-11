@@ -1,0 +1,244 @@
+﻿namespace TaskManagerPlus
+{
+    partial class Form1
+    {
+        /// <summary>
+        /// Required designer variable.
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Windows Form Designer generated code
+
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.components = new System.ComponentModel.Container();
+            this.tabControl = new System.Windows.Forms.TabControl();
+            this.tabProcesses = new System.Windows.Forms.TabPage();
+            this.tabPerformance = new System.Windows.Forms.TabPage();
+            this.panelTop = new System.Windows.Forms.Panel();
+            this.lblTitle = new System.Windows.Forms.Label();
+            this.panelBottom = new System.Windows.Forms.Panel();
+            this.lblStatus = new System.Windows.Forms.Label();
+            this.numRefreshInterval = new System.Windows.Forms.NumericUpDown();
+            this.lblRefreshInterval = new System.Windows.Forms.Label();
+            this.chkAutoRefresh = new System.Windows.Forms.CheckBox();
+            this.btnRefresh = new System.Windows.Forms.Button();
+            this.timerRefresh = new System.Windows.Forms.Timer(this.components);
+            this.tabControl.SuspendLayout();
+            this.panelTop.SuspendLayout();
+            this.panelBottom.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numRefreshInterval)).BeginInit();
+            this.SuspendLayout();
+            // 
+            // tabControl
+            // 
+            this.tabControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.tabControl.Controls.Add(this.tabProcesses);
+            this.tabControl.Controls.Add(this.tabPerformance);
+            this.tabControl.Font = new System.Drawing.Font("Segoe UI", 9.75F);
+            this.tabControl.ItemSize = new System.Drawing.Size(150, 35);
+            this.tabControl.Location = new System.Drawing.Point(0, 60);
+            this.tabControl.Name = "tabControl";
+            this.tabControl.SelectedIndex = 0;
+            this.tabControl.Size = new System.Drawing.Size(1184, 631);
+            this.tabControl.SizeMode = System.Windows.Forms.TabSizeMode.Fixed;
+            this.tabControl.TabIndex = 0;
+            this.tabControl.SelectedIndexChanged += new System.EventHandler(this.tabControl_SelectedIndexChanged);
+            // 
+            // tabProcesses
+            // 
+            this.tabProcesses.BackColor = System.Drawing.Color.White;
+            this.tabProcesses.Location = new System.Drawing.Point(4, 39);
+            this.tabProcesses.Name = "tabProcesses";
+            this.tabProcesses.Padding = new System.Windows.Forms.Padding(3);
+            this.tabProcesses.Size = new System.Drawing.Size(1176, 588);
+            this.tabProcesses.TabIndex = 0;
+            this.tabProcesses.Text = "Tiến trình";
+            // 
+            // tabPerformance
+            // 
+            this.tabPerformance.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
+            this.tabPerformance.Location = new System.Drawing.Point(4, 39);
+            this.tabPerformance.Name = "tabPerformance";
+            this.tabPerformance.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPerformance.Size = new System.Drawing.Size(1176, 588);
+            this.tabPerformance.TabIndex = 1;
+            this.tabPerformance.Text = "Hiệu năng";
+            // 
+            // panelTop
+            // 
+            this.panelTop.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(13)))), ((int)(((byte)(110)))), ((int)(((byte)(253)))));
+            this.panelTop.Controls.Add(this.lblTitle);
+            this.panelTop.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panelTop.Location = new System.Drawing.Point(0, 0);
+            this.panelTop.Name = "panelTop";
+            this.panelTop.Size = new System.Drawing.Size(1184, 60);
+            this.panelTop.TabIndex = 1;
+            // 
+            // lblTitle
+            // 
+            this.lblTitle.AutoSize = true;
+            this.lblTitle.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold);
+            this.lblTitle.ForeColor = System.Drawing.Color.White;
+            this.lblTitle.Location = new System.Drawing.Point(15, 12);
+            this.lblTitle.Name = "lblTitle";
+            this.lblTitle.Size = new System.Drawing.Size(215, 32);
+            this.lblTitle.TabIndex = 0;
+            this.lblTitle.Text = "Task Manager+";
+            // 
+            // panelBottom
+            // 
+            this.panelBottom.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
+            this.panelBottom.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelBottom.Controls.Add(this.lblStatus);
+            this.panelBottom.Controls.Add(this.numRefreshInterval);
+            this.panelBottom.Controls.Add(this.lblRefreshInterval);
+            this.panelBottom.Controls.Add(this.chkAutoRefresh);
+            this.panelBottom.Controls.Add(this.btnRefresh);
+            this.panelBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panelBottom.Location = new System.Drawing.Point(0, 691);
+            this.panelBottom.Name = "panelBottom";
+            this.panelBottom.Size = new System.Drawing.Size(1184, 50);
+            this.panelBottom.TabIndex = 2;
+            // 
+            // lblStatus
+            // 
+            this.lblStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblStatus.AutoSize = true;
+            this.lblStatus.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.lblStatus.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(135)))), ((int)(((byte)(84)))));
+            this.lblStatus.Location = new System.Drawing.Point(1050, 17);
+            this.lblStatus.Name = "lblStatus";
+            this.lblStatus.Size = new System.Drawing.Size(105, 15);
+            this.lblStatus.TabIndex = 4;
+            this.lblStatus.Text = "Đang cập nhật...";
+            // 
+            // numRefreshInterval
+            // 
+            this.numRefreshInterval.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.numRefreshInterval.Location = new System.Drawing.Point(405, 13);
+            this.numRefreshInterval.Maximum = new decimal(new int[] {
+            60,
+            0,
+            0,
+            0});
+            this.numRefreshInterval.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numRefreshInterval.Name = "numRefreshInterval";
+            this.numRefreshInterval.Size = new System.Drawing.Size(60, 23);
+            this.numRefreshInterval.TabIndex = 3;
+            this.numRefreshInterval.Value = new decimal(new int[] {
+            3,
+            0,
+            0,
+            0});
+            this.numRefreshInterval.ValueChanged += new System.EventHandler(this.numRefreshInterval_ValueChanged);
+            // 
+            // lblRefreshInterval
+            // 
+            this.lblRefreshInterval.AutoSize = true;
+            this.lblRefreshInterval.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblRefreshInterval.Location = new System.Drawing.Point(285, 16);
+            this.lblRefreshInterval.Name = "lblRefreshInterval";
+            this.lblRefreshInterval.Size = new System.Drawing.Size(114, 15);
+            this.lblRefreshInterval.TabIndex = 2;
+            this.lblRefreshInterval.Text = "Cập nhật mỗi (giây):";
+            // 
+            // chkAutoRefresh
+            // 
+            this.chkAutoRefresh.AutoSize = true;
+            this.chkAutoRefresh.Checked = true;
+            this.chkAutoRefresh.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkAutoRefresh.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.chkAutoRefresh.Location = new System.Drawing.Point(150, 15);
+            this.chkAutoRefresh.Name = "chkAutoRefresh";
+            this.chkAutoRefresh.Size = new System.Drawing.Size(120, 19);
+            this.chkAutoRefresh.TabIndex = 1;
+            this.chkAutoRefresh.Text = "Tự động cập nhật";
+            this.chkAutoRefresh.UseVisualStyleBackColor = true;
+            this.chkAutoRefresh.CheckedChanged += new System.EventHandler(this.chkAutoRefresh_CheckedChanged);
+            // 
+            // btnRefresh
+            // 
+            this.btnRefresh.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(13)))), ((int)(((byte)(110)))), ((int)(((byte)(253)))));
+            this.btnRefresh.FlatAppearance.BorderSize = 0;
+            this.btnRefresh.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnRefresh.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.btnRefresh.ForeColor = System.Drawing.Color.White;
+            this.btnRefresh.Location = new System.Drawing.Point(15, 10);
+            this.btnRefresh.Name = "btnRefresh";
+            this.btnRefresh.Size = new System.Drawing.Size(120, 30);
+            this.btnRefresh.TabIndex = 0;
+            this.btnRefresh.Text = "🔄 Làm mới";
+            this.btnRefresh.UseVisualStyleBackColor = false;
+            this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
+            // 
+            // timerRefresh
+            // 
+            this.timerRefresh.Interval = 3000;
+            this.timerRefresh.Tick += new System.EventHandler(this.timerRefresh_Tick);
+            // 
+            // Form1
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.White;
+            this.ClientSize = new System.Drawing.Size(1184, 741);
+            this.Controls.Add(this.panelBottom);
+            this.Controls.Add(this.tabControl);
+            this.Controls.Add(this.panelTop);
+            this.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.MinimumSize = new System.Drawing.Size(1000, 700);
+            this.Name = "Form1";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.Text = "Task Manager Plus - Quản lý tiến trình nâng cao";
+            this.Load += new System.EventHandler(this.Form1_Load);
+            this.tabControl.ResumeLayout(false);
+            this.panelTop.ResumeLayout(false);
+            this.panelTop.PerformLayout();
+            this.panelBottom.ResumeLayout(false);
+            this.panelBottom.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numRefreshInterval)).EndInit();
+            this.ResumeLayout(false);
+
+        }
+
+        #endregion
+
+        private System.Windows.Forms.TabControl tabControl;
+        private System.Windows.Forms.TabPage tabProcesses;
+        private System.Windows.Forms.TabPage tabPerformance;
+        private System.Windows.Forms.Panel panelTop;
+        private System.Windows.Forms.Label lblTitle;
+        private System.Windows.Forms.Panel panelBottom;
+        private System.Windows.Forms.Button btnRefresh;
+        private System.Windows.Forms.CheckBox chkAutoRefresh;
+        private System.Windows.Forms.Label lblRefreshInterval;
+        private System.Windows.Forms.NumericUpDown numRefreshInterval;
+        private System.Windows.Forms.Label lblStatus;
+        private System.Windows.Forms.Timer timerRefresh;
+    }
+}
+

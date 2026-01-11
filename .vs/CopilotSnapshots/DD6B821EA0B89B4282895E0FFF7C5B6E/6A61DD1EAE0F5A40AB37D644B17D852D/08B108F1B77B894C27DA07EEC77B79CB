@@ -1,0 +1,286 @@
+﻿using System.Windows.Forms.DataVisualization.Charting;
+
+namespace TaskManagerPlus.Controls
+{
+    partial class PerformanceTab
+    {
+        private System.ComponentModel.IContainer components = null;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Component Designer generated code
+
+        private void InitializeComponent()
+        {
+            this.panelCpu = new System.Windows.Forms.Panel();
+            this.pictureBoxCpu = new System.Windows.Forms.PictureBox();
+            this.panelCpuInfo = new System.Windows.Forms.Panel();
+            this.lblCpuValue = new System.Windows.Forms.Label();
+            this.lblCpuTitle = new System.Windows.Forms.Label();
+            this.progressCpu = new System.Windows.Forms.ProgressBar();
+            this.panelRam = new System.Windows.Forms.Panel();
+            this.pictureBoxRam = new System.Windows.Forms.PictureBox();
+            this.panelRamInfo = new System.Windows.Forms.Panel();
+            this.lblRamDetails = new System.Windows.Forms.Label();
+            this.lblRamValue = new System.Windows.Forms.Label();
+            this.lblRamTitle = new System.Windows.Forms.Label();
+            this.progressRam = new System.Windows.Forms.ProgressBar();
+            this.panelStats = new System.Windows.Forms.Panel();
+            this.lblThreadCount = new System.Windows.Forms.Label();
+            this.lblProcessCount = new System.Windows.Forms.Label();
+            this.lblStatsTitle = new System.Windows.Forms.Label();
+            this.panelCpu.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxCpu)).BeginInit();
+            this.panelCpuInfo.SuspendLayout();
+            this.panelRam.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxRam)).BeginInit();
+            this.panelRamInfo.SuspendLayout();
+            this.panelStats.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // panelCpu
+            // 
+            this.panelCpu.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.panelCpu.BackColor = System.Drawing.Color.White;
+            this.panelCpu.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelCpu.Controls.Add(this.panelCpuInfo);
+            this.panelCpu.Controls.Add(this.pictureBoxCpu);
+            this.panelCpu.Location = new System.Drawing.Point(15, 15);
+            this.panelCpu.Name = "panelCpu";
+            this.panelCpu.Size = new System.Drawing.Size(970, 250);
+            this.panelCpu.TabIndex = 0;
+            // 
+            // pictureBoxCpu
+            // 
+            this.pictureBoxCpu.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.pictureBoxCpu.BackColor = System.Drawing.Color.White;
+            this.pictureBoxCpu.Location = new System.Drawing.Point(180, 10);
+            this.pictureBoxCpu.Name = "pictureBoxCpu";
+            this.pictureBoxCpu.Size = new System.Drawing.Size(775, 225);
+            this.pictureBoxCpu.TabIndex = 0;
+            this.pictureBoxCpu.TabStop = false;
+            // 
+            // panelCpuInfo
+            // 
+            this.panelCpuInfo.Controls.Add(this.progressCpu);
+            this.panelCpuInfo.Controls.Add(this.lblCpuTitle);
+            this.panelCpuInfo.Controls.Add(this.lblCpuValue);
+            this.panelCpuInfo.Dock = System.Windows.Forms.DockStyle.Left;
+            this.panelCpuInfo.Location = new System.Drawing.Point(0, 0);
+            this.panelCpuInfo.Name = "panelCpuInfo";
+            this.panelCpuInfo.Size = new System.Drawing.Size(170, 248);
+            this.panelCpuInfo.TabIndex = 1;
+            // 
+            // lblCpuTitle
+            // 
+            this.lblCpuTitle.AutoSize = true;
+            this.lblCpuTitle.Font = new System.Drawing.Font("Segoe UI Semibold", 11F, System.Drawing.FontStyle.Bold);
+            this.lblCpuTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(58)))), ((int)(((byte)(64)))));
+            this.lblCpuTitle.Location = new System.Drawing.Point(15, 20);
+            this.lblCpuTitle.Name = "lblCpuTitle";
+            this.lblCpuTitle.Size = new System.Drawing.Size(37, 20);
+            this.lblCpuTitle.TabIndex = 0;
+            this.lblCpuTitle.Text = "CPU";
+            // 
+            // lblCpuValue
+            // 
+            this.lblCpuValue.AutoSize = true;
+            this.lblCpuValue.Font = new System.Drawing.Font("Segoe UI", 24F, System.Drawing.FontStyle.Bold);
+            this.lblCpuValue.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(13)))), ((int)(((byte)(110)))), ((int)(((byte)(253)))));
+            this.lblCpuValue.Location = new System.Drawing.Point(15, 50);
+            this.lblCpuValue.Name = "lblCpuValue";
+            this.lblCpuValue.Size = new System.Drawing.Size(90, 45);
+            this.lblCpuValue.TabIndex = 1;
+            this.lblCpuValue.Text = "0%";
+            // 
+            // progressCpu
+            // 
+            this.progressCpu.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.progressCpu.Location = new System.Drawing.Point(15, 200);
+            this.progressCpu.Name = "progressCpu";
+            this.progressCpu.Size = new System.Drawing.Size(140, 25);
+            this.progressCpu.TabIndex = 2;
+            // 
+            // panelRam
+            // 
+            this.panelRam.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.panelRam.BackColor = System.Drawing.Color.White;
+            this.panelRam.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelRam.Controls.Add(this.panelRamInfo);
+            this.panelRam.Controls.Add(this.pictureBoxRam);
+            this.panelRam.Location = new System.Drawing.Point(15, 280);
+            this.panelRam.Name = "panelRam";
+            this.panelRam.Size = new System.Drawing.Size(970, 250);
+            this.panelRam.TabIndex = 1;
+            // 
+            // pictureBoxRam
+            // 
+            this.pictureBoxRam.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.pictureBoxRam.BackColor = System.Drawing.Color.White;
+            this.pictureBoxRam.Location = new System.Drawing.Point(180, 10);
+            this.pictureBoxRam.Name = "pictureBoxRam";
+            this.pictureBoxRam.Size = new System.Drawing.Size(775, 225);
+            this.pictureBoxRam.TabIndex = 0;
+            this.pictureBoxRam.TabStop = false;
+            // 
+            // panelRamInfo
+            // 
+            this.panelRamInfo.Controls.Add(this.progressRam);
+            this.panelRamInfo.Controls.Add(this.lblRamDetails);
+            this.panelRamInfo.Controls.Add(this.lblRamTitle);
+            this.panelRamInfo.Controls.Add(this.lblRamValue);
+            this.panelRamInfo.Dock = System.Windows.Forms.DockStyle.Left;
+            this.panelRamInfo.Location = new System.Drawing.Point(0, 0);
+            this.panelRamInfo.Name = "panelRamInfo";
+            this.panelRamInfo.Size = new System.Drawing.Size(170, 248);
+            this.panelRamInfo.TabIndex = 1;
+            // 
+            // lblRamTitle
+            // 
+            this.lblRamTitle.AutoSize = true;
+            this.lblRamTitle.Font = new System.Drawing.Font("Segoe UI Semibold", 11F, System.Drawing.FontStyle.Bold);
+            this.lblRamTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(58)))), ((int)(((byte)(64)))));
+            this.lblRamTitle.Location = new System.Drawing.Point(15, 20);
+            this.lblRamTitle.Name = "lblRamTitle";
+            this.lblRamTitle.Size = new System.Drawing.Size(41, 20);
+            this.lblRamTitle.TabIndex = 0;
+            this.lblRamTitle.Text = "RAM";
+            // 
+            // lblRamValue
+            // 
+            this.lblRamValue.AutoSize = true;
+            this.lblRamValue.Font = new System.Drawing.Font("Segoe UI", 24F, System.Drawing.FontStyle.Bold);
+            this.lblRamValue.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(135)))), ((int)(((byte)(84)))));
+            this.lblRamValue.Location = new System.Drawing.Point(15, 50);
+            this.lblRamValue.Name = "lblRamValue";
+            this.lblRamValue.Size = new System.Drawing.Size(90, 45);
+            this.lblRamValue.TabIndex = 1;
+            this.lblRamValue.Text = "0%";
+            // 
+            // lblRamDetails
+            // 
+            this.lblRamDetails.AutoSize = true;
+            this.lblRamDetails.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblRamDetails.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.lblRamDetails.Location = new System.Drawing.Point(15, 110);
+            this.lblRamDetails.Name = "lblRamDetails";
+            this.lblRamDetails.Size = new System.Drawing.Size(87, 15);
+            this.lblRamDetails.TabIndex = 2;
+            this.lblRamDetails.Text = "0 MB / 0 MB";
+            // 
+            // progressRam
+            // 
+            this.progressRam.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.progressRam.Location = new System.Drawing.Point(15, 200);
+            this.progressRam.Name = "progressRam";
+            this.progressRam.Size = new System.Drawing.Size(140, 25);
+            this.progressRam.TabIndex = 3;
+            // 
+            // panelStats
+            // 
+            this.panelStats.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.panelStats.BackColor = System.Drawing.Color.White;
+            this.panelStats.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelStats.Controls.Add(this.lblStatsTitle);
+            this.panelStats.Controls.Add(this.lblProcessCount);
+            this.panelStats.Controls.Add(this.lblThreadCount);
+            this.panelStats.Location = new System.Drawing.Point(15, 545);
+            this.panelStats.Name = "panelStats";
+            this.panelStats.Size = new System.Drawing.Size(300, 100);
+            this.panelStats.TabIndex = 2;
+            // 
+            // lblStatsTitle
+            // 
+            this.lblStatsTitle.AutoSize = true;
+            this.lblStatsTitle.Font = new System.Drawing.Font("Segoe UI Semibold", 10F, System.Drawing.FontStyle.Bold);
+            this.lblStatsTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(58)))), ((int)(((byte)(64)))));
+            this.lblStatsTitle.Location = new System.Drawing.Point(15, 15);
+            this.lblStatsTitle.Name = "lblStatsTitle";
+            this.lblStatsTitle.Size = new System.Drawing.Size(98, 19);
+            this.lblStatsTitle.TabIndex = 0;
+            this.lblStatsTitle.Text = "Th?ng kê";
+            // 
+            // lblProcessCount
+            // 
+            this.lblProcessCount.AutoSize = true;
+            this.lblProcessCount.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblProcessCount.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.lblProcessCount.Location = new System.Drawing.Point(15, 45);
+            this.lblProcessCount.Name = "lblProcessCount";
+            this.lblProcessCount.Size = new System.Drawing.Size(73, 15);
+            this.lblProcessCount.TabIndex = 1;
+            this.lblProcessCount.Text = "0 ti?n trình";
+            // 
+            // lblThreadCount
+            // 
+            this.lblThreadCount.AutoSize = true;
+            this.lblThreadCount.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblThreadCount.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.lblThreadCount.Location = new System.Drawing.Point(15, 70);
+            this.lblThreadCount.Name = "lblThreadCount";
+            this.lblThreadCount.Size = new System.Drawing.Size(47, 15);
+            this.lblThreadCount.TabIndex = 2;
+            this.lblThreadCount.Text = "0 lu?ng";
+            // 
+            // PerformanceTab
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScroll = true;
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
+            this.Controls.Add(this.panelStats);
+            this.Controls.Add(this.panelRam);
+            this.Controls.Add(this.panelCpu);
+            this.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.Name = "PerformanceTab";
+            this.Size = new System.Drawing.Size(1000, 660);
+            this.panelCpu.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxCpu)).EndInit();
+            this.panelCpuInfo.ResumeLayout(false);
+            this.panelCpuInfo.PerformLayout();
+            this.panelRam.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxRam)).EndInit();
+            this.panelRamInfo.ResumeLayout(false);
+            this.panelRamInfo.PerformLayout();
+            this.panelStats.ResumeLayout(false);
+            this.panelStats.PerformLayout();
+            this.ResumeLayout(false);
+
+        }
+
+        #endregion
+
+        private System.Windows.Forms.Panel panelCpu;
+        private System.Windows.Forms.PictureBox pictureBoxCpu;
+        private System.Windows.Forms.Panel panelCpuInfo;
+        private System.Windows.Forms.Label lblCpuTitle;
+        private System.Windows.Forms.Label lblCpuValue;
+        private System.Windows.Forms.ProgressBar progressCpu;
+        private System.Windows.Forms.Panel panelRam;
+        private System.Windows.Forms.PictureBox pictureBoxRam;
+        private System.Windows.Forms.Panel panelRamInfo;
+        private System.Windows.Forms.Label lblRamTitle;
+        private System.Windows.Forms.Label lblRamValue;
+        private System.Windows.Forms.Label lblRamDetails;
+        private System.Windows.Forms.ProgressBar progressRam;
+        private System.Windows.Forms.Panel panelStats;
+        private System.Windows.Forms.Label lblStatsTitle;
+        private System.Windows.Forms.Label lblProcessCount;
+        private System.Windows.Forms.Label lblThreadCount;
+    }
+}

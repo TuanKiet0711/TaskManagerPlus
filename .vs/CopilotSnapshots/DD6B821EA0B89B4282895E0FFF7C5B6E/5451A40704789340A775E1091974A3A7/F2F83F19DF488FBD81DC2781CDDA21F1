@@ -1,0 +1,182 @@
+﻿namespace TaskManagerPlus.Controls
+{
+    partial class PerformanceTab
+    {
+        private System.ComponentModel.IContainer components = null;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Component Designer generated code
+
+        private void InitializeComponent()
+        {
+            this.sidebar = new TaskManagerPlus.Controls.PerformanceSidebar();
+            this.panelMain = new System.Windows.Forms.Panel();
+            this.pictureBoxMain = new System.Windows.Forms.PictureBox();
+            this.panelDetails = new System.Windows.Forms.Panel();
+            this.lblUtilization = new System.Windows.Forms.Label();
+            this.lblUtilizationValue = new System.Windows.Forms.Label();
+            this.lblSpeed = new System.Windows.Forms.Label();
+            this.lblSpeedValue = new System.Windows.Forms.Label();
+            this.lblTitle = new System.Windows.Forms.Label();
+            this.lblSubtitle = new System.Windows.Forms.Label();
+            this.panelMain.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxMain)).BeginInit();
+            this.panelDetails.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // sidebar
+            // 
+            this.sidebar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
+            this.sidebar.Dock = System.Windows.Forms.DockStyle.Left;
+            this.sidebar.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.sidebar.Location = new System.Drawing.Point(0, 0);
+            this.sidebar.Name = "sidebar";
+            this.sidebar.Size = new System.Drawing.Size(220, 660);
+            this.sidebar.TabIndex = 0;
+            // 
+            // panelMain
+            // 
+            this.panelMain.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.panelMain.BackColor = System.Drawing.Color.White;
+            this.panelMain.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelMain.Controls.Add(this.lblSubtitle);
+            this.panelMain.Controls.Add(this.lblTitle);
+            this.panelMain.Controls.Add(this.panelDetails);
+            this.panelMain.Controls.Add(this.pictureBoxMain);
+            this.panelMain.Location = new System.Drawing.Point(230, 10);
+            this.panelMain.Name = "panelMain";
+            this.panelMain.Size = new System.Drawing.Size(750, 640);
+            this.panelMain.TabIndex = 1;
+            // 
+            // pictureBoxMain
+            // 
+            this.pictureBoxMain.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.pictureBoxMain.BackColor = System.Drawing.Color.White;
+            this.pictureBoxMain.Location = new System.Drawing.Point(15, 80);
+            this.pictureBoxMain.Name = "pictureBoxMain";
+            this.pictureBoxMain.Size = new System.Drawing.Size(510, 400);
+            this.pictureBoxMain.TabIndex = 0;
+            this.pictureBoxMain.TabStop = false;
+            // 
+            // panelDetails
+            // 
+            this.panelDetails.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.panelDetails.Controls.Add(this.lblSpeedValue);
+            this.panelDetails.Controls.Add(this.lblSpeed);
+            this.panelDetails.Controls.Add(this.lblUtilizationValue);
+            this.panelDetails.Controls.Add(this.lblUtilization);
+            this.panelDetails.Location = new System.Drawing.Point(540, 80);
+            this.panelDetails.Name = "panelDetails";
+            this.panelDetails.Size = new System.Drawing.Size(195, 400);
+            this.panelDetails.TabIndex = 1;
+            // 
+            // lblUtilization
+            // 
+            this.lblUtilization.AutoSize = true;
+            this.lblUtilization.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblUtilization.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.lblUtilization.Location = new System.Drawing.Point(10, 20);
+            this.lblUtilization.Name = "lblUtilization";
+            this.lblUtilization.Size = new System.Drawing.Size(66, 15);
+            this.lblUtilization.TabIndex = 0;
+            this.lblUtilization.Text = "Utilization:";
+            // 
+            // lblUtilizationValue
+            // 
+            this.lblUtilizationValue.AutoSize = true;
+            this.lblUtilizationValue.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.lblUtilizationValue.Location = new System.Drawing.Point(100, 20);
+            this.lblUtilizationValue.Name = "lblUtilizationValue";
+            this.lblUtilizationValue.Size = new System.Drawing.Size(26, 15);
+            this.lblUtilizationValue.TabIndex = 1;
+            this.lblUtilizationValue.Text = "0%";
+            // 
+            // lblSpeed
+            // 
+            this.lblSpeed.AutoSize = true;
+            this.lblSpeed.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblSpeed.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.lblSpeed.Location = new System.Drawing.Point(10, 50);
+            this.lblSpeed.Name = "lblSpeed";
+            this.lblSpeed.Size = new System.Drawing.Size(42, 15);
+            this.lblSpeed.TabIndex = 2;
+            this.lblSpeed.Text = "Speed:";
+            // 
+            // lblSpeedValue
+            // 
+            this.lblSpeedValue.AutoSize = true;
+            this.lblSpeedValue.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.lblSpeedValue.Location = new System.Drawing.Point(100, 50);
+            this.lblSpeedValue.Name = "lblSpeedValue";
+            this.lblSpeedValue.Size = new System.Drawing.Size(28, 15);
+            this.lblSpeedValue.TabIndex = 3;
+            this.lblSpeedValue.Text = "N/A";
+            // 
+            // lblTitle
+            // 
+            this.lblTitle.AutoSize = true;
+            this.lblTitle.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold);
+            this.lblTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(58)))), ((int)(((byte)(64)))));
+            this.lblTitle.Location = new System.Drawing.Point(15, 15);
+            this.lblTitle.Name = "lblTitle";
+            this.lblTitle.Size = new System.Drawing.Size(59, 32);
+            this.lblTitle.TabIndex = 2;
+            this.lblTitle.Text = "CPU";
+            // 
+            // lblSubtitle
+            // 
+            this.lblSubtitle.AutoSize = true;
+            this.lblSubtitle.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblSubtitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.lblSubtitle.Location = new System.Drawing.Point(15, 50);
+            this.lblSubtitle.Name = "lblSubtitle";
+            this.lblSubtitle.Size = new System.Drawing.Size(150, 19);
+            this.lblSubtitle.TabIndex = 3;
+            this.lblSubtitle.Text = "% Utilization - 60 seconds";
+            // 
+            // PerformanceTab
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
+            this.Controls.Add(this.panelMain);
+            this.Controls.Add(this.sidebar);
+            this.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.Name = "PerformanceTab";
+            this.Size = new System.Drawing.Size(1000, 660);
+            this.panelMain.ResumeLayout(false);
+            this.panelMain.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxMain)).EndInit();
+            this.panelDetails.ResumeLayout(false);
+            this.panelDetails.PerformLayout();
+            this.ResumeLayout(false);
+
+        }
+
+        #endregion
+
+        private PerformanceSidebar sidebar;
+        private System.Windows.Forms.Panel panelMain;
+        private System.Windows.Forms.PictureBox pictureBoxMain;
+        private System.Windows.Forms.Panel panelDetails;
+        private System.Windows.Forms.Label lblUtilization;
+        private System.Windows.Forms.Label lblUtilizationValue;
+        private System.Windows.Forms.Label lblSpeed;
+        private System.Windows.Forms.Label lblSpeedValue;
+        private System.Windows.Forms.Label lblTitle;
+        private System.Windows.Forms.Label lblSubtitle;
+    }
+}

@@ -1,0 +1,232 @@
+﻿namespace TaskManagerPlus
+{
+    partial class Form1
+    {
+        /// <summary>
+        /// Required designer variable.
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Windows Form Designer generated code
+
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.components = new System.ComponentModel.Container();
+            this.dataGridViewProcesses = new System.Windows.Forms.DataGridView();
+            this.btnRefresh = new System.Windows.Forms.Button();
+            this.btnKillProcess = new System.Windows.Forms.Button();
+            this.lblCpuUsage = new System.Windows.Forms.Label();
+            this.lblRamUsage = new System.Windows.Forms.Label();
+            this.lblProcessCount = new System.Windows.Forms.Label();
+            this.lblThreadCount = new System.Windows.Forms.Label();
+            this.timerRefresh = new System.Windows.Forms.Timer(this.components);
+            this.chkAutoRefresh = new System.Windows.Forms.CheckBox();
+            this.panelTop = new System.Windows.Forms.Panel();
+            this.panelBottom = new System.Windows.Forms.Panel();
+            this.txtSearch = new System.Windows.Forms.TextBox();
+            this.lblSearch = new System.Windows.Forms.Label();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridViewProcesses)).BeginInit();
+            this.panelTop.SuspendLayout();
+            this.panelBottom.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // dataGridViewProcesses
+            // 
+            this.dataGridViewProcesses.AllowUserToAddRows = false;
+            this.dataGridViewProcesses.AllowUserToDeleteRows = false;
+            this.dataGridViewProcesses.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.dataGridViewProcesses.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dataGridViewProcesses.BackgroundColor = System.Drawing.SystemColors.Window;
+            this.dataGridViewProcesses.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridViewProcesses.Location = new System.Drawing.Point(12, 100);
+            this.dataGridViewProcesses.MultiSelect = false;
+            this.dataGridViewProcesses.Name = "dataGridViewProcesses";
+            this.dataGridViewProcesses.ReadOnly = true;
+            this.dataGridViewProcesses.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.dataGridViewProcesses.Size = new System.Drawing.Size(1060, 450);
+            this.dataGridViewProcesses.TabIndex = 0;
+            // 
+            // btnRefresh
+            // 
+            this.btnRefresh.Location = new System.Drawing.Point(15, 10);
+            this.btnRefresh.Name = "btnRefresh";
+            this.btnRefresh.Size = new System.Drawing.Size(100, 30);
+            this.btnRefresh.TabIndex = 1;
+            this.btnRefresh.Text = "Làm mới";
+            this.btnRefresh.UseVisualStyleBackColor = true;
+            this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
+            // 
+            // btnKillProcess
+            // 
+            this.btnKillProcess.Location = new System.Drawing.Point(121, 10);
+            this.btnKillProcess.Name = "btnKillProcess";
+            this.btnKillProcess.Size = new System.Drawing.Size(120, 30);
+            this.btnKillProcess.TabIndex = 2;
+            this.btnKillProcess.Text = "Kết thúc tiến trình";
+            this.btnKillProcess.UseVisualStyleBackColor = true;
+            this.btnKillProcess.Click += new System.EventHandler(this.btnKillProcess_Click);
+            // 
+            // lblCpuUsage
+            // 
+            this.lblCpuUsage.AutoSize = true;
+            this.lblCpuUsage.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblCpuUsage.Location = new System.Drawing.Point(15, 18);
+            this.lblCpuUsage.Name = "lblCpuUsage";
+            this.lblCpuUsage.Size = new System.Drawing.Size(80, 15);
+            this.lblCpuUsage.TabIndex = 3;
+            this.lblCpuUsage.Text = "CPU: 0%";
+            // 
+            // lblRamUsage
+            // 
+            this.lblRamUsage.AutoSize = true;
+            this.lblRamUsage.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblRamUsage.Location = new System.Drawing.Point(200, 18);
+            this.lblRamUsage.Name = "lblRamUsage";
+            this.lblRamUsage.Size = new System.Drawing.Size(120, 15);
+            this.lblRamUsage.TabIndex = 4;
+            this.lblRamUsage.Text = "RAM: 0 MB / 0 MB";
+            // 
+            // lblProcessCount
+            // 
+            this.lblProcessCount.AutoSize = true;
+            this.lblProcessCount.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblProcessCount.Location = new System.Drawing.Point(450, 18);
+            this.lblProcessCount.Name = "lblProcessCount";
+            this.lblProcessCount.Size = new System.Drawing.Size(90, 15);
+            this.lblProcessCount.TabIndex = 5;
+            this.lblProcessCount.Text = "Tiến trình: 0";
+            // 
+            // lblThreadCount
+            // 
+            this.lblThreadCount.AutoSize = true;
+            this.lblThreadCount.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblThreadCount.Location = new System.Drawing.Point(650, 18);
+            this.lblThreadCount.Name = "lblThreadCount";
+            this.lblThreadCount.Size = new System.Drawing.Size(60, 15);
+            this.lblThreadCount.TabIndex = 6;
+            this.lblThreadCount.Text = "Luồng: 0";
+            // 
+            // timerRefresh
+            // 
+            this.timerRefresh.Interval = 2000;
+            this.timerRefresh.Tick += new System.EventHandler(this.timerRefresh_Tick);
+            // 
+            // chkAutoRefresh
+            // 
+            this.chkAutoRefresh.AutoSize = true;
+            this.chkAutoRefresh.Checked = true;
+            this.chkAutoRefresh.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkAutoRefresh.Location = new System.Drawing.Point(247, 15);
+            this.chkAutoRefresh.Name = "chkAutoRefresh";
+            this.chkAutoRefresh.Size = new System.Drawing.Size(107, 19);
+            this.chkAutoRefresh.TabIndex = 7;
+            this.chkAutoRefresh.Text = "Tự động làm mới";
+            this.chkAutoRefresh.UseVisualStyleBackColor = true;
+            this.chkAutoRefresh.CheckedChanged += new System.EventHandler(this.chkAutoRefresh_CheckedChanged);
+            // 
+            // panelTop
+            // 
+            this.panelTop.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
+            this.panelTop.Controls.Add(this.lblCpuUsage);
+            this.panelTop.Controls.Add(this.lblRamUsage);
+            this.panelTop.Controls.Add(this.lblProcessCount);
+            this.panelTop.Controls.Add(this.lblThreadCount);
+            this.panelTop.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panelTop.Location = new System.Drawing.Point(0, 0);
+            this.panelTop.Name = "panelTop";
+            this.panelTop.Size = new System.Drawing.Size(1084, 50);
+            this.panelTop.TabIndex = 8;
+            // 
+            // panelBottom
+            // 
+            this.panelBottom.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
+            this.panelBottom.Controls.Add(this.lblSearch);
+            this.panelBottom.Controls.Add(this.txtSearch);
+            this.panelBottom.Controls.Add(this.btnRefresh);
+            this.panelBottom.Controls.Add(this.chkAutoRefresh);
+            this.panelBottom.Controls.Add(this.btnKillProcess);
+            this.panelBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panelBottom.Location = new System.Drawing.Point(0, 570);
+            this.panelBottom.Name = "panelBottom";
+            this.panelBottom.Size = new System.Drawing.Size(1084, 51);
+            this.panelBottom.TabIndex = 9;
+            // 
+            // txtSearch
+            // 
+            this.txtSearch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtSearch.Location = new System.Drawing.Point(845, 13);
+            this.txtSearch.Name = "txtSearch";
+            this.txtSearch.Size = new System.Drawing.Size(200, 23);
+            this.txtSearch.TabIndex = 8;
+            this.txtSearch.TextChanged += new System.EventHandler(this.txtSearch_TextChanged);
+            // 
+            // lblSearch
+            // 
+            this.lblSearch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblSearch.AutoSize = true;
+            this.lblSearch.Location = new System.Drawing.Point(780, 16);
+            this.lblSearch.Name = "lblSearch";
+            this.lblSearch.Size = new System.Drawing.Size(59, 15);
+            this.lblSearch.TabIndex = 9;
+            this.lblSearch.Text = "Tìm kiếm:";
+            // 
+            // Form1
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(1084, 621);
+            this.Controls.Add(this.panelBottom);
+            this.Controls.Add(this.panelTop);
+            this.Controls.Add(this.dataGridViewProcesses);
+            this.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.MinimumSize = new System.Drawing.Size(900, 600);
+            this.Name = "Form1";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.Text = "Task Manager Plus - Quản lý tiến trình nâng cao";
+            this.Load += new System.EventHandler(this.Form1_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridViewProcesses)).EndInit();
+            this.panelTop.ResumeLayout(false);
+            this.panelTop.PerformLayout();
+            this.panelBottom.ResumeLayout(false);
+            this.panelBottom.PerformLayout();
+            this.ResumeLayout(false);
+
+        }
+
+        #endregion
+
+        private System.Windows.Forms.DataGridView dataGridViewProcesses;
+        private System.Windows.Forms.Button btnRefresh;
+        private System.Windows.Forms.Button btnKillProcess;
+        private System.Windows.Forms.Label lblCpuUsage;
+        private System.Windows.Forms.Label lblRamUsage;
+        private System.Windows.Forms.Label lblProcessCount;
+        private System.Windows.Forms.Label lblThreadCount;
+        private System.Windows.Forms.Timer timerRefresh;
+        private System.Windows.Forms.CheckBox chkAutoRefresh;
+        private System.Windows.Forms.Panel panelTop;
+        private System.Windows.Forms.Panel panelBottom;
+        private System.Windows.Forms.TextBox txtSearch;
+        private System.Windows.Forms.Label lblSearch;
+    }
+}
+

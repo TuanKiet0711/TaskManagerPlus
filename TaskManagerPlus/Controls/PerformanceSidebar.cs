@@ -1,0 +1,254 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace TaskManagerPlus.Controls
+{
+    public partial class PerformanceSidebar : UserControl
+    {
+        private List<HardwareItem> hardwareItems;
+        private int selectedIndex = 0;
+        private Panel scrollPanel;
+
+        public event EventHandler<int> ItemSelected;
+
+        public PerformanceSidebar()
+        {
+            InitializeComponent();
+            hardwareItems = new List<HardwareItem>();
+            this.DoubleBuffered = true;
+            this.BackColor = Color.FromArgb(240, 240, 240);
+            
+            // Create scrollable panel
+            scrollPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                BackColor = Color.FromArgb(240, 240, 240)
+            };
+            scrollPanel.Paint += ScrollPanel_Paint;
+            scrollPanel.MouseClick += ScrollPanel_MouseClick;
+            this.Controls.Add(scrollPanel);
+        }
+
+        public void AddItem(string name, string usage, Queue<double> history, Color color)
+        {
+            var item = new HardwareItem
+            {
+                Name = name,
+                Usage = usage,
+                History = new Queue<double>(history),
+                Color = color
+            };
+            hardwareItems.Add(item);
+            UpdateScrollPanelHeight();
+            scrollPanel.Invalidate();
+        }
+
+        public void UpdateItem(int index, string usage, Queue<double> history)
+        {
+            if (index >= 0 && index < hardwareItems.Count)
+            {
+                hardwareItems[index].Usage = usage;
+                hardwareItems[index].History = new Queue<double>(history);
+                scrollPanel.Invalidate();
+            }
+        }
+
+        public void ClearItems()
+        {
+            hardwareItems.Clear();
+            UpdateScrollPanelHeight();
+            scrollPanel.Invalidate();
+        }
+
+        public void SetSelectedIndex(int index)
+        {
+            if (index >= 0 && index < hardwareItems.Count)
+            {
+                selectedIndex = index;
+                scrollPanel.Invalidate();
+            }
+        }
+
+        private void UpdateScrollPanelHeight()
+        {
+            int itemHeight = 65; // Reduced from 80
+            int spacing = 3; // Reduced from 5
+            int totalHeight = 5 + (hardwareItems.Count * (itemHeight + spacing));
+            scrollPanel.AutoScrollMinSize = new Size(0, totalHeight);
+        }
+
+        private void ScrollPanel_Paint(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            // Adjust for scroll position
+            int yPos = 5 - scrollPanel.AutoScrollPosition.Y;
+            int itemHeight = 65; // Reduced
+            int itemWidth = scrollPanel.Width - 10 - (scrollPanel.VerticalScroll.Visible ? SystemInformation.VerticalScrollBarWidth : 0);
+
+            for (int i = 0; i < hardwareItems.Count; i++)
+            {
+                // Only draw visible items
+                if (yPos + itemHeight >= 0 && yPos <= scrollPanel.Height)
+                {
+                    DrawHardwareItem(g, hardwareItems[i], 5, yPos, itemWidth, itemHeight, i == selectedIndex);
+                }
+                yPos += itemHeight + 3;
+            }
+        }
+
+        private void ScrollPanel_MouseClick(object sender, MouseEventArgs e)
+        {
+            int itemHeight = 68; // Item height + spacing
+            int yPosAdjusted = e.Y - scrollPanel.AutoScrollPosition.Y;
+            int index = (yPosAdjusted - 5) / itemHeight;
+
+            if (index >= 0 && index < hardwareItems.Count)
+            {
+                selectedIndex = index;
+                scrollPanel.Invalidate();
+                ItemSelected?.Invoke(this, index);
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            // Painting now handled by scrollPanel
+        }
+
+        private void DrawHardwareItem(Graphics g, HardwareItem item, int x, int y, int width, int height, bool isSelected)
+        {
+            // Background
+            Color bgColor = isSelected ? Color.FromArgb(0, 120, 212) : Color.White;
+            Color textColor = isSelected ? Color.White : Color.FromArgb(52, 58, 64);
+            
+            using (SolidBrush bgBrush = new SolidBrush(bgColor))
+            {
+                g.FillRectangle(bgBrush, x, y, width, height);
+            }
+
+            // Border (only if not selected)
+            if (!isSelected)
+            {
+                using (Pen borderPen = new Pen(Color.FromArgb(200, 200, 200)))
+                {
+                    g.DrawRectangle(borderPen, x, y, width, height);
+                }
+            }
+
+            // Mini chart - smaller and compact
+            int chartX = x + 8;
+            int chartY = y + 22;
+            int chartWidth = 50; // Reduced from 60
+            int chartHeight = 35; // Reduced from 40
+            DrawMiniChart(g, item.History, isSelected ? Color.White : item.Color, chartX, chartY, chartWidth, chartHeight);
+
+            // Text - more compact
+            using (Font nameFont = new Font("Segoe UI", 8.5F, FontStyle.Regular))
+            using (Font usageFont = new Font("Segoe UI", 8.5F, FontStyle.Bold))
+            using (SolidBrush textBrush = new SolidBrush(textColor))
+            {
+                g.DrawString(item.Name, nameFont, textBrush, chartX + chartWidth + 8, y + 8);
+                g.DrawString(item.Usage, usageFont, textBrush, chartX + chartWidth + 8, y + 25);
+                
+                // Draw additional info on third line if available
+                if (!string.IsNullOrEmpty(item.ExtraInfo))
+                {
+                    using (Font extraFont = new Font("Segoe UI", 7.5F))
+                    {
+                        g.DrawString(item.ExtraInfo, extraFont, textBrush, chartX + chartWidth + 8, y + 42);
+                    }
+                }
+            }
+        }
+
+        private void DrawMiniChart(Graphics g, Queue<double> data, Color lineColor, int x, int y, int width, int height)
+        {
+            if (data == null || data.Count < 2) return;
+
+            var points = new List<PointF>();
+            var dataArray = data.ToArray();
+
+            for (int i = 0; i < dataArray.Length; i++)
+            {
+                float xPos = x + (float)(width * i / (dataArray.Length - 1.0));
+                float yPos = y + height - (float)(height * dataArray[i] / 100.0);
+                points.Add(new PointF(xPos, yPos));
+            }
+
+            if (points.Count > 1)
+            {
+                // Fill area
+                using (GraphicsPath path = new GraphicsPath())
+                {
+                    path.AddLines(points.ToArray());
+                    path.AddLine(points[points.Count - 1].X, points[points.Count - 1].Y, points[points.Count - 1].X, y + height);
+                    path.AddLine(points[points.Count - 1].X, y + height, points[0].X, y + height);
+                    path.CloseFigure();
+
+                    using (SolidBrush brush = new SolidBrush(Color.FromArgb(50, lineColor)))
+                    {
+                        g.FillPath(brush, path);
+                    }
+                }
+
+                // Draw line
+                using (Pen linePen = new Pen(lineColor, 1.5f))
+                {
+                    g.DrawLines(linePen, points.ToArray());
+                }
+            }
+        }
+
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            base.OnMouseClick(e);
+            // Mouse click now handled by scrollPanel
+        }
+
+        private class HardwareItem
+        {
+            public string Name { get; set; }
+            public string Usage { get; set; }
+            public Queue<double> History { get; set; }
+            public Color Color { get; set; }
+            public string ExtraInfo { get; set; }
+        }
+    }
+
+    partial class PerformanceSidebar
+    {
+        private System.ComponentModel.IContainer components = null;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+            // 
+            // PerformanceSidebar
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.Name = "PerformanceSidebar";
+            this.Size = new System.Drawing.Size(200, 600);
+            this.ResumeLayout(false);
+        }
+    }
+}

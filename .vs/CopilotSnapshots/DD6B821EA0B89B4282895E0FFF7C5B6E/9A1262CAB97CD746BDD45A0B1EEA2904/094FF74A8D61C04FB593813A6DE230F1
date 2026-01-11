@@ -1,0 +1,227 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using TaskManagerPlus.Services;
+using TaskManagerPlus.Models;
+
+namespace TaskManagerPlus
+{
+    public partial class Form1 : Form
+    {
+        private ProcessMonitor processMonitor;
+        private List<ProcessInfo> allProcesses;
+        private BindingSource bindingSource;
+
+        public Form1()
+        {
+            InitializeComponent();
+            processMonitor = new ProcessMonitor();
+            bindingSource = new BindingSource();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            SetupDataGridView();
+            LoadProcesses();
+            timerRefresh.Start();
+        }
+
+        private void SetupDataGridView()
+        {
+            dataGridViewProcesses.AutoGenerateColumns = false;
+            dataGridViewProcesses.Columns.Clear();
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "ProcessName",
+                HeaderText = "Tên tiến trình",
+                Width = 200,
+                FillWeight = 25
+            });
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "ProcessId",
+                HeaderText = "PID",
+                Width = 80,
+                FillWeight = 10
+            });
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "MemoryUsage",
+                HeaderText = "Bộ nhớ",
+                Width = 120,
+                FillWeight = 15,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "CpuUsage",
+                HeaderText = "CPU (%)",
+                Width = 100,
+                FillWeight = 12,
+                DefaultCellStyle = new DataGridViewCellStyle 
+                { 
+                    Alignment = DataGridViewContentAlignment.MiddleRight,
+                    Format = "F2"
+                }
+            });
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "ThreadCount",
+                HeaderText = "Số luồng",
+                Width = 100,
+                FillWeight = 12,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Description",
+                HeaderText = "Mô tả",
+                Width = 300,
+                FillWeight = 35
+            });
+
+            dataGridViewProcesses.DataSource = bindingSource;
+        }
+
+        private void LoadProcesses()
+        {
+            try
+            {
+                allProcesses = processMonitor.GetAllProcesses();
+                FilterAndDisplayProcesses();
+                UpdateSystemInfo();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi tải danh sách tiến trình: {ex.Message}", 
+                    "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void FilterAndDisplayProcesses()
+        {
+            var filteredProcesses = allProcesses;
+
+            if (!string.IsNullOrWhiteSpace(txtSearch.Text))
+            {
+                string searchText = txtSearch.Text.ToLower();
+                filteredProcesses = allProcesses.Where(p => 
+                    p.ProcessName.ToLower().Contains(searchText) ||
+                    p.ProcessId.ToString().Contains(searchText) ||
+                    (p.Description != null && p.Description.ToLower().Contains(searchText))
+                ).ToList();
+            }
+
+            bindingSource.DataSource = filteredProcesses;
+            bindingSource.ResetBindings(false);
+        }
+
+        private void UpdateSystemInfo()
+        {
+            try
+            {
+                var systemInfo = processMonitor.GetSystemInfo();
+                
+                lblCpuUsage.Text = $"CPU: {systemInfo.CpuUsage:F1}%";
+                lblRamUsage.Text = $"RAM: {systemInfo.UsedRAM:F0} MB / {systemInfo.TotalRAM:F0} MB " +
+                                   $"({(systemInfo.UsedRAM / systemInfo.TotalRAM * 100):F1}%)";
+                lblProcessCount.Text = $"Tiến trình: {systemInfo.ProcessCount}";
+                lblThreadCount.Text = $"Luồng: {systemInfo.ThreadCount}";
+
+                if (systemInfo.CpuUsage > 80)
+                    lblCpuUsage.ForeColor = Color.Red;
+                else if (systemInfo.CpuUsage > 50)
+                    lblCpuUsage.ForeColor = Color.Orange;
+                else
+                    lblCpuUsage.ForeColor = Color.Green;
+
+                double ramPercent = (systemInfo.UsedRAM / systemInfo.TotalRAM * 100);
+                if (ramPercent > 80)
+                    lblRamUsage.ForeColor = Color.Red;
+                else if (ramPercent > 60)
+                    lblRamUsage.ForeColor = Color.Orange;
+                else
+                    lblRamUsage.ForeColor = Color.Green;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi cập nhật thông tin hệ thống: {ex.Message}");
+            }
+        }
+
+        private void btnRefresh_Click(object sender, EventArgs e)
+        {
+            LoadProcesses();
+        }
+
+        private void btnKillProcess_Click(object sender, EventArgs e)
+        {
+            if (dataGridViewProcesses.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Vui lòng chọn một tiến trình để kết thúc.", 
+                    "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            ProcessInfo selectedProcess = dataGridViewProcesses.SelectedRows[0].DataBoundItem as ProcessInfo;
+            if (selectedProcess == null) return;
+
+            DialogResult result = MessageBox.Show(
+                $"Bạn có chắc chắn muốn kết thúc tiến trình '{selectedProcess.ProcessName}' (PID: {selectedProcess.ProcessId})?",
+                "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+            if (result == DialogResult.Yes)
+            {
+                try
+                {
+                    processMonitor.KillProcess(selectedProcess.ProcessId);
+                    MessageBox.Show("Tiến trình đã được kết thúc thành công.", 
+                        "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    LoadProcesses();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Không thể kết thúc tiến trình: {ex.Message}", 
+                        "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void timerRefresh_Tick(object sender, EventArgs e)
+        {
+            if (chkAutoRefresh.Checked)
+            {
+                LoadProcesses();
+            }
+        }
+
+        private void chkAutoRefresh_CheckedChanged(object sender, EventArgs e)
+        {
+            timerRefresh.Enabled = chkAutoRefresh.Checked;
+        }
+
+        private void txtSearch_TextChanged(object sender, EventArgs e)
+        {
+            FilterAndDisplayProcesses();
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            timerRefresh.Stop();
+            processMonitor?.Cleanup();
+            base.OnFormClosing(e);
+        }
+    }
+}

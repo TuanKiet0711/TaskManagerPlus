@@ -1,0 +1,122 @@
+﻿namespace TaskManagerPlus.Controls
+{
+    partial class ProcessesTab
+    {
+        private System.ComponentModel.IContainer components = null;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Component Designer generated code
+
+        private void InitializeComponent()
+        {
+            this.dataGridViewProcesses = new System.Windows.Forms.DataGridView();
+            this.panelTop = new System.Windows.Forms.Panel();
+            this.txtSearch = new System.Windows.Forms.TextBox();
+            this.lblSearch = new System.Windows.Forms.Label();
+            this.btnKillProcess = new System.Windows.Forms.Button();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridViewProcesses)).BeginInit();
+            this.panelTop.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // dataGridViewProcesses
+            // 
+            this.dataGridViewProcesses.AllowUserToAddRows = false;
+            this.dataGridViewProcesses.AllowUserToDeleteRows = false;
+            this.dataGridViewProcesses.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.dataGridViewProcesses.BackgroundColor = System.Drawing.Color.White;
+            this.dataGridViewProcesses.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.dataGridViewProcesses.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridViewProcesses.Location = new System.Drawing.Point(0, 50);
+            this.dataGridViewProcesses.MultiSelect = false;
+            this.dataGridViewProcesses.Name = "dataGridViewProcesses";
+            this.dataGridViewProcesses.ReadOnly = true;
+            this.dataGridViewProcesses.RowHeadersVisible = false;
+            this.dataGridViewProcesses.RowHeadersWidth = 51;
+            this.dataGridViewProcesses.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.dataGridViewProcesses.Size = new System.Drawing.Size(1000, 500);
+            this.dataGridViewProcesses.TabIndex = 0;
+            // 
+            // panelTop
+            // 
+            this.panelTop.BackColor = System.Drawing.Color.White;
+            this.panelTop.Controls.Add(this.txtSearch);
+            this.panelTop.Controls.Add(this.lblSearch);
+            this.panelTop.Controls.Add(this.btnKillProcess);
+            this.panelTop.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panelTop.Location = new System.Drawing.Point(0, 0);
+            this.panelTop.Name = "panelTop";
+            this.panelTop.Size = new System.Drawing.Size(1000, 50);
+            this.panelTop.TabIndex = 1;
+            // 
+            // txtSearch
+            // 
+            this.txtSearch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtSearch.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.txtSearch.Location = new System.Drawing.Point(745, 13);
+            this.txtSearch.Name = "txtSearch";
+            this.txtSearch.Size = new System.Drawing.Size(240, 27);
+            this.txtSearch.TabIndex = 2;
+            this.txtSearch.TextChanged += new System.EventHandler(this.txtSearch_TextChanged);
+            // 
+            // lblSearch
+            // 
+            this.lblSearch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblSearch.AutoSize = true;
+            this.lblSearch.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblSearch.Location = new System.Drawing.Point(680, 17);
+            this.lblSearch.Name = "lblSearch";
+            this.lblSearch.Size = new System.Drawing.Size(73, 20);
+            this.lblSearch.TabIndex = 1;
+            this.lblSearch.Text = "Tìm kiếm:";
+            // 
+            // btnKillProcess
+            // 
+            this.btnKillProcess.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(53)))), ((int)(((byte)(69)))));
+            this.btnKillProcess.FlatAppearance.BorderSize = 0;
+            this.btnKillProcess.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnKillProcess.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.btnKillProcess.ForeColor = System.Drawing.Color.White;
+            this.btnKillProcess.Location = new System.Drawing.Point(15, 10);
+            this.btnKillProcess.Name = "btnKillProcess";
+            this.btnKillProcess.Size = new System.Drawing.Size(152, 32);
+            this.btnKillProcess.TabIndex = 0;
+            this.btnKillProcess.Text = "Kết thúc tiến trình";
+            this.btnKillProcess.UseVisualStyleBackColor = false;
+            this.btnKillProcess.Click += new System.EventHandler(this.btnKillProcess_Click);
+            // 
+            // ProcessesTab
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.White;
+            this.Controls.Add(this.dataGridViewProcesses);
+            this.Controls.Add(this.panelTop);
+            this.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.Name = "ProcessesTab";
+            this.Size = new System.Drawing.Size(1000, 550);
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridViewProcesses)).EndInit();
+            this.panelTop.ResumeLayout(false);
+            this.panelTop.PerformLayout();
+            this.ResumeLayout(false);
+
+        }
+
+        #endregion
+
+        private System.Windows.Forms.DataGridView dataGridViewProcesses;
+        private System.Windows.Forms.Panel panelTop;
+        private System.Windows.Forms.Button btnKillProcess;
+        private System.Windows.Forms.Label lblSearch;
+        private System.Windows.Forms.TextBox txtSearch;
+    }
+}

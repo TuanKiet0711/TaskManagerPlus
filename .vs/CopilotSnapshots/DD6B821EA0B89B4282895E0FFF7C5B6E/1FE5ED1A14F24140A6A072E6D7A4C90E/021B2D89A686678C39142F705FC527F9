@@ -1,0 +1,231 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Management;
+using System.Net.NetworkInformation;
+using TaskManagerPlus.Models;
+
+namespace TaskManagerPlus.Services
+{
+    public class HardwareMonitor
+    {
+        private Dictionary<string, PerformanceCounter> performanceCounters;
+        private Dictionary<string, long> lastNetworkBytes;
+        private DateTime lastNetworkCheck;
+
+        public HardwareMonitor()
+        {
+            performanceCounters = new Dictionary<string, PerformanceCounter>();
+            lastNetworkBytes = new Dictionary<string, long>();
+            lastNetworkCheck = DateTime.Now;
+        }
+
+        public List<GpuInfo> GetGpuInfo()
+        {
+            List<GpuInfo> gpus = new List<GpuInfo>();
+
+            try
+            {
+                using (ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController"))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        try
+                        {
+                            GpuInfo gpu = new GpuInfo
+                            {
+                                Name = obj["Name"]?.ToString() ?? "Unknown GPU",
+                                Type = "GPU",
+                                DedicatedMemory = FormatBytes(Convert.ToInt64(obj["AdapterRAM"] ?? 0)),
+                                Usage = GetGpuUsage(),
+                                Temperature = 0
+                            };
+
+                            gpu.UsageText = $"{gpu.Usage:F1}%";
+                            gpus.Add(gpu);
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch { }
+
+            if (gpus.Count == 0)
+            {
+                gpus.Add(new GpuInfo
+                {
+                    Name = "GPU 0",
+                    Type = "GPU",
+                    Usage = 0,
+                    UsageText = "0%",
+                    DedicatedMemory = "N/A"
+                });
+            }
+
+            return gpus;
+        }
+
+        public List<DiskInfo> GetDiskInfo()
+        {
+            List<DiskInfo> disks = new List<DiskInfo>();
+
+            try
+            {
+                DriveInfo[] drives = DriveInfo.GetDrives();
+                foreach (DriveInfo drive in drives.Where(d => d.IsReady && d.DriveType == DriveType.Fixed))
+                {
+                    try
+                    {
+                        DiskInfo disk = new DiskInfo
+                        {
+                            Name = $"Disk ({drive.Name.TrimEnd('\\')})",
+                            DriveLetter = drive.Name,
+                            Type = drive.DriveFormat,
+                            TotalSize = drive.TotalSize,
+                            FreeSpace = drive.TotalFreeSpace,
+                            Capacity = FormatBytes(drive.TotalSize),
+                            Usage = ((drive.TotalSize - drive.TotalFreeSpace) / (double)drive.TotalSize) * 100,
+                            ActiveTime = GetDiskActiveTime(drive.Name[0]),
+                            Details = $"{FormatBytes(drive.TotalSize - drive.TotalFreeSpace)} / {FormatBytes(drive.TotalSize)}"
+                        };
+
+                        disk.UsageText = $"{disk.Usage:F1}%";
+                        disks.Add(disk);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+
+            return disks;
+        }
+
+        public List<NetworkInfo> GetNetworkInfo()
+        {
+            List<NetworkInfo> networks = new List<NetworkInfo>();
+            DateTime now = DateTime.Now;
+            double timeSpan = (now - lastNetworkCheck).TotalSeconds;
+
+            try
+            {
+                NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
+                foreach (NetworkInterface ni in interfaces.Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType != NetworkInterfaceType.Loopback))
+                {
+                    try
+                    {
+                        IPv4InterfaceStatistics stats = ni.GetIPv4Statistics();
+                        long totalBytes = stats.BytesSent + stats.BytesReceived;
+                        
+                        double sendSpeed = 0;
+                        double receiveSpeed = 0;
+
+                        if (lastNetworkBytes.ContainsKey(ni.Id) && timeSpan > 0)
+                        {
+                            long bytesDiff = totalBytes - lastNetworkBytes[ni.Id];
+                            double bytesPerSecond = bytesDiff / timeSpan;
+                            sendSpeed = stats.BytesSent / timeSpan / 1024; // KB/s
+                            receiveSpeed = stats.BytesReceived / timeSpan / 1024; // KB/s
+                        }
+
+                        lastNetworkBytes[ni.Id] = totalBytes;
+
+                        string ipAddress = "N/A";
+                        var ipProps = ni.GetIPProperties();
+                        var unicastAddresses = ipProps.UnicastAddresses;
+                        if (unicastAddresses.Count > 0)
+                        {
+                            var ipv4 = unicastAddresses.FirstOrDefault(a => a.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+                            if (ipv4 != null)
+                                ipAddress = ipv4.Address.ToString();
+                        }
+
+                        NetworkInfo network = new NetworkInfo
+                        {
+                            Name = ni.Name,
+                            AdapterName = ni.Description,
+                            Type = ni.NetworkInterfaceType.ToString(),
+                            ConnectionType = ni.NetworkInterfaceType.ToString(),
+                            IpAddress = ipAddress,
+                            SendSpeed = sendSpeed,
+                            ReceiveSpeed = receiveSpeed,
+                            Usage = 0,
+                            UsageText = $"S: {FormatSpeed(sendSpeed)} R: {FormatSpeed(receiveSpeed)}"
+                        };
+
+                        networks.Add(network);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+
+            lastNetworkCheck = now;
+            return networks;
+        }
+
+        private double GetGpuUsage()
+        {
+            try
+            {
+                if (!performanceCounters.ContainsKey("GPU"))
+                {
+                    performanceCounters["GPU"] = new PerformanceCounter("GPU Engine", "Utilization Percentage", "_engtype_3D");
+                }
+                return performanceCounters["GPU"].NextValue();
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private double GetDiskActiveTime(char driveLetter)
+        {
+            try
+            {
+                string counterKey = $"Disk_{driveLetter}";
+                if (!performanceCounters.ContainsKey(counterKey))
+                {
+                    performanceCounters[counterKey] = new PerformanceCounter("PhysicalDisk", "% Disk Time", $"{(int)driveLetter - 65} {driveLetter}:");
+                }
+                return performanceCounters[counterKey].NextValue();
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private string FormatBytes(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            double len = bytes;
+            int order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+            return $"{len:F2} {sizes[order]}";
+        }
+
+        private string FormatSpeed(double kbps)
+        {
+            if (kbps < 1024)
+                return $"{kbps:F0} KB/s";
+            else
+                return $"{kbps / 1024:F2} MB/s";
+        }
+
+        public void Cleanup()
+        {
+            foreach (var counter in performanceCounters.Values)
+            {
+                counter?.Dispose();
+            }
+            performanceCounters.Clear();
+        }
+    }
+}

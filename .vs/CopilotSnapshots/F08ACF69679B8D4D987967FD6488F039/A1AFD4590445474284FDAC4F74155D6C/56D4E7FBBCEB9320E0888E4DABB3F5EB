@@ -1,0 +1,216 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Microsoft.Win32;
+using TaskManagerPlus.Models;
+
+namespace TaskManagerPlus.Controls
+{
+    public partial class StartupTab : UserControl
+    {
+        private BindingList<StartupApp> startupApps;
+
+        public StartupTab()
+        {
+            InitializeComponent();
+            startupApps = new BindingList<StartupApp>();
+        }
+
+        public void Initialize()
+        {
+            SetupDataGridView();
+        }
+
+        private void SetupDataGridView()
+        {
+            dataGridViewStartup.AutoGenerateColumns = false;
+            dataGridViewStartup.Columns.Clear();
+            dataGridViewStartup.DoubleBuffered(true);
+
+            dataGridViewStartup.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Name",
+                HeaderText = "Name",
+                Width = 250,
+                FillWeight = 30
+            });
+
+            dataGridViewStartup.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Publisher",
+                HeaderText = "Publisher",
+                Width = 200,
+                FillWeight = 25
+            });
+
+            dataGridViewStartup.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Status",
+                HeaderText = "Status",
+                Width = 100,
+                FillWeight = 15
+            });
+
+            dataGridViewStartup.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "StartupImpact",
+                HeaderText = "Startup impact",
+                Width = 120,
+                FillWeight = 15
+            });
+
+            dataGridViewStartup.DataSource = startupApps;
+        }
+
+        public async Task LoadStartupAppsAsync()
+        {
+            try
+            {
+                var apps = await Task.Run(() => GetStartupApplications());
+                startupApps.Clear();
+                foreach (var app in apps)
+                {
+                    startupApps.Add(app);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"L?i khi t?i startup apps: {ex.Message}");
+            }
+        }
+
+        private List<StartupApp> GetStartupApplications()
+        {
+            List<StartupApp> apps = new List<StartupApp>();
+
+            try
+            {
+                // HKEY_CURRENT_USER
+                string[] locations = new string[]
+                {
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
+                };
+
+                foreach (string location in locations)
+                {
+                    try
+                    {
+                        using (RegistryKey key = Registry.CurrentUser.OpenSubKey(location))
+                        {
+                            if (key != null)
+                            {
+                                foreach (string valueName in key.GetValueNames())
+                                {
+                                    string value = key.GetValue(valueName)?.ToString();
+                                    if (!string.IsNullOrEmpty(value))
+                                    {
+                                        apps.Add(new StartupApp
+                                        {
+                                            Name = valueName,
+                                            Publisher = "Unknown",
+                                            Status = "Enabled",
+                                            StartupImpact = "Not measured",
+                                            Location = value,
+                                            IsEnabled = true
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+
+                    // HKEY_LOCAL_MACHINE
+                    try
+                    {
+                        using (RegistryKey key = Registry.LocalMachine.OpenSubKey(location))
+                        {
+                            if (key != null)
+                            {
+                                foreach (string valueName in key.GetValueNames())
+                                {
+                                    string value = key.GetValue(valueName)?.ToString();
+                                    if (!string.IsNullOrEmpty(value) && !apps.Any(a => a.Name == valueName))
+                                    {
+                                        apps.Add(new StartupApp
+                                        {
+                                            Name = valueName,
+                                            Publisher = "Unknown",
+                                            Status = "Enabled",
+                                            StartupImpact = "Not measured",
+                                            Location = value,
+                                            IsEnabled = true
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+
+            return apps.OrderBy(a => a.Name).ToList();
+        }
+
+        private void btnDisable_Click(object sender, EventArgs e)
+        {
+            if (dataGridViewStartup.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Please select a startup application.", "Information",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            StartupApp selectedApp = dataGridViewStartup.SelectedRows[0].DataBoundItem as StartupApp;
+            if (selectedApp == null) return;
+
+            try
+            {
+                // Implement disable logic here
+                selectedApp.Status = "Disabled";
+                selectedApp.IsEnabled = false;
+                dataGridViewStartup.Invalidate();
+                MessageBox.Show($"'{selectedApp.Name}' has been disabled.", "Success",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not disable startup app: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnEnable_Click(object sender, EventArgs e)
+        {
+            if (dataGridViewStartup.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Please select a startup application.", "Information",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            StartupApp selectedApp = dataGridViewStartup.SelectedRows[0].DataBoundItem as StartupApp;
+            if (selectedApp == null) return;
+
+            try
+            {
+                selectedApp.Status = "Enabled";
+                selectedApp.IsEnabled = true;
+                dataGridViewStartup.Invalidate();
+                MessageBox.Show($"'{selectedApp.Name}' has been enabled.", "Success",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not enable startup app: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+}
