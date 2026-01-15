@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using System;
 
 namespace TaskManagerPlus.Models
@@ -55,9 +56,15 @@ namespace TaskManagerPlus.Models
     {
         public string Name { get; set; }
         public string Publisher { get; set; }
-        public string Status { get; set; }
-        public string StartupImpact { get; set; }
-        public string Location { get; set; }
+        public string Status { get; set; }        // Enabled/Disabled
+        public string StartupImpact { get; set; } // Not measured/None...
+        public string Location { get; set; }      // command line
         public bool IsEnabled { get; set; }
+
+        // internal info for toggling
+        public RegistryHive Hive { get; set; }            // CurrentUser / LocalMachine
+        public string ApprovedSubKey { get; set; }        // StartupApproved\Run or Run32
+        public string RunSubKey { get; set; }             // Run / RunOnce (optional)
+        public RegistryView View { get; set; }            // Registry64/Registry32 (optional)
     }
 }

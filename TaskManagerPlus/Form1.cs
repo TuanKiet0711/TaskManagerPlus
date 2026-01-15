@@ -17,16 +17,19 @@ namespace TaskManagerPlus
         private BatteryTab batteryTab;
         private AppHistoryTab appHistoryTab;
         private AppUsageTracker usageTracker;
+
         private bool isUpdating = false;
+        private bool _preloaded = false;
 
         public Form1()
         {
             InitializeComponent();
             processMonitor = new ProcessMonitor();
             usageTracker = new AppUsageTracker(processMonitor);
+
             InitializeTabs();
             SetupIcon();
-            
+
             // Start tracking app usage in background
             usageTracker.StartTracking();
         }
@@ -35,14 +38,12 @@ namespace TaskManagerPlus
         {
             try
             {
-                // Create a simple icon programmatically
                 Bitmap iconBitmap = new Bitmap(32, 32);
                 using (Graphics g = Graphics.FromImage(iconBitmap))
                 {
                     g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                     g.Clear(Color.FromArgb(13, 110, 253));
-                    
-                    // Draw "TM+"
+
                     using (Font font = new Font("Segoe UI", 12F, FontStyle.Bold))
                     using (SolidBrush brush = new SolidBrush(Color.White))
                     {
@@ -90,7 +91,7 @@ namespace TaskManagerPlus
             tabAppHistory.Controls.Add(appHistoryTab);
         }
 
-        private async void Form1_Load(object sender, EventArgs e)
+        private void Form1_Load(object sender, EventArgs e)
         {
             // Initialize all tabs first
             processesTab.Initialize();
@@ -100,16 +101,56 @@ namespace TaskManagerPlus
             batteryTab.Initialize();
             appHistoryTab.Initialize();
 
-            // Start loading processes immediately (don't wait)
-            _ = processesTab.LoadProcessesAsync();
-            
             // Start timer for auto-refresh
             timerRefresh.Start();
-            
-            // Update performance in background
-            _ = performanceTab.UpdatePerformanceAsync();
+
+            // Preload all data (NON-BLOCKING)
+            lblStatus.Text = "Đang tải dữ liệu...";
+            lblStatus.ForeColor = Color.FromArgb(25, 135, 84);
+
+            _ = PreloadAllTabsAsync(); // chạy nền, không block UI
         }
 
+        // ===========================
+        // PRELOAD ALL DATA (parallel)
+        // ===========================
+        private async Task PreloadAllTabsAsync()
+        {
+            if (isUpdating) return;
+
+            isUpdating = true;
+            try
+            {
+                Task tProc = processesTab.LoadProcessesAsync();
+                Task tPerf = performanceTab.UpdatePerformanceAsync();
+
+                Task tStartup = startupTab.LoadStartupAppsAsync();
+                Task tTemp = temperatureTab.UpdateTemperaturesAsync();
+                Task tBattery = batteryTab.UpdateBatteryInfoAsync();
+                Task tHistory = appHistoryTab.LoadAppHistoryAsync();
+
+                await Task.WhenAll(tProc, tPerf, tStartup, tTemp, tBattery, tHistory);
+
+                _preloaded = true;
+
+                lblStatus.Text = "Đã tải xong";
+                lblStatus.ForeColor = Color.FromArgb(25, 135, 84);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Preload error: " + ex.Message);
+                lblStatus.Text = "Lỗi preload";
+                lblStatus.ForeColor = Color.FromArgb(220, 53, 69);
+            }
+            finally
+            {
+                isUpdating = false;
+            }
+        }
+
+        // ===========================
+        // MANUAL/TIMER REFRESH
+        // ===========================
         private async Task UpdateAllDataAsync()
         {
             if (isUpdating) return;
@@ -139,12 +180,12 @@ namespace TaskManagerPlus
                     await appHistoryTab.LoadAppHistoryAsync();
                 }
 
-                // Always update performance tab (it's lightweight)
+                // Always update performance tab (lightweight)
                 await performanceTab.UpdatePerformanceAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Update error: {ex.Message}");
+                Console.WriteLine("Update error: " + ex.Message);
             }
             finally
             {
@@ -187,48 +228,52 @@ namespace TaskManagerPlus
             timerRefresh.Interval = (int)numRefreshInterval.Value * 1000;
         }
 
+        // ===========================
+        // SWITCH TAB
+        // ===========================
+        private async void tabControl_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (isUpdating) return;
+
+            // đã preload xong thì không load lại khi switch tab => chuyển tab là tức thì
+            if (_preloaded) return;
+
+            // nếu chưa preload xong thì load tab đang chọn (để user vẫn dùng được)
+            if (tabControl.SelectedTab == tabProcesses)
+            {
+                await processesTab.LoadProcessesAsync();
+            }
+            else if (tabControl.SelectedTab == tabStartup)
+            {
+                await startupTab.LoadStartupAppsAsync();
+            }
+            else if (tabControl.SelectedTab == tabTemperature)
+            {
+                await temperatureTab.UpdateTemperaturesAsync();
+            }
+            else if (tabControl.SelectedTab == tabBattery)
+            {
+                await batteryTab.UpdateBatteryInfoAsync();
+            }
+            else if (tabControl.SelectedTab == tabAppHistory)
+            {
+                await appHistoryTab.LoadAppHistoryAsync();
+            }
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             timerRefresh.Stop();
-            
-            // Stop tracking and update daily summary
+
             usageTracker?.StopTracking();
             usageTracker?.UpdateDailySummary();
-            
+
             processMonitor?.Cleanup();
             base.OnFormClosing(e);
         }
 
-        private async void tabControl_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (!isUpdating)
-            {
-                if (tabControl.SelectedTab == tabProcesses)
-                {
-                    await processesTab.LoadProcessesAsync();
-                }
-                else if (tabControl.SelectedTab == tabStartup)
-                {
-                    await startupTab.LoadStartupAppsAsync();
-                }
-                else if (tabControl.SelectedTab == tabTemperature)
-                {
-                    await temperatureTab.UpdateTemperaturesAsync();
-                }
-                else if (tabControl.SelectedTab == tabBattery)
-                {
-                    await batteryTab.UpdateBatteryInfoAsync();
-                }
-                else if (tabControl.SelectedTab == tabAppHistory)
-                {
-                    await appHistoryTab.LoadAppHistoryAsync();
-                }
-            }
-        }
-
         private void lblStatus_Click(object sender, EventArgs e)
         {
-
         }
     }
 }

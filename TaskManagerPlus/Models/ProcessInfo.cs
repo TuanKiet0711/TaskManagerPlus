@@ -7,6 +7,8 @@ namespace TaskManagerPlus.Models
     public class ProcessInfo
     {
         public int ProcessId { get; set; }
+        public int ParentProcessId { get; set; }
+        public int SessionId { get; set; }
         public string ProcessName { get; set; }
         public string MemoryUsage { get; set; }
         public long MemoryBytes { get; set; }

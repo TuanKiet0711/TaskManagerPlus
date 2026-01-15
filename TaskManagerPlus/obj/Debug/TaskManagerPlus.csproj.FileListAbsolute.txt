@@ -10,3 +10,16 @@ C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManage
 C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.pdb
 C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.Controls.ProcessesTab.resources
 C:\Users\admin\source\repos\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.Controls.PerformanceTab.resources
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\bin\Debug\TaskManagerPlus.exe.config
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\bin\Debug\TaskManagerPlus.exe
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\bin\Debug\TaskManagerPlus.pdb
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.csproj.AssemblyReference.cache
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.exe.config
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.Form1.resources
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.Properties.Resources.resources
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.Controls.ProcessesTab.resources
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.Controls.PerformanceTab.resources
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.csproj.GenerateResource.cache
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.csproj.CoreCompileInputs.cache
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.exe
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.pdb

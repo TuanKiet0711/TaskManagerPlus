@@ -1,7 +1,64 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|e:\\wf\\taskmanagerplus\\taskmanagerplus\\taskmanagerplus\\services\\processmonitor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\services\\processmonitor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\controls\\processestab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\controls\\processestab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\models\\processinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\models\\processinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\models\\hardwareinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\models\\hardwareinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\app.manifest||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\app.manifest||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\controls\\startuptab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\controls\\startuptab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\models\\iconhelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\models\\iconhelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\services\\appusagetracker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\services\\appusagetracker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\controls\\processestab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\controls\\processestab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\controls\\processestab.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\controls\\processestab.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\controls\\performancesidebar.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\controls\\performancesidebar.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\controls\\processestab.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\controls\\processestab.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,7 +66,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 8,
           "Children": [
             {
               "$type": "Bookmark",
@@ -20,8 +77,169 @@
               "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
             },
             {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Form1.cs [Design]",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Form1.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Form1.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Form1.cs [Design]",
+              "RelativeToolTip": "TaskManagerPlus\\Form1.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T06:59:20.828Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "app.manifest",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\app.manifest",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\app.manifest",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\app.manifest",
+              "RelativeToolTip": "TaskManagerPlus\\app.manifest",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001203|",
+              "WhenOpened": "2026-01-11T05:19:01.333Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "HardwareInfo.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\HardwareInfo.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Models\\HardwareInfo.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\HardwareInfo.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Models\\HardwareInfo.cs",
+              "ViewState": "AgIAADsAAAAAAAAAAAA0wEYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T05:01:35.199Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ProcessesTab.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Controls\\ProcessesTab.cs",
+              "ViewState": "AgIAABQCAAAAAAAAAAAIwCgCAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T04:18:56.888Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Form1.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Form1.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Form1.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Form1.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Form1.cs",
+              "ViewState": "AgIAALMAAAAAAAAAAADwv70AAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T05:52:45.116Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ProcessInfo.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\ProcessInfo.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Models\\ProcessInfo.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\ProcessInfo.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Models\\ProcessInfo.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T04:52:44.071Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ProcessMonitor.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\ProcessMonitor.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Services\\ProcessMonitor.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\ProcessMonitor.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Services\\ProcessMonitor.cs",
+              "ViewState": "AgIAAEICAAAAAAAAAAAIwFACAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T04:07:48.128Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "ProcessesTab.cs [Design]",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.cs [Design]",
+              "RelativeToolTip": "TaskManagerPlus\\Controls\\ProcessesTab.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T04:11:03.813Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "IconHelper.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\IconHelper.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Models\\IconHelper.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\IconHelper.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Models\\IconHelper.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAD4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T04:27:20.114Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "StartupTab.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\StartupTab.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\StartupTab.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\StartupTab.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Controls\\StartupTab.cs",
+              "ViewState": "AgIAANIBAAAAAAAAAAAUwOwBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T05:01:15.207Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "AppUsageTracker.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\AppUsageTracker.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Services\\AppUsageTracker.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\AppUsageTracker.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Services\\AppUsageTracker.cs",
+              "ViewState": "AgIAAHYAAAAAAAAAAAAYwIIAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T04:07:43.941Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "PerformanceSidebar.cs [Design]",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\PerformanceSidebar.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\PerformanceSidebar.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\PerformanceSidebar.cs [Design]",
+              "RelativeToolTip": "TaskManagerPlus\\Controls\\PerformanceSidebar.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T04:10:59.087Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "ProcessesTab.resx",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.resx",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.resx",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.resx",
+              "RelativeToolTip": "TaskManagerPlus\\Controls\\ProcessesTab.resx",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001005|",
+              "WhenOpened": "2026-01-11T04:07:17.113Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "ProcessesTab.Designer.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.Designer.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.Designer.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.Designer.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Controls\\ProcessesTab.Designer.cs",
+              "ViewState": "AgIAAAoAAAAAAAAAAAAQwHgAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T04:06:57.703Z"
             }
           ]
         }
