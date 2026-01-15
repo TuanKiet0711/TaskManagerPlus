@@ -58,6 +58,15 @@ namespace TaskManagerPlus.Controls
             }
         }
 
+        public void UpdateItemName(int index, string name)
+        {
+            if (index >= 0 && index < hardwareItems.Count)
+            {
+                hardwareItems[index].Name = name;
+                scrollPanel.Invalidate();
+            }
+        }
+
         public void ClearItems()
         {
             hardwareItems.Clear();

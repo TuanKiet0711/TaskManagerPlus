@@ -25,11 +25,13 @@ namespace TaskManagerPlus.Controls
             hardwareMonitor = new HardwareMonitor();
             temperatureHistory = new Dictionary<string, Queue<double>>();
             hardwareNames = new Dictionary<string, string>();
+            SetupLocalizationTags();
         }
 
         public void Initialize()
         {
             pictureBoxTemp.Paint += PictureBoxTemp_Paint;
+            ApplyLocalization();
         }
 
         public async Task UpdateTemperaturesAsync()
@@ -208,7 +210,7 @@ namespace TaskManagerPlus.Controls
                 StringFormat sf = new StringFormat();
                 sf.Alignment = StringAlignment.Center;
                 sf.LineAlignment = StringAlignment.Center;
-                g.DrawString("Loading temperature data...\nPlease wait a moment.",
+                g.DrawString(LocalizationService.T("temp_loading"),
                     font, brush, new RectangleF(0, 0, pictureBoxTemp.Width, pictureBoxTemp.Height), sf);
             }
         }
@@ -231,7 +233,7 @@ namespace TaskManagerPlus.Controls
                 using (Font titleFont = new Font("Segoe UI Semibold", 14F, FontStyle.Bold))
                 using (SolidBrush textBrush = new SolidBrush(Color.FromArgb(0, 120, 212)))
                 {
-                    g.DrawString("Temperature Summary", titleFont, textBrush, 40, yPos + 15);
+                    g.DrawString(LocalizationService.T("temp_summary_title"), titleFont, textBrush, 40, yPos + 15);
                 }
 
                 // Statistics
@@ -250,17 +252,17 @@ namespace TaskManagerPlus.Controls
                     double maxTemp = allTemps.Max();
                     double minTemp = allTemps.Min();
 
-                    DrawStatItem(g, "Average Temperature:", $"{avgTemp:F1}캜", statX, statY, GetTemperatureColor(avgTemp));
-                    DrawStatItem(g, "Maximum Temperature:", $"{maxTemp:F1}캜", statX + columnWidth, statY, GetTemperatureColor(maxTemp));
-                    DrawStatItem(g, "Minimum Temperature:", $"{minTemp:F1}캜", statX + columnWidth * 2, statY, GetTemperatureColor(minTemp));
+                    DrawStatItem(g, LocalizationService.T("temp_avg_temp"), $"{avgTemp:F1}째C", statX, statY, GetTemperatureColor(avgTemp));
+                    DrawStatItem(g, LocalizationService.T("temp_max_temp"), $"{maxTemp:F1}째C", statX + columnWidth, statY, GetTemperatureColor(maxTemp));
+                    DrawStatItem(g, LocalizationService.T("temp_min_temp"), $"{minTemp:F1}째C", statX + columnWidth * 2, statY, GetTemperatureColor(minTemp));
                     
                     statY += 30;
                     int componentsCount = temperatureHistory.Count(kvp => kvp.Value.Any(t => t > 0));
-                    DrawStatItem(g, "Monitored Components:", componentsCount.ToString(), statX, statY, Color.FromArgb(52, 58, 64));
+                    DrawStatItem(g, LocalizationService.T("temp_monitored_components"), componentsCount.ToString(), statX, statY, Color.FromArgb(52, 58, 64));
                     
-                    string overallStatus = maxTemp >= 80 ? "? Critical" : maxTemp >= 70 ? "? High" : maxTemp >= 50 ? "? Normal" : "? Optimal";
+                    string overallStatus = GetOverallStatusText(maxTemp);
                     Color statusColor = maxTemp >= 80 ? Color.FromArgb(220, 53, 69) : maxTemp >= 70 ? Color.FromArgb(255, 193, 7) : Color.FromArgb(25, 135, 84);
-                    DrawStatItem(g, "Overall Status:", overallStatus, statX + columnWidth, statY, statusColor);
+                    DrawStatItem(g, LocalizationService.T("temp_overall_status"), overallStatus, statX + columnWidth, statY, statusColor);
                 }
             }
         }
@@ -279,9 +281,22 @@ namespace TaskManagerPlus.Controls
 
         private string GetDisplayName(string key)
         {
-            if (key.StartsWith("CPU")) return "CPU";
-            if (key.StartsWith("GPU")) return key.Replace("GPU", "GPU ");
-            if (key.StartsWith("Disk")) return key.Replace("Disk", "Disk ");
+            if (key.StartsWith("CPU"))
+                return LocalizationService.T("temp_cpu_label");
+            if (key.StartsWith("GPU"))
+            {
+                int index;
+                if (int.TryParse(key.Substring(3), out index))
+                    return string.Format(LocalizationService.T("temp_gpu_label"), index);
+                return key;
+            }
+            if (key.StartsWith("Disk"))
+            {
+                int index;
+                if (int.TryParse(key.Substring(4), out index))
+                    return string.Format(LocalizationService.T("temp_disk_label"), index);
+                return key;
+            }
             return key;
         }
 
@@ -316,7 +331,7 @@ namespace TaskManagerPlus.Controls
                 Color tempColor = GetTemperatureColor(temperature);
                 using (SolidBrush tempBrush = new SolidBrush(tempColor))
                 {
-                    g.DrawString($"{temperature:F1}캜", tempFont, tempBrush, x + width + 50, y + 30);
+                    g.DrawString($"{temperature:F1}째C", tempFont, tempBrush, x + width + 50, y + 30);
                 }
             }
 
@@ -338,7 +353,7 @@ namespace TaskManagerPlus.Controls
                     {
                         double min = temps.Min();
                         double max = temps.Max();
-                        string details = $"Min: {min:F1}캜 | Max: {max:F1}캜";
+                        string details = string.Format(LocalizationService.T("temp_min_max_format"), min, max);
                         g.DrawString(details, detailFont, detailBrush, x + width + 50, y + 105);
                     }
                 }
@@ -359,22 +374,22 @@ namespace TaskManagerPlus.Controls
             if (name.Contains("CPU") || name.Contains("Ryzen") || name.Contains("Intel"))
             {
                 iconColor = Color.FromArgb(0, 120, 212);
-                iconText = "CPU";
+                iconText = LocalizationService.T("temp_icon_cpu");
             }
             else if (name.Contains("GPU") || name.Contains("NVIDIA") || name.Contains("AMD") || name.Contains("GeForce") || name.Contains("Radeon"))
             {
                 iconColor = Color.FromArgb(16, 124, 16);
-                iconText = "GPU";
+                iconText = LocalizationService.T("temp_icon_gpu");
             }
             else if (name.Contains("Disk") || name.Contains("SSD") || name.Contains("HDD") || name.Contains("Samsung") || name.Contains("WD"))
             {
                 iconColor = Color.FromArgb(255, 140, 0);
-                iconText = "DSK";
+                iconText = LocalizationService.T("temp_icon_disk");
             }
             else
             {
                 iconColor = Color.FromArgb(108, 117, 125);
-                iconText = "HW";
+                iconText = LocalizationService.T("temp_icon_hw");
             }
 
             using (SolidBrush iconBrush = new SolidBrush(iconColor))
@@ -418,7 +433,7 @@ namespace TaskManagerPlus.Controls
                         g.DrawLine(gridPen, x, gridY, x + width, gridY);
                         
                         double tempValue = maxTemp * (4 - i) / 4.0;
-                        g.DrawString($"{tempValue:F0}캜", gridFont, gridBrush, x - 35, gridY - 6);
+                        g.DrawString($"{tempValue:F0}째C", gridFont, gridBrush, x - 35, gridY - 6);
                     }
                 }
 
@@ -477,20 +492,43 @@ namespace TaskManagerPlus.Controls
                 return Color.FromArgb(25, 135, 84);
         }
 
+        private string GetOverallStatusText(double temperature)
+        {
+            if (temperature >= 80)
+                return LocalizationService.T("temp_status_critical");
+            if (temperature >= 70)
+                return LocalizationService.T("temp_status_high");
+            if (temperature >= 50)
+                return LocalizationService.T("temp_status_normal");
+            return LocalizationService.T("temp_status_optimal");
+        }
+
         private string GetTemperatureStatus(double temperature)
         {
             if (temperature >= 85)
-                return "? Critical - Reduce Load";
+                return LocalizationService.T("temp_status_critical");
             else if (temperature >= 75)
-                return "? Very High";
+                return LocalizationService.T("temp_status_very_high");
             else if (temperature >= 60)
-                return "High";
+                return LocalizationService.T("temp_status_high");
             else if (temperature >= 40)
-                return "? Normal";
+                return LocalizationService.T("temp_status_normal");
             else if (temperature > 0)
-                return "? Optimal";
+                return LocalizationService.T("temp_status_optimal");
             else
-                return "N/A";
+                return LocalizationService.T("common_na");
+        }
+
+        public void ApplyLocalization()
+        {
+            UILocalizer.Apply(this);
+            pictureBoxTemp.Invalidate();
+        }
+
+        private void SetupLocalizationTags()
+        {
+            lblTitle.Tag = "temp_title";
+            lblInfo.Tag = "temp_info";
         }
     }
 }

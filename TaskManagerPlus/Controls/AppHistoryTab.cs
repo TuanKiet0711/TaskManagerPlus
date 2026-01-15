@@ -23,12 +23,14 @@ namespace TaskManagerPlus.Controls
             historyItems = new BindingList<AppHistoryItem>();
             selectedStartDate = DateTime.Today.AddDays(-7);
             selectedEndDate = DateTime.Today;
+            SetupLocalizationTags();
         }
 
         public void Initialize()
         {
             SetupDataGridView();
             SetupDatePickers();
+            ApplyLocalization();
         }
 
         private void SetupDatePickers()
@@ -50,7 +52,8 @@ namespace TaskManagerPlus.Controls
             dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "ProcessName",
-                HeaderText = "Application",
+                Tag = "app_history_col_application",
+                HeaderText = LocalizationService.T("app_history_col_application"),
                 Width = 250,
                 FillWeight = 30
             });
@@ -58,7 +61,8 @@ namespace TaskManagerPlus.Controls
             dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "FormattedDuration",
-                HeaderText = "Total Runtime",
+                Tag = "app_history_col_total_runtime",
+                HeaderText = LocalizationService.T("app_history_col_total_runtime"),
                 Width = 120,
                 FillWeight = 15,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
@@ -67,7 +71,8 @@ namespace TaskManagerPlus.Controls
             dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "AverageCpu",
-                HeaderText = "Avg CPU",
+                Tag = "app_history_col_avg_cpu",
+                HeaderText = LocalizationService.T("app_history_col_avg_cpu"),
                 Width = 100,
                 FillWeight = 12,
                 DefaultCellStyle = new DataGridViewCellStyle 
@@ -80,7 +85,8 @@ namespace TaskManagerPlus.Controls
             dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "FormattedMemory",
-                HeaderText = "Avg Memory",
+                Tag = "app_history_col_avg_memory",
+                HeaderText = LocalizationService.T("app_history_col_avg_memory"),
                 Width = 120,
                 FillWeight = 15,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
@@ -89,7 +95,8 @@ namespace TaskManagerPlus.Controls
             dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "LaunchCount",
-                HeaderText = "Launch Count",
+                Tag = "app_history_col_launch_count",
+                HeaderText = LocalizationService.T("app_history_col_launch_count"),
                 Width = 100,
                 FillWeight = 12,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
@@ -129,7 +136,8 @@ namespace TaskManagerPlus.Controls
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading history: {ex.Message}", "Error",
+                MessageBox.Show(string.Format(LocalizationService.T("app_history_error_loading"), ex.Message),
+                    LocalizationService.T("common_error_title"),
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -144,22 +152,24 @@ namespace TaskManagerPlus.Controls
         {
             if (items.Count == 0)
             {
-                lblTotalApps.Text = "Total Apps: 0";
-                lblTotalTime.Text = "Total Time: 0h";
-                lblMostUsed.Text = "Most Used: N/A";
+                lblTotalApps.Text = string.Format(LocalizationService.T("app_history_total_apps_format"), 0);
+                lblTotalTime.Text = string.Format(LocalizationService.T("app_history_total_time_format"), 0, 0);
+                lblMostUsed.Text = LocalizationService.T("app_history_most_used_na");
                 return;
             }
 
-            lblTotalApps.Text = $"Total Apps: {items.Count}";
+            lblTotalApps.Text = string.Format(LocalizationService.T("app_history_total_apps_format"), items.Count);
             
             int totalSeconds = items.Sum(i => i.TotalDuration);
             TimeSpan totalTime = TimeSpan.FromSeconds(totalSeconds);
-            lblTotalTime.Text = $"Total Time: {(int)totalTime.TotalHours}h {totalTime.Minutes}m";
+            lblTotalTime.Text = string.Format(LocalizationService.T("app_history_total_time_format"),
+                (int)totalTime.TotalHours, totalTime.Minutes);
 
             var mostUsed = items.OrderByDescending(i => i.TotalDuration).FirstOrDefault();
             if (mostUsed != null)
             {
-                lblMostUsed.Text = $"Most Used: {mostUsed.ProcessName} ({mostUsed.FormattedDuration})";
+                lblMostUsed.Text = string.Format(LocalizationService.T("app_history_most_used_format"),
+                    mostUsed.ProcessName, mostUsed.FormattedDuration);
             }
         }
 
@@ -192,8 +202,8 @@ namespace TaskManagerPlus.Controls
         private void btnClearData_Click(object sender, EventArgs e)
         {
             DialogResult result = MessageBox.Show(
-                "Are you sure you want to clear all app history data? This cannot be undone.",
-                "Confirm Clear Data",
+                LocalizationService.T("app_history_confirm_clear"),
+                LocalizationService.T("common_confirm_title"),
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
 
@@ -203,15 +213,34 @@ namespace TaskManagerPlus.Controls
                 {
                     database.CleanOldData(0); // Delete all
                     LoadHistoryAsync();
-                    MessageBox.Show("App history data cleared successfully.", "Success",
+                    MessageBox.Show(LocalizationService.T("app_history_cleared_success"),
+                        LocalizationService.T("common_success_title"),
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error clearing data: {ex.Message}", "Error",
+                    MessageBox.Show(string.Format(LocalizationService.T("app_history_error_clear"), ex.Message),
+                        LocalizationService.T("common_error_title"),
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        public void ApplyLocalization()
+        {
+            UILocalizer.Apply(this);
+            UpdateStatistics(historyItems.ToList());
+            dataGridViewHistory.Refresh();
+        }
+
+        private void SetupLocalizationTags()
+        {
+            lblFrom.Tag = "app_history_from";
+            lblTo.Tag = "app_history_to";
+            btnRefresh.Tag = "app_history_refresh";
+            btnLast7Days.Tag = "app_history_last_7_days";
+            btnLast30Days.Tag = "app_history_last_30_days";
+            btnClearData.Tag = "app_history_clear_data";
         }
     }
 }

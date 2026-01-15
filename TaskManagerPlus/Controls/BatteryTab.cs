@@ -4,6 +4,7 @@ using System.Drawing.Drawing2D;
 using System.Management;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using TaskManagerPlus.Services;
 
 namespace TaskManagerPlus.Controls
 {
@@ -16,6 +17,7 @@ namespace TaskManagerPlus.Controls
         {
             InitializeComponent();
             currentBatteryInfo = new BatteryInfo();
+            SetupLocalizationTags();
 
             updateTimer = new Timer();
             updateTimer.Interval = 2000; // Update every 2 seconds
@@ -26,6 +28,7 @@ namespace TaskManagerPlus.Controls
         {
             pictureBoxBattery.Paint += PictureBoxBattery_Paint;
             updateTimer.Start();
+            ApplyLocalization();
         }
 
         public async Task UpdateBatteryInfoAsync()
@@ -209,22 +212,22 @@ namespace TaskManagerPlus.Controls
                 info.WearLevel = Math.Max(0, Math.Min(100, info.WearLevel));
 
                 if (info.BatteryHealth >= 90)
-                    info.BatteryCondition = "Excellent";
+                    info.BatteryCondition = "battery_condition_excellent";
                 else if (info.BatteryHealth >= 80)
-                    info.BatteryCondition = "Good";
+                    info.BatteryCondition = "battery_condition_good";
                 else if (info.BatteryHealth >= 60)
-                    info.BatteryCondition = "Fair";
+                    info.BatteryCondition = "battery_condition_fair";
                 else if (info.BatteryHealth >= 40)
-                    info.BatteryCondition = "Poor";
+                    info.BatteryCondition = "battery_condition_poor";
                 else
-                    info.BatteryCondition = "Replace Soon";
+                    info.BatteryCondition = "battery_condition_replace_soon";
             }
             else
             {
                 // If cannot read capacity, at least show unknown without crashing
                 info.BatteryHealth = 0;
                 info.WearLevel = 0;
-                info.BatteryCondition = "Unknown";
+                info.BatteryCondition = "battery_condition_unknown";
             }
         }
 
@@ -276,7 +279,9 @@ namespace TaskManagerPlus.Controls
             yPos += 70;
 
             // Draw status
-            string status = currentBatteryInfo.IsCharging ? "⚡ Charging" : "🔋 On Battery";
+            string status = currentBatteryInfo.IsCharging
+                ? LocalizationService.T("battery_status_charging")
+                : LocalizationService.T("battery_status_on_battery");
             using (Font statusFont = new Font("Segoe UI", 16F, FontStyle.Bold))
             using (SolidBrush statusBrush = new SolidBrush(currentBatteryInfo.IsCharging ? Color.FromArgb(25, 135, 84) : Color.FromArgb(52, 58, 64)))
             {
@@ -288,7 +293,10 @@ namespace TaskManagerPlus.Controls
             // Show battery health + wear prominently (chai pin)
             if (currentBatteryInfo.BatteryHealth > 0)
             {
-                string healthText = $"Battery Health: {currentBatteryInfo.BatteryHealth}%  |  Chai pin: {currentBatteryInfo.WearLevel}%  ({currentBatteryInfo.BatteryCondition})";
+                string healthText = string.Format(LocalizationService.T("battery_health_summary_format"),
+                    currentBatteryInfo.BatteryHealth,
+                    currentBatteryInfo.WearLevel,
+                    LocalizationService.T(currentBatteryInfo.BatteryCondition));
                 Color healthColor = currentBatteryInfo.BatteryHealth >= 80 ? Color.FromArgb(25, 135, 84) :
                                    currentBatteryInfo.BatteryHealth >= 60 ? Color.FromArgb(255, 193, 7) :
                                    Color.FromArgb(220, 53, 69);
@@ -306,7 +314,8 @@ namespace TaskManagerPlus.Controls
             if (!currentBatteryInfo.IsCharging && currentBatteryInfo.TimeRemaining > 0)
             {
                 TimeSpan time = TimeSpan.FromSeconds(currentBatteryInfo.TimeRemaining);
-                string timeText = $"{time.Hours}h {time.Minutes}m remaining";
+                string timeText = string.Format(LocalizationService.T("battery_time_remaining_format"),
+                    time.Hours, time.Minutes);
                 using (Font timeFont = new Font("Segoe UI", 12F))
                 using (SolidBrush timeBrush = new SolidBrush(Color.FromArgb(108, 117, 125)))
                 {
@@ -369,49 +378,56 @@ namespace TaskManagerPlus.Controls
             using (Font titleFont = new Font("Segoe UI Semibold", 14F, FontStyle.Bold))
             using (SolidBrush titleBrush = new SolidBrush(Color.FromArgb(0, 120, 212)))
             {
-                g.DrawString("Battery Details", titleFont, titleBrush, leftCol, yPos);
+                g.DrawString(LocalizationService.T("battery_details_title"), titleFont, titleBrush, leftCol, yPos);
             }
             yPos += 45;
 
-            DrawDetail(g, "Battery Name:", currentBatteryInfo.BatteryName, leftCol, yPos);
-            DrawDetail(g, "Power Plan:", currentBatteryInfo.PowerPlan, rightCol, yPos);
+            DrawDetail(g, LocalizationService.T("battery_name_label"), currentBatteryInfo.BatteryName, leftCol, yPos);
+            string powerPlan = currentBatteryInfo.PowerPlan;
+            if (string.IsNullOrWhiteSpace(powerPlan) || string.Equals(powerPlan, "Unknown", StringComparison.OrdinalIgnoreCase))
+                powerPlan = LocalizationService.T("common_unknown");
+            DrawDetail(g, LocalizationService.T("battery_power_plan_label"), powerPlan, rightCol, yPos);
             yPos += 35;
 
             // Chai pin + health
-            DrawDetail(g, "Battery Health:", currentBatteryInfo.BatteryHealth > 0
-                ? $"{currentBatteryInfo.BatteryHealth}% ({currentBatteryInfo.BatteryCondition})"
-                : "Unknown", leftCol, yPos);
+            DrawDetail(g, LocalizationService.T("battery_health_label"), currentBatteryInfo.BatteryHealth > 0
+                ? $"{currentBatteryInfo.BatteryHealth}% ({LocalizationService.T(currentBatteryInfo.BatteryCondition)})"
+                : LocalizationService.T("common_unknown"), leftCol, yPos);
 
-            DrawDetail(g, "Chai Pin (Wear):", currentBatteryInfo.BatteryHealth > 0
+            DrawDetail(g, LocalizationService.T("battery_wear_label"), currentBatteryInfo.BatteryHealth > 0
                 ? $"{currentBatteryInfo.WearLevel}%"
-                : "Unknown", rightCol, yPos);
+                : LocalizationService.T("common_unknown"), rightCol, yPos);
 
             yPos += 35;
 
             if (currentBatteryInfo.DesignCapacity > 0)
             {
-                DrawDetail(g, "Design Capacity:", $"{currentBatteryInfo.DesignCapacity} mWh", leftCol, yPos);
-                DrawDetail(g, "Full Charge Capacity:", $"{currentBatteryInfo.FullChargeCapacity} mWh", rightCol, yPos);
+                DrawDetail(g, LocalizationService.T("battery_design_capacity_label"), $"{currentBatteryInfo.DesignCapacity} mWh", leftCol, yPos);
+                DrawDetail(g, LocalizationService.T("battery_full_charge_capacity_label"), $"{currentBatteryInfo.FullChargeCapacity} mWh", rightCol, yPos);
                 yPos += 35;
             }
 
-            string voltageText = currentBatteryInfo.Voltage > 0 ? $"{currentBatteryInfo.Voltage:F2} V" : "Unknown";
-            DrawDetail(g, "Voltage:", voltageText, leftCol, yPos);
+            string voltageText = currentBatteryInfo.Voltage > 0 ? $"{currentBatteryInfo.Voltage:F2} V" : LocalizationService.T("common_unknown");
+            DrawDetail(g, LocalizationService.T("battery_voltage_label"), voltageText, leftCol, yPos);
 
-            DrawDetail(g, "Charge Status:", currentBatteryInfo.IsCharging ? "Charging" : "Discharging", rightCol, yPos);
+            DrawDetail(g, LocalizationService.T("battery_charge_status_label"),
+                currentBatteryInfo.IsCharging
+                    ? LocalizationService.T("battery_charge_status_charging")
+                    : LocalizationService.T("battery_charge_status_discharging"),
+                rightCol, yPos);
             yPos += 35;
 
             if (currentBatteryInfo.CycleCount >= 0)
             {
-                DrawDetail(g, "Cycle Count:", currentBatteryInfo.CycleCount.ToString(), leftCol, yPos);
+                DrawDetail(g, LocalizationService.T("battery_cycle_count_label"), currentBatteryInfo.CycleCount.ToString(), leftCol, yPos);
                 yPos += 35;
             }
 
             if (currentBatteryInfo.RemainingCapacity > 0)
             {
-                DrawDetail(g, "Remaining Capacity:", $"{currentBatteryInfo.RemainingCapacity} mWh", leftCol, yPos);
+                DrawDetail(g, LocalizationService.T("battery_remaining_capacity_label"), $"{currentBatteryInfo.RemainingCapacity} mWh", leftCol, yPos);
                 if (currentBatteryInfo.ChargeRate != 0)
-                    DrawDetail(g, "Charge Rate:", $"{currentBatteryInfo.ChargeRate} mW", rightCol, yPos);
+                    DrawDetail(g, LocalizationService.T("battery_charge_rate_label"), $"{currentBatteryInfo.ChargeRate} mW", rightCol, yPos);
                 yPos += 35;
             }
 
@@ -441,7 +457,7 @@ namespace TaskManagerPlus.Controls
             using (Font labelFont = new Font("Segoe UI", 9F))
             using (SolidBrush labelBrush = new SolidBrush(Color.FromArgb(108, 117, 125)))
             {
-                g.DrawString("Battery Health:", labelFont, labelBrush, x, y);
+                g.DrawString(LocalizationService.T("battery_health_bar_label"), labelFont, labelBrush, x, y);
             }
 
             int barY = y + 25;
@@ -463,7 +479,7 @@ namespace TaskManagerPlus.Controls
             using (Font percentFont = new Font("Segoe UI Semibold", 10F, FontStyle.Bold))
             using (SolidBrush textBrush = new SolidBrush(Color.White))
             {
-                string healthText = h > 0 ? $"{h}%" : "N/A";
+                string healthText = h > 0 ? $"{h}%" : LocalizationService.T("common_na");
                 SizeF textSize = g.MeasureString(healthText, percentFont);
                 g.DrawString(healthText, percentFont, textBrush,
                     x + width / 2 - textSize.Width / 2, barY + 4);
@@ -475,7 +491,7 @@ namespace TaskManagerPlus.Controls
             using (Font labelFont = new Font("Segoe UI", 9F))
             using (SolidBrush labelBrush = new SolidBrush(Color.FromArgb(108, 117, 125)))
             {
-                g.DrawString("Chai pin (Wear Level):", labelFont, labelBrush, x, y);
+                g.DrawString(LocalizationService.T("battery_wear_bar_label"), labelFont, labelBrush, x, y);
             }
 
             int barY = y + 25;
@@ -498,7 +514,7 @@ namespace TaskManagerPlus.Controls
             using (Font percentFont = new Font("Segoe UI Semibold", 10F, FontStyle.Bold))
             using (SolidBrush textBrush = new SolidBrush(Color.White))
             {
-                string wearText = w > 0 ? $"{w}%" : "N/A";
+                string wearText = w > 0 ? $"{w}%" : LocalizationService.T("common_na");
                 SizeF textSize = g.MeasureString(wearText, percentFont);
                 g.DrawString(wearText, percentFont, textBrush,
                     x + width / 2 - textSize.Width / 2, barY + 4);
@@ -516,7 +532,7 @@ namespace TaskManagerPlus.Controls
                     LineAlignment = StringAlignment.Center
                 };
 
-                g.DrawString("No battery detected.\nThis device may be using AC power only.",
+                g.DrawString(LocalizationService.T("battery_no_battery"),
                     font, brush, new RectangleF(0, 0, pictureBoxBattery.Width, pictureBoxBattery.Height), sf);
             }
         }
@@ -529,6 +545,18 @@ namespace TaskManagerPlus.Controls
                 return Color.FromArgb(255, 193, 7); // Yellow
             else
                 return Color.FromArgb(220, 53, 69); // Red
+        }
+
+        public void ApplyLocalization()
+        {
+            UILocalizer.Apply(this);
+            pictureBoxBattery.Invalidate();
+        }
+
+        private void SetupLocalizationTags()
+        {
+            lblTitle.Tag = "battery_title";
+            lblInfo.Tag = "battery_info";
         }
 
         protected override void Dispose(bool disposing)
@@ -558,7 +586,7 @@ namespace TaskManagerPlus.Controls
             public int BatteryHealth { get; set; } = 0;
             public int WearLevel { get; set; } = 0;
 
-            public string BatteryCondition { get; set; } = "Unknown";
+            public string BatteryCondition { get; set; } = "battery_condition_unknown";
             public string BatteryStatus { get; set; } = "Unknown";
             public int EstimatedChargeRemaining { get; set; }
 

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using TaskManagerPlus.Models;
+using TaskManagerPlus.Services;
 
 namespace TaskManagerPlus.Controls
 {
@@ -26,11 +27,13 @@ namespace TaskManagerPlus.Controls
         {
             InitializeComponent();
             startupApps = new BindingList<StartupApp>();
+            SetupLocalizationTags();
         }
 
         public void Initialize()
         {
             SetupDataGridView();
+            ApplyLocalization();
         }
 
         private void SetupDataGridView()
@@ -50,35 +53,60 @@ namespace TaskManagerPlus.Controls
             dataGridViewStartup.Columns.Add(new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "Name",
-                HeaderText = "Name",
+                Tag = "startup_col_name",
+                HeaderText = LocalizationService.T("startup_col_name"),
                 Width = 300
             });
 
             dataGridViewStartup.Columns.Add(new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "Publisher",
-                HeaderText = "Publisher",
+                Tag = "startup_col_publisher",
+                HeaderText = LocalizationService.T("startup_col_publisher"),
                 Width = 230
             });
 
             dataGridViewStartup.Columns.Add(new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "Status",
-                HeaderText = "Status",
+                Tag = "startup_col_status",
+                HeaderText = LocalizationService.T("startup_col_status"),
                 Width = 110
             });
 
             dataGridViewStartup.Columns.Add(new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "StartupImpact",
-                HeaderText = "Startup impact",
+                Tag = "startup_col_impact",
+                HeaderText = LocalizationService.T("startup_col_impact"),
                 Width = 140
             });
 
             dataGridViewStartup.DataSource = startupApps;
 
             dataGridViewStartup.SelectionChanged += (s, e) => UpdateButtons();
+            dataGridViewStartup.CellFormatting += DataGridViewStartup_CellFormatting;
             UpdateButtons();
+        }
+
+        private void DataGridViewStartup_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+
+            var column = dataGridViewStartup.Columns[e.ColumnIndex];
+            if (column.DataPropertyName == "Status")
+            {
+                e.Value = LocalizeStatus(e.Value?.ToString());
+            }
+            else if (column.DataPropertyName == "StartupImpact")
+            {
+                e.Value = LocalizeImpact(e.Value?.ToString());
+            }
+            else if (column.DataPropertyName == "Publisher")
+            {
+                if (string.Equals(e.Value?.ToString(), "Unknown", StringComparison.OrdinalIgnoreCase))
+                    e.Value = LocalizationService.T("common_unknown");
+            }
         }
 
         private static void SetDoubleBuffered(DataGridView dgv, bool value)
@@ -104,6 +132,22 @@ namespace TaskManagerPlus.Controls
 
             btnEnable.Enabled = !app.IsEnabled;
             btnDisable.Enabled = app.IsEnabled;
+        }
+
+        private string LocalizeStatus(string status)
+        {
+            if (string.Equals(status, "Enabled", StringComparison.OrdinalIgnoreCase))
+                return LocalizationService.T("startup_status_enabled");
+            if (string.Equals(status, "Disabled", StringComparison.OrdinalIgnoreCase))
+                return LocalizationService.T("startup_status_disabled");
+            return status ?? "";
+        }
+
+        private string LocalizeImpact(string impact)
+        {
+            if (string.Equals(impact, "Not measured", StringComparison.OrdinalIgnoreCase))
+                return LocalizationService.T("startup_impact_not_measured");
+            return impact ?? "";
         }
 
         private StartupApp GetSelected()
@@ -382,7 +426,8 @@ namespace TaskManagerPlus.Controls
             StartupApp app = GetSelected();
             if (app == null)
             {
-                MessageBox.Show("Please select a startup application.", "Information",
+                MessageBox.Show(LocalizationService.T("startup_select_app"),
+                    LocalizationService.T("common_info_title"),
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -394,7 +439,8 @@ namespace TaskManagerPlus.Controls
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Could not disable startup app: " + ex.Message, "Error",
+                MessageBox.Show(string.Format(LocalizationService.T("startup_disable_error"), ex.Message),
+                    LocalizationService.T("common_error_title"),
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -404,7 +450,8 @@ namespace TaskManagerPlus.Controls
             StartupApp app = GetSelected();
             if (app == null)
             {
-                MessageBox.Show("Please select a startup application.", "Information",
+                MessageBox.Show(LocalizationService.T("startup_select_app"),
+                    LocalizationService.T("common_info_title"),
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -416,7 +463,8 @@ namespace TaskManagerPlus.Controls
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Could not enable startup app: " + ex.Message, "Error",
+                MessageBox.Show(string.Format(LocalizationService.T("startup_enable_error"), ex.Message),
+                    LocalizationService.T("common_error_title"),
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -487,6 +535,19 @@ namespace TaskManagerPlus.Controls
             if (space > 0) return s.Substring(0, space).Trim('"');
 
             return s.Trim('"');
+        }
+
+        public void ApplyLocalization()
+        {
+            UILocalizer.Apply(this);
+            dataGridViewStartup.Refresh();
+        }
+
+        private void SetupLocalizationTags()
+        {
+            lblInfo.Tag = "startup_info";
+            btnEnable.Tag = "startup_enable";
+            btnDisable.Tag = "startup_disable";
         }
     }
 }

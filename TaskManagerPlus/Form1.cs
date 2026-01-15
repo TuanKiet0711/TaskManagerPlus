@@ -24,14 +24,112 @@ namespace TaskManagerPlus
         public Form1()
         {
             InitializeComponent();
+
+            // 1) Gắn Tag(key) cho các control trên Form1
+            SetupLocalizationTags();
+
+            // 2) Load ngôn ngữ mặc định (VI)
+            LocalizationService.LoadLanguage(AppLanguage.VI);
+            ApplyLanguageAll();
+
             processMonitor = new ProcessMonitor();
             usageTracker = new AppUsageTracker(processMonitor);
 
             InitializeTabs();
             SetupIcon();
 
-            // Start tracking app usage in background
             usageTracker.StartTracking();
+        }
+
+        private void SetupLocalizationTags()
+        {
+            // Form title + header
+            this.Tag = "form_title";
+            lblTitle.Tag = "header_title";
+
+            // Menu
+            menuLanguage.Tag = "menu_language";
+            menuLangVI.Tag = "menu_vi";
+            menuLangEN.Tag = "menu_en";
+
+            // Tabs
+            tabProcesses.Tag = "tab_processes";
+            tabPerformance.Tag = "tab_performance";
+            tabTemperature.Tag = "tab_temperature";
+            tabBattery.Tag = "tab_battery";
+            tabStartup.Tag = "tab_startup";
+            tabAppHistory.Tag = "tab_app_history";
+
+            // Bottom
+            btnRefresh.Tag = "btn_refresh";
+            chkAutoRefresh.Tag = "chk_auto_refresh";
+            lblRefreshInterval.Tag = "lbl_refresh_interval";
+
+            // Language toggle button
+            btnToggleLanguage.Tag = "btn_toggle_language";
+        }
+
+        private void ApplyLanguageAll()
+        {
+            // Form title
+            if (this.Tag is string titleKey)
+                this.Text = LocalizationService.T(titleKey);
+
+            // Apply theo Tag cho toàn bộ control tree + menu/toolstrip...
+            UILocalizer.Apply(this);
+
+            // lblStatus theo state (không gắn Tag cố định)
+            if (!chkAutoRefresh.Checked)
+            {
+                lblStatus.Text = LocalizationService.T("status_paused");
+                lblStatus.ForeColor = Color.FromArgb(108, 117, 125);
+            }
+            else
+            {
+                lblStatus.Text = isUpdating ? LocalizationService.T("status_updating")
+                                            : LocalizationService.T("status_done");
+                lblStatus.ForeColor = Color.FromArgb(25, 135, 84);
+            }
+
+            // checked trạng thái menu
+            menuLangVI.Checked = (LocalizationService.CurrentLanguage == AppLanguage.VI);
+            menuLangEN.Checked = (LocalizationService.CurrentLanguage == AppLanguage.EN);
+        }
+
+        private void ApplyLanguageToAllTabs()
+        {
+            if (processesTab != null) processesTab.ApplyLocalization();
+            if (performanceTab != null) performanceTab.ApplyLocalization();
+            if (startupTab != null) startupTab.ApplyLocalization();
+            if (temperatureTab != null) temperatureTab.ApplyLocalization();
+            if (batteryTab != null) batteryTab.ApplyLocalization();
+            if (appHistoryTab != null) appHistoryTab.ApplyLocalization();
+        }
+
+        // ===== Menu language events =====
+        private void menuLangVI_Click(object sender, EventArgs e)
+        {
+            LocalizationService.LoadLanguage(AppLanguage.VI);
+            ApplyLanguageAll();
+            ApplyLanguageToAllTabs();
+        }
+
+        private void menuLangEN_Click(object sender, EventArgs e)
+        {
+            LocalizationService.LoadLanguage(AppLanguage.EN);
+            ApplyLanguageAll();
+            ApplyLanguageToAllTabs();
+        }
+
+        private void btnToggleLanguage_Click(object sender, EventArgs e)
+        {
+            AppLanguage next = (LocalizationService.CurrentLanguage == AppLanguage.VI)
+                ? AppLanguage.EN
+                : AppLanguage.VI;
+
+            LocalizationService.LoadLanguage(next);
+            ApplyLanguageAll();
+            ApplyLanguageToAllTabs();
         }
 
         private void SetupIcon()
@@ -44,10 +142,10 @@ namespace TaskManagerPlus
                     g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                     g.Clear(Color.FromArgb(13, 110, 253));
 
-                    using (Font font = new Font("Segoe UI", 12F, FontStyle.Bold))
+                    using (Font font = new Font("Segoe UI", 12f, FontStyle.Bold))
                     using (SolidBrush brush = new SolidBrush(Color.White))
+                    using (StringFormat sf = new StringFormat())
                     {
-                        StringFormat sf = new StringFormat();
                         sf.Alignment = StringAlignment.Center;
                         sf.LineAlignment = StringAlignment.Center;
                         g.DrawString("TM+", font, brush, new RectangleF(0, 0, 32, 32), sf);
@@ -89,11 +187,13 @@ namespace TaskManagerPlus
             tabTemperature.Controls.Add(temperatureTab);
             tabBattery.Controls.Add(batteryTab);
             tabAppHistory.Controls.Add(appHistoryTab);
+
+            // Apply language xuống UI tab (nếu các control trong tab có Tag)
+            ApplyLanguageToAllTabs();
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            // Initialize all tabs first
             processesTab.Initialize();
             performanceTab.Initialize();
             startupTab.Initialize();
@@ -101,14 +201,12 @@ namespace TaskManagerPlus
             batteryTab.Initialize();
             appHistoryTab.Initialize();
 
-            // Start timer for auto-refresh
             timerRefresh.Start();
 
-            // Preload all data (NON-BLOCKING)
-            lblStatus.Text = "Đang tải dữ liệu...";
+            lblStatus.Text = LocalizationService.T("status_loading");
             lblStatus.ForeColor = Color.FromArgb(25, 135, 84);
 
-            _ = PreloadAllTabsAsync(); // chạy nền, không block UI
+            _ = PreloadAllTabsAsync();
         }
 
         // ===========================
@@ -133,13 +231,13 @@ namespace TaskManagerPlus
 
                 _preloaded = true;
 
-                lblStatus.Text = "Đã tải xong";
+                lblStatus.Text = LocalizationService.T("status_done");
                 lblStatus.ForeColor = Color.FromArgb(25, 135, 84);
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Preload error: " + ex.Message);
-                lblStatus.Text = "Lỗi preload";
+                lblStatus.Text = LocalizationService.T("status_preload_error");
                 lblStatus.ForeColor = Color.FromArgb(220, 53, 69);
             }
             finally
@@ -158,27 +256,22 @@ namespace TaskManagerPlus
             isUpdating = true;
             try
             {
-                // Update current tab
+                if (chkAutoRefresh.Checked)
+                {
+                    lblStatus.Text = LocalizationService.T("status_updating");
+                    lblStatus.ForeColor = Color.FromArgb(25, 135, 84);
+                }
+
                 if (tabControl.SelectedTab == tabProcesses)
-                {
                     await processesTab.LoadProcessesAsync();
-                }
                 else if (tabControl.SelectedTab == tabStartup)
-                {
                     await startupTab.LoadStartupAppsAsync();
-                }
                 else if (tabControl.SelectedTab == tabTemperature)
-                {
                     await temperatureTab.UpdateTemperaturesAsync();
-                }
                 else if (tabControl.SelectedTab == tabBattery)
-                {
                     await batteryTab.UpdateBatteryInfoAsync();
-                }
                 else if (tabControl.SelectedTab == tabAppHistory)
-                {
                     await appHistoryTab.LoadAppHistoryAsync();
-                }
 
                 // Always update performance tab (lightweight)
                 await performanceTab.UpdatePerformanceAsync();
@@ -186,6 +279,8 @@ namespace TaskManagerPlus
             catch (Exception ex)
             {
                 Console.WriteLine("Update error: " + ex.Message);
+                lblStatus.Text = LocalizationService.T("status_update_error");
+                lblStatus.ForeColor = Color.FromArgb(220, 53, 69);
             }
             finally
             {
@@ -206,12 +301,12 @@ namespace TaskManagerPlus
             timerRefresh.Enabled = chkAutoRefresh.Checked;
             if (chkAutoRefresh.Checked)
             {
-                lblStatus.Text = "Đang cập nhật...";
+                lblStatus.Text = LocalizationService.T("status_updating");
                 lblStatus.ForeColor = Color.FromArgb(25, 135, 84);
             }
             else
             {
-                lblStatus.Text = "Đã tạm dừng";
+                lblStatus.Text = LocalizationService.T("status_paused");
                 lblStatus.ForeColor = Color.FromArgb(108, 117, 125);
             }
         }
@@ -235,30 +330,18 @@ namespace TaskManagerPlus
         {
             if (isUpdating) return;
 
-            // đã preload xong thì không load lại khi switch tab => chuyển tab là tức thì
             if (_preloaded) return;
 
-            // nếu chưa preload xong thì load tab đang chọn (để user vẫn dùng được)
             if (tabControl.SelectedTab == tabProcesses)
-            {
                 await processesTab.LoadProcessesAsync();
-            }
             else if (tabControl.SelectedTab == tabStartup)
-            {
                 await startupTab.LoadStartupAppsAsync();
-            }
             else if (tabControl.SelectedTab == tabTemperature)
-            {
                 await temperatureTab.UpdateTemperaturesAsync();
-            }
             else if (tabControl.SelectedTab == tabBattery)
-            {
                 await batteryTab.UpdateBatteryInfoAsync();
-            }
             else if (tabControl.SelectedTab == tabAppHistory)
-            {
                 await appHistoryTab.LoadAppHistoryAsync();
-            }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -272,8 +355,6 @@ namespace TaskManagerPlus
             base.OnFormClosing(e);
         }
 
-        private void lblStatus_Click(object sender, EventArgs e)
-        {
-        }
+        private void lblStatus_Click(object sender, EventArgs e) { }
     }
 }

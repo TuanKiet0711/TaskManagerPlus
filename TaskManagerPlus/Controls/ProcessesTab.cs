@@ -21,8 +21,8 @@ namespace TaskManagerPlus.Controls
 
         private Dictionary<string, bool> groupExpanded = new Dictionary<string, bool>
         {
-            { "Apps", true },
-            { "Background processes", true }
+            { "processes_group_apps", true },
+            { "processes_group_background", true }
         };
 
         public ProcessMonitor ProcessMonitor
@@ -35,11 +35,13 @@ namespace TaskManagerPlus.Controls
         {
             InitializeComponent();
             displayedRows = new BindingList<object>();
+            SetupLocalizationTags();
         }
 
         public void Initialize()
         {
             SetupDataGridView();
+            ApplyLocalization();
         }
 
         private void SetupDataGridView()
@@ -59,21 +61,24 @@ namespace TaskManagerPlus.Controls
             // Name column (icon + text will be painted manually)
             DataGridViewTextBoxColumn nameColumn = new DataGridViewTextBoxColumn();
             nameColumn.Name = "NameColumn";
-            nameColumn.HeaderText = "Name";
+            nameColumn.Tag = "processes_col_name";
+            nameColumn.HeaderText = LocalizationService.T("processes_col_name");
             nameColumn.Width = 300;
             dataGridViewProcesses.Columns.Add(nameColumn);
 
             dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "StatusColumn",
-                HeaderText = "Status",
+                Tag = "processes_col_status",
+                HeaderText = LocalizationService.T("processes_col_status"),
                 Width = 100
             });
 
             dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "CpuColumn",
-                HeaderText = "CPU",
+                Tag = "processes_col_cpu",
+                HeaderText = LocalizationService.T("processes_col_cpu"),
                 Width = 80,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
@@ -81,7 +86,8 @@ namespace TaskManagerPlus.Controls
             dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "MemoryColumn",
-                HeaderText = "Memory",
+                Tag = "processes_col_memory",
+                HeaderText = LocalizationService.T("processes_col_memory"),
                 Width = 120,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
@@ -89,7 +95,8 @@ namespace TaskManagerPlus.Controls
             dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "DiskColumn",
-                HeaderText = "Disk",
+                Tag = "processes_col_disk",
+                HeaderText = LocalizationService.T("processes_col_disk"),
                 Width = 100,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
@@ -97,7 +104,8 @@ namespace TaskManagerPlus.Controls
             dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "NetworkColumn",
-                HeaderText = "Network",
+                Tag = "processes_col_network",
+                HeaderText = LocalizationService.T("processes_col_network"),
                 Width = 100,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
@@ -117,33 +125,16 @@ namespace TaskManagerPlus.Controls
             if (e.RowIndex < 0 || e.RowIndex >= displayedRows.Count) return;
 
             object rowObj = displayedRows[e.RowIndex];
-            if (rowObj is string)
+            if (rowObj is GroupHeader header)
             {
-                string header = rowObj.ToString();
-                string key = GetGroupKeyFromHeader(header);
-
-                bool current;
-                if (groupExpanded.TryGetValue(key, out current))
-                {
-                    groupExpanded[key] = !current;
-                    RefreshDisplay();
-                }
+                ToggleGroup(header.Key);
             }
         }
 
-        private string GetGroupKeyFromHeader(string headerText)
+        private bool IsGroupExpanded(string groupKey)
         {
-            if (string.IsNullOrWhiteSpace(headerText)) return headerText;
-            int idx = headerText.IndexOf('(');
-            if (idx > 0) return headerText.Substring(0, idx).Trim();
-            return headerText.Trim();
-        }
-
-        private bool IsGroupExpanded(string groupHeaderText)
-        {
-            string key = GetGroupKeyFromHeader(groupHeaderText);
             bool v;
-            return groupExpanded.TryGetValue(key, out v) && v;
+            return groupExpanded.TryGetValue(groupKey, out v) && v;
         }
 
         private void DataGridViewProcesses_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
@@ -154,15 +145,15 @@ namespace TaskManagerPlus.Controls
             object row = displayedRows[e.RowIndex];
 
             // Group header
-            if (row is string)
+            if (row is GroupHeader header)
             {
                 e.Paint(e.CellBounds, DataGridViewPaintParts.All);
 
                 using (SolidBrush bg = new SolidBrush(Color.FromArgb(248, 249, 250)))
                     e.Graphics.FillRectangle(bg, e.CellBounds);
 
-                string headerText = row.ToString();
-                bool expanded = IsGroupExpanded(headerText);
+                string headerText = header.DisplayText;
+                bool expanded = IsGroupExpanded(header.Key);
 
                 // Arrow
                 Point[] arrow;
@@ -245,13 +236,13 @@ namespace TaskManagerPlus.Controls
 
             object row = displayedRows[e.RowIndex];
 
-            if (row is string)
+            if (row is GroupHeader header)
             {
                 e.CellStyle.BackColor = Color.FromArgb(248, 249, 250);
                 e.CellStyle.Font = new Font(dataGridViewProcesses.Font, FontStyle.Bold);
                 e.CellStyle.SelectionBackColor = Color.FromArgb(248, 249, 250);
                 e.CellStyle.SelectionForeColor = Color.FromArgb(0, 120, 212);
-                e.Value = (e.ColumnIndex == 0) ? row.ToString() : "";
+                e.Value = (e.ColumnIndex == 0) ? header.DisplayText : "";
                 return;
             }
 
@@ -365,8 +356,8 @@ namespace TaskManagerPlus.Controls
 
                 if (apps.Count > 0)
                 {
-                    displayedRows.Add("Apps (" + apps.Count + ")");
-                    if (groupExpanded["Apps"])
+                    displayedRows.Add(new GroupHeader("processes_group_apps", apps.Count));
+                    if (groupExpanded["processes_group_apps"])
                     {
                         List<ProcessInfo> sortedApps = SortProcessList(apps);
                         foreach (ProcessInfo app in sortedApps) displayedRows.Add(app);
@@ -388,8 +379,8 @@ namespace TaskManagerPlus.Controls
 
                 if (bg.Count > 0)
                 {
-                    displayedRows.Add("Background processes (" + bg.Count + ")");
-                    if (groupExpanded["Background processes"])
+                    displayedRows.Add(new GroupHeader("processes_group_background", bg.Count));
+                    if (groupExpanded["processes_group_background"])
                     {
                         List<ProcessInfo> sortedBg = SortProcessList(bg);
                         foreach (ProcessInfo p in sortedBg) displayedRows.Add(p);
@@ -446,25 +437,18 @@ namespace TaskManagerPlus.Controls
         {
             if (dataGridViewProcesses.SelectedRows.Count == 0)
             {
-                MessageBox.Show("Please select a process to end.",
-                    "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(LocalizationService.T("processes_select_process"),
+                    LocalizationService.T("common_info_title"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
             object selectedRow = dataGridViewProcesses.SelectedRows[0].DataBoundItem;
 
             // if group header selected -> toggle expand
-            if (selectedRow is string)
+            if (selectedRow is GroupHeader header)
             {
-                string header = selectedRow.ToString();
-                string key = GetGroupKeyFromHeader(header);
-
-                bool current;
-                if (groupExpanded.TryGetValue(key, out current))
-                {
-                    groupExpanded[key] = !current;
-                    RefreshDisplay();
-                }
+                ToggleGroup(header.Key);
                 return;
             }
 
@@ -475,15 +459,17 @@ namespace TaskManagerPlus.Controls
             if (selectedProcess.IsGroup && selectedProcess.ChildProcesses != null && selectedProcess.ChildProcesses.Count > 1)
             {
                 DialogResult result = MessageBox.Show(
-                    "This will end " + selectedProcess.ChildProcesses.Count + " instances of '" + selectedProcess.ProcessName + "'. Continue?",
-                    "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    string.Format(LocalizationService.T("processes_confirm_end_multiple"),
+                        selectedProcess.ChildProcesses.Count, selectedProcess.ProcessName),
+                    LocalizationService.T("common_confirm_title"),
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
                 if (result == DialogResult.Yes)
                 {
                     try
                     {
                         btnKillProcess.Enabled = false;
-                        btnKillProcess.Text = "Ending...";
+                        btnKillProcess.Text = LocalizationService.T("processes_ending");
 
                         foreach (ProcessInfo child in selectedProcess.ChildProcesses)
                         {
@@ -496,28 +482,31 @@ namespace TaskManagerPlus.Controls
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("Error ending processes: " + ex.Message,
-                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(string.Format(LocalizationService.T("processes_error_end"), ex.Message),
+                            LocalizationService.T("common_error_title"),
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                     finally
                     {
                         btnKillProcess.Enabled = true;
-                        btnKillProcess.Text = "End task";
+                        btnKillProcess.Text = LocalizationService.T("processes_end_task");
                     }
                 }
             }
             else
             {
                 DialogResult result = MessageBox.Show(
-                    "Do you want to end '" + selectedProcess.ProcessName + "' (PID: " + selectedProcess.ProcessId + ")?",
-                    "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    string.Format(LocalizationService.T("processes_confirm_end_single"),
+                        selectedProcess.ProcessName, selectedProcess.ProcessId),
+                    LocalizationService.T("common_confirm_title"),
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
                 if (result == DialogResult.Yes)
                 {
                     try
                     {
                         btnKillProcess.Enabled = false;
-                        btnKillProcess.Text = "Ending...";
+                        btnKillProcess.Text = LocalizationService.T("processes_ending");
 
                         processMonitor.KillProcess(selectedProcess.ProcessId);
 
@@ -526,14 +515,58 @@ namespace TaskManagerPlus.Controls
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("Cannot end process: " + ex.Message,
-                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(string.Format(LocalizationService.T("processes_error_end_single"), ex.Message),
+                            LocalizationService.T("common_error_title"),
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                     finally
                     {
                         btnKillProcess.Enabled = true;
-                        btnKillProcess.Text = "End task";
+                        btnKillProcess.Text = LocalizationService.T("processes_end_task");
                     }
+                }
+            }
+        }
+
+        public void ApplyLocalization()
+        {
+            UILocalizer.Apply(this);
+            dataGridViewProcesses.Refresh();
+        }
+
+        private void SetupLocalizationTags()
+        {
+            lblSearch.Tag = "processes_search_label";
+            btnKillProcess.Tag = "processes_end_task";
+        }
+
+        private void ToggleGroup(string key)
+        {
+            bool current;
+            if (groupExpanded.TryGetValue(key, out current))
+            {
+                groupExpanded[key] = !current;
+                RefreshDisplay();
+            }
+        }
+
+        private class GroupHeader
+        {
+            public GroupHeader(string key, int count)
+            {
+                Key = key;
+                Count = count;
+            }
+
+            public string Key { get; }
+            public int Count { get; }
+
+            public string DisplayText
+            {
+                get
+                {
+                    return string.Format(LocalizationService.T("common_group_header_format"),
+                        LocalizationService.T(Key), Count);
                 }
             }
         }

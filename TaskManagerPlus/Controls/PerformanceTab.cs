@@ -41,6 +41,7 @@ namespace TaskManagerPlus.Controls
             gpuHistories = new List<Queue<double>>();
             diskHistories = new List<Queue<double>>();
             networkHistories = new List<Queue<double>>();
+            SetupLocalizationTags();
         }
 
         public void Initialize()
@@ -60,14 +61,14 @@ namespace TaskManagerPlus.Controls
         private void LoadHardwareItems()
         {
             sidebar.ClearItems();
-            sidebar.AddItem("CPU", "0%", cpuHistory, Color.FromArgb(13, 110, 253));
-            sidebar.AddItem("Memory", "0%", ramHistory, Color.FromArgb(25, 135, 84));
+            sidebar.AddItem(LocalizationService.T("perf_sidebar_cpu"), "0%", cpuHistory, Color.FromArgb(13, 110, 253));
+            sidebar.AddItem(LocalizationService.T("perf_sidebar_memory"), "0%", ramHistory, Color.FromArgb(25, 135, 84));
 
             var gpus = hardwareMonitor.GetGpuInfo();
             for (int i = 0; i < gpus.Count; i++)
             {
                 gpuHistories.Add(new Queue<double>());
-                sidebar.AddItem($"GPU {i}", "0%", gpuHistories[i], Color.FromArgb(108, 117, 125));
+                sidebar.AddItem(string.Format(LocalizationService.T("perf_sidebar_gpu"), i), "0%", gpuHistories[i], Color.FromArgb(108, 117, 125));
             }
 
             var disks = hardwareMonitor.GetDiskInfo();
@@ -274,22 +275,24 @@ namespace TaskManagerPlus.Controls
             if (selectedHardwareIndex == 0 && currentCpuInfo != null)
             {
                 // CPU selected
-                lblTitle.Text = "CPU";
+                lblTitle.Text = LocalizationService.T("perf_title_cpu");
                 lblSubtitle.Text = currentCpuInfo.Name;
-                lblUtilization.Text = "Utilization:";
+                lblUtilization.Text = LocalizationService.T("perf_utilization");
                 lblUtilizationValue.Text = $"{currentCpuInfo.Usage:F1}%";
-                lblSpeed.Text = "Speed:";
+                lblSpeed.Text = LocalizationService.T("perf_speed");
                 lblSpeedValue.Text = $"{currentCpuInfo.CurrentSpeed:F2} GHz";
                 
                 // Add more details
-                lblDetail1.Text = "Base speed:";
+                lblDetail1.Text = LocalizationService.T("perf_base_speed");
                 lblDetail1Value.Text = $"{currentCpuInfo.BaseSpeed:F2} GHz";
-                lblDetail2.Text = "Cores:";
+                lblDetail2.Text = LocalizationService.T("perf_cores");
                 lblDetail2Value.Text = currentCpuInfo.Cores.ToString();
-                lblDetail3.Text = "Logical processors:";
+                lblDetail3.Text = LocalizationService.T("perf_logical_processors");
                 lblDetail3Value.Text = currentCpuInfo.LogicalProcessors.ToString();
-                lblDetail4.Text = "Temperature:";
-                lblDetail4Value.Text = currentCpuInfo.Temperature > 0 ? $"{currentCpuInfo.Temperature:F1} °C" : "N/A";
+                lblDetail4.Text = LocalizationService.T("perf_temperature");
+                lblDetail4Value.Text = currentCpuInfo.Temperature > 0
+                    ? $"{currentCpuInfo.Temperature:F1} Â°C"
+                    : LocalizationService.T("common_na");
 
                 ShowDetailLabels(true);
             }
@@ -299,22 +302,22 @@ namespace TaskManagerPlus.Controls
                 var systemInfo = processMonitor?.GetSystemInfo();
                 if (systemInfo != null)
                 {
-                    lblTitle.Text = "Memory";
-                    lblSubtitle.Text = $"{systemInfo.TotalRAM:F0} MB Total";
-                    lblUtilization.Text = "In use:";
+                    lblTitle.Text = LocalizationService.T("perf_title_memory");
+                    lblSubtitle.Text = string.Format(LocalizationService.T("perf_memory_total_format"), systemInfo.TotalRAM);
+                    lblUtilization.Text = LocalizationService.T("perf_in_use");
                     lblUtilizationValue.Text = $"{systemInfo.UsedRAM:F0} MB";
-                    lblSpeed.Text = "Available:";
+                    lblSpeed.Text = LocalizationService.T("perf_available");
                     lblSpeedValue.Text = $"{systemInfo.AvailableRAM:F0} MB";
 
                     double ramPercent = (systemInfo.UsedRAM / systemInfo.TotalRAM) * 100;
-                    lblDetail1.Text = "Usage:";
+                    lblDetail1.Text = LocalizationService.T("perf_usage");
                     lblDetail1Value.Text = $"{ramPercent:F1}%";
-                    lblDetail2.Text = "Committed:";
+                    lblDetail2.Text = LocalizationService.T("perf_committed");
                     lblDetail2Value.Text = $"{systemInfo.UsedRAM:F0} MB";
-                    lblDetail3.Text = "Cached:";
-                    lblDetail3Value.Text = "N/A";
-                    lblDetail4.Text = "Paged pool:";
-                    lblDetail4Value.Text = "N/A";
+                    lblDetail3.Text = LocalizationService.T("perf_cached");
+                    lblDetail3Value.Text = LocalizationService.T("common_na");
+                    lblDetail4.Text = LocalizationService.T("perf_paged_pool");
+                    lblDetail4Value.Text = LocalizationService.T("common_na");
 
                     ShowDetailLabels(true);
                 }
@@ -328,17 +331,19 @@ namespace TaskManagerPlus.Controls
                 {
                     // GPU selected
                     var gpu = currentGpuInfo[selectedHardwareIndex - 2];
-                    lblTitle.Text = $"GPU {selectedHardwareIndex - 2}";
+                    lblTitle.Text = string.Format(LocalizationService.T("perf_title_gpu"), selectedHardwareIndex - 2);
                     lblSubtitle.Text = gpu.Name;
-                    lblUtilization.Text = "Utilization:";
+                    lblUtilization.Text = LocalizationService.T("perf_utilization");
                     lblUtilizationValue.Text = $"{gpu.Usage:F1}%";
-                    lblSpeed.Text = "Dedicated memory:";
+                    lblSpeed.Text = LocalizationService.T("perf_dedicated_memory");
                     lblSpeedValue.Text = gpu.DedicatedMemory;
 
-                    lblDetail1.Text = "Temperature:";
-                    lblDetail1Value.Text = gpu.Temperature > 0 ? $"{gpu.Temperature:F1} °C" : "N/A";
-                    lblDetail2.Text = "Driver:";
-                    lblDetail2Value.Text = gpu.Details ?? "Unknown";
+                    lblDetail1.Text = LocalizationService.T("perf_temperature");
+                    lblDetail1Value.Text = gpu.Temperature > 0
+                        ? $"{gpu.Temperature:F1} Â°C"
+                        : LocalizationService.T("common_na");
+                    lblDetail2.Text = LocalizationService.T("perf_driver");
+                    lblDetail2Value.Text = gpu.Details ?? LocalizationService.T("common_unknown");
                     lblDetail3.Visible = false;
                     lblDetail3Value.Visible = false;
                     lblDetail4.Visible = false;
@@ -350,17 +355,19 @@ namespace TaskManagerPlus.Controls
                     var disk = currentDiskInfo[selectedHardwareIndex - 2 - gpuCount];
                     lblTitle.Text = disk.Name;
                     lblSubtitle.Text = $"{disk.Type} - {disk.Capacity}";
-                    lblUtilization.Text = "Active time:";
+                    lblUtilization.Text = LocalizationService.T("perf_active_time");
                     lblUtilizationValue.Text = $"{disk.ActiveTime:F1}%";
-                    lblSpeed.Text = "Read/Write:";
+                    lblSpeed.Text = LocalizationService.T("perf_read_write");
                     lblSpeedValue.Text = disk.Speed;
 
-                    lblDetail1.Text = "Capacity:";
+                    lblDetail1.Text = LocalizationService.T("perf_capacity");
                     lblDetail1Value.Text = disk.Capacity;
-                    lblDetail2.Text = "Used:";
+                    lblDetail2.Text = LocalizationService.T("perf_used");
                     lblDetail2Value.Text = disk.Details;
-                    lblDetail3.Text = "Temperature:";
-                    lblDetail3Value.Text = disk.Temperature > 0 ? $"{disk.Temperature:F1} °C" : "N/A";
+                    lblDetail3.Text = LocalizationService.T("perf_temperature");
+                    lblDetail3Value.Text = disk.Temperature > 0
+                        ? $"{disk.Temperature:F1} Â°C"
+                        : LocalizationService.T("common_na");
                     lblDetail4.Visible = false;
                     lblDetail4Value.Visible = false;
                 }
@@ -373,22 +380,45 @@ namespace TaskManagerPlus.Controls
                         var network = currentNetworkInfo[networkIndex];
                         lblTitle.Text = network.Name;
                         lblSubtitle.Text = network.AdapterName;
-                        lblUtilization.Text = "Send:";
+                        lblUtilization.Text = LocalizationService.T("perf_send");
                         lblUtilizationValue.Text = $"{network.SendSpeed:F0} KB/s";
-                        lblSpeed.Text = "Receive:";
+                        lblSpeed.Text = LocalizationService.T("perf_receive");
                         lblSpeedValue.Text = $"{network.ReceiveSpeed:F0} KB/s";
 
-                        lblDetail1.Text = "Link speed:";
-                        lblDetail1Value.Text = network.Speed ?? "Unknown";
-                        lblDetail2.Text = "IP Address:";
+                        lblDetail1.Text = LocalizationService.T("perf_link_speed");
+                        lblDetail1Value.Text = network.Speed ?? LocalizationService.T("common_unknown");
+                        lblDetail2.Text = LocalizationService.T("perf_ip_address");
                         lblDetail2Value.Text = network.IpAddress;
-                        lblDetail3.Text = "Connection type:";
+                        lblDetail3.Text = LocalizationService.T("perf_connection_type");
                         lblDetail3Value.Text = network.ConnectionType;
                         lblDetail4.Visible = false;
                         lblDetail4Value.Visible = false;
                     }
                 }
             }
+        }
+
+        public void ApplyLocalization()
+        {
+            UILocalizer.Apply(this);
+            UpdateSidebarLabels();
+            UpdateDetailView();
+        }
+
+        private void UpdateSidebarLabels()
+        {
+            sidebar.UpdateItemName(0, LocalizationService.T("perf_sidebar_cpu"));
+            sidebar.UpdateItemName(1, LocalizationService.T("perf_sidebar_memory"));
+
+            for (int i = 0; i < gpuHistories.Count; i++)
+            {
+                sidebar.UpdateItemName(2 + i, string.Format(LocalizationService.T("perf_sidebar_gpu"), i));
+            }
+        }
+
+        private void SetupLocalizationTags()
+        {
+            // Dynamic labels are localized in UpdateDetailView.
         }
 
         private void ShowDetailLabels(bool show)
