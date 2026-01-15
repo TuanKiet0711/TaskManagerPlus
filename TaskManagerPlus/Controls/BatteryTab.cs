@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Management;
@@ -16,7 +16,7 @@ namespace TaskManagerPlus.Controls
         {
             InitializeComponent();
             currentBatteryInfo = new BatteryInfo();
-            
+
             updateTimer = new Timer();
             updateTimer.Interval = 2000; // Update every 2 seconds
             updateTimer.Tick += async (s, e) => await UpdateBatteryInfoAsync();
@@ -47,64 +47,33 @@ namespace TaskManagerPlus.Controls
 
             try
             {
+                // Basic info from Windows
                 PowerStatus powerStatus = SystemInformation.PowerStatus;
-                
                 info.ChargePercent = (int)(powerStatus.BatteryLifePercent * 100);
                 info.IsCharging = powerStatus.PowerLineStatus == PowerLineStatus.Online;
                 info.TimeRemaining = powerStatus.BatteryLifeRemaining;
-                
-                // Get detailed battery info from WMI
-                using (ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Battery"))
+
+                // If device has no battery, BatteryLifePercent can be 1.0 and BatteryChargeStatus may show NoSystemBattery
+                if ((powerStatus.BatteryChargeStatus & BatteryChargeStatus.NoSystemBattery) == BatteryChargeStatus.NoSystemBattery)
                 {
-                    foreach (ManagementObject obj in searcher.Get())
-                    {
-                        info.BatteryName = obj["Name"]?.ToString() ?? "Battery";
-                        info.DesignCapacity = Convert.ToInt32(obj["DesignCapacity"] ?? 0);
-                        info.FullChargeCapacity = Convert.ToInt32(obj["FullChargeCapacity"] ?? 0);
-                        info.BatteryStatus = obj["BatteryStatus"]?.ToString() ?? "Unknown";
-                        info.EstimatedChargeRemaining = Convert.ToInt32(obj["EstimatedChargeRemaining"] ?? 0);
-                        info.Voltage = Convert.ToInt32(obj["DesignVoltage"] ?? 0) / 1000.0;
-                        
-                        // Calculate battery health (actual capacity vs design capacity)
-                        if (info.DesignCapacity > 0 && info.FullChargeCapacity > 0)
-                        {
-                            info.BatteryHealth = (int)((double)info.FullChargeCapacity / info.DesignCapacity * 100);
-                            info.WearLevel = 100 - info.BatteryHealth;
-                            
-                            // Determine battery condition
-                            if (info.BatteryHealth >= 90)
-                                info.BatteryCondition = "Excellent";
-                            else if (info.BatteryHealth >= 80)
-                                info.BatteryCondition = "Good";
-                            else if (info.BatteryHealth >= 60)
-                                info.BatteryCondition = "Fair";
-                            else if (info.BatteryHealth >= 40)
-                                info.BatteryCondition = "Poor";
-                            else
-                                info.BatteryCondition = "Replace Soon";
-                        }
-                        
-                        // Get cycle count if available
-                        try
-                        {
-                            info.CycleCount = Convert.ToInt32(obj["BatteryRechargeTime"] ?? 0);
-                        }
-                        catch { info.CycleCount = -1; }
-                    }
+                    info.ErrorMessage = "No battery detected";
+                    return info;
                 }
 
-                // Get power plan
-                try
+                // 1) Try to get accurate capacity/health/cycle from root\WMI
+                TryReadBatteryFromRootWmi(info);
+
+                // 2) Fallback: Win32_Battery (often limited)
+                if (info.DesignCapacity <= 0 || info.FullChargeCapacity <= 0)
                 {
-                    using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(@"root\CIMV2\power", "SELECT * FROM Win32_PowerPlan WHERE IsActive=True"))
-                    {
-                        foreach (ManagementObject obj in searcher.Get())
-                        {
-                            info.PowerPlan = obj["ElementName"]?.ToString() ?? "Unknown";
-                        }
-                    }
+                    TryReadBatteryFromWin32Battery(info);
                 }
-                catch { }
+
+                // 3) Compute health / wear / condition
+                ComputeHealthWearCondition(info);
+
+                // 4) Power plan
+                TryReadPowerPlan(info);
             }
             catch (Exception ex)
             {
@@ -112,6 +81,168 @@ namespace TaskManagerPlus.Controls
             }
 
             return info;
+        }
+
+        private void TryReadBatteryFromRootWmi(BatteryInfo info)
+        {
+            try
+            {
+                // Some machines expose these in root\WMI
+                var scope = new ManagementScope(@"\\.\root\WMI");
+                scope.Connect();
+
+                // Designed capacity
+                using (var searchStatic = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT * FROM BatteryStaticData")))
+                {
+                    foreach (ManagementObject obj in searchStatic.Get())
+                    {
+                        // Units are typically mWh
+                        info.DesignCapacity = ToInt(obj["DesignedCapacity"]);
+                        break; // usually one battery; if multiple you can sum instead
+                    }
+                }
+
+                // Full charged capacity
+                using (var searchFull = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT * FROM BatteryFullChargedCapacity")))
+                {
+                    foreach (ManagementObject obj in searchFull.Get())
+                    {
+                        info.FullChargeCapacity = ToInt(obj["FullChargedCapacity"]);
+                        break;
+                    }
+                }
+
+                // Cycle count
+                using (var searchCycle = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT * FROM BatteryCycleCount")))
+                {
+                    foreach (ManagementObject obj in searchCycle.Get())
+                    {
+                        info.CycleCount = ToInt(obj["CycleCount"]);
+                        break;
+                    }
+                }
+
+                // Battery status / voltage (optional)
+                using (var searchStatus = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT * FROM BatteryStatus")))
+                {
+                    foreach (ManagementObject obj in searchStatus.Get())
+                    {
+                        // Voltage often in mV
+                        int mv = ToInt(obj["Voltage"]);
+                        if (mv > 0) info.Voltage = mv / 1000.0;
+
+                        // RemainingCapacity sometimes available (mWh)
+                        info.RemainingCapacity = ToInt(obj["RemainingCapacity"]);
+
+                        // ChargeRate sometimes available (mW)
+                        info.ChargeRate = ToInt(obj["ChargeRate"]);
+                        break;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore: not supported on some hardware
+            }
+        }
+
+        private void TryReadBatteryFromWin32Battery(BatteryInfo info)
+        {
+            try
+            {
+                using (ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Battery"))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        info.BatteryName = obj["Name"]?.ToString() ?? info.BatteryName;
+                        info.BatteryStatus = obj["BatteryStatus"]?.ToString() ?? info.BatteryStatus;
+
+                        // These two are often missing (0/null)
+                        info.DesignCapacity = Math.Max(info.DesignCapacity, ToInt(obj["DesignCapacity"]));
+                        info.FullChargeCapacity = Math.Max(info.FullChargeCapacity, ToInt(obj["FullChargeCapacity"]));
+
+                        info.EstimatedChargeRemaining = ToInt(obj["EstimatedChargeRemaining"]);
+
+                        // DesignVoltage often in mV
+                        int mv = ToInt(obj["DesignVoltage"]);
+                        if (info.Voltage <= 0 && mv > 0) info.Voltage = mv / 1000.0;
+
+                        break;
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private void TryReadPowerPlan(BatteryInfo info)
+        {
+            try
+            {
+                using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(
+                    @"root\CIMV2\power",
+                    "SELECT * FROM Win32_PowerPlan WHERE IsActive=True"))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        info.PowerPlan = obj["ElementName"]?.ToString() ?? "Unknown";
+                        break;
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private void ComputeHealthWearCondition(BatteryInfo info)
+        {
+            if (info.DesignCapacity > 0 && info.FullChargeCapacity > 0)
+            {
+                info.BatteryHealth = (int)Math.Round((double)info.FullChargeCapacity / info.DesignCapacity * 100);
+                info.BatteryHealth = Math.Max(0, Math.Min(100, info.BatteryHealth));
+
+                info.WearLevel = 100 - info.BatteryHealth;
+                info.WearLevel = Math.Max(0, Math.Min(100, info.WearLevel));
+
+                if (info.BatteryHealth >= 90)
+                    info.BatteryCondition = "Excellent";
+                else if (info.BatteryHealth >= 80)
+                    info.BatteryCondition = "Good";
+                else if (info.BatteryHealth >= 60)
+                    info.BatteryCondition = "Fair";
+                else if (info.BatteryHealth >= 40)
+                    info.BatteryCondition = "Poor";
+                else
+                    info.BatteryCondition = "Replace Soon";
+            }
+            else
+            {
+                // If cannot read capacity, at least show unknown without crashing
+                info.BatteryHealth = 0;
+                info.WearLevel = 0;
+                info.BatteryCondition = "Unknown";
+            }
+        }
+
+        private int ToInt(object value)
+        {
+            try
+            {
+                if (value == null) return 0;
+                if (value is int i) return i;
+                if (value is uint ui) return unchecked((int)ui);
+                if (value is long l) return (int)l;
+                if (value is ulong ul) return (int)ul;
+                return Convert.ToInt32(value);
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         private void PictureBoxBattery_Paint(object sender, PaintEventArgs e)
@@ -145,7 +276,7 @@ namespace TaskManagerPlus.Controls
             yPos += 70;
 
             // Draw status
-            string status = currentBatteryInfo.IsCharging ? "?? Charging" : "?? On Battery";
+            string status = currentBatteryInfo.IsCharging ? "⚡ Charging" : "🔋 On Battery";
             using (Font statusFont = new Font("Segoe UI", 16F, FontStyle.Bold))
             using (SolidBrush statusBrush = new SolidBrush(currentBatteryInfo.IsCharging ? Color.FromArgb(25, 135, 84) : Color.FromArgb(52, 58, 64)))
             {
@@ -154,14 +285,14 @@ namespace TaskManagerPlus.Controls
             }
             yPos += 40;
 
-            // Draw battery health indicator (actual capacity)
+            // Show battery health + wear prominently (chai pin)
             if (currentBatteryInfo.BatteryHealth > 0)
             {
-                string healthText = $"Battery Health: {currentBatteryInfo.BatteryHealth}% ({currentBatteryInfo.BatteryCondition})";
+                string healthText = $"Battery Health: {currentBatteryInfo.BatteryHealth}%  |  Chai pin: {currentBatteryInfo.WearLevel}%  ({currentBatteryInfo.BatteryCondition})";
                 Color healthColor = currentBatteryInfo.BatteryHealth >= 80 ? Color.FromArgb(25, 135, 84) :
                                    currentBatteryInfo.BatteryHealth >= 60 ? Color.FromArgb(255, 193, 7) :
                                    Color.FromArgb(220, 53, 69);
-                                   
+
                 using (Font healthFont = new Font("Segoe UI Semibold", 14F, FontStyle.Bold))
                 using (SolidBrush healthBrush = new SolidBrush(healthColor))
                 {
@@ -186,43 +317,44 @@ namespace TaskManagerPlus.Controls
             }
 
             // Draw details panel
-            DrawDetailsPanel(g, 50, yPos, pictureBoxBattery.Width - 100, 300);
+            DrawDetailsPanel(g, 50, yPos, pictureBoxBattery.Width - 100, 320);
         }
 
         private void DrawBatteryIcon(Graphics g, int x, int y, int width, int height, int chargePercent)
         {
-            // Battery body
             Rectangle batteryBody = new Rectangle(x + 10, y, width - 20, height);
-            
-            // Battery tip
             Rectangle batteryTip = new Rectangle(x + width - 10, y + height / 3, 10, height / 3);
 
-            // Draw battery outline
             using (Pen outlinePen = new Pen(Color.FromArgb(100, 100, 100), 4))
             {
                 g.DrawRectangle(outlinePen, batteryBody);
                 g.FillRectangle(Brushes.Gray, batteryTip);
             }
 
-            // Draw charge level
             int chargeHeight = (int)(batteryBody.Height * chargePercent / 100.0);
             int chargeY = batteryBody.Bottom - chargeHeight;
-            Rectangle chargeRect = new Rectangle(batteryBody.X + 5, chargeY + 5, batteryBody.Width - 10, chargeHeight - 10);
 
-            Color chargeColor = GetBatteryColor(chargePercent);
-            using (LinearGradientBrush chargeBrush = new LinearGradientBrush(
-                chargeRect,
-                Color.FromArgb(200, chargeColor),
-                chargeColor,
-                LinearGradientMode.Vertical))
+            // Prevent negative rect height when battery is very low
+            int innerHeight = Math.Max(0, chargeHeight - 10);
+
+            Rectangle chargeRect = new Rectangle(batteryBody.X + 5, chargeY + 5, batteryBody.Width - 10, innerHeight);
+
+            if (chargeRect.Height > 0)
             {
-                g.FillRectangle(chargeBrush, chargeRect);
+                Color chargeColor = GetBatteryColor(chargePercent);
+                using (LinearGradientBrush chargeBrush = new LinearGradientBrush(
+                    chargeRect,
+                    Color.FromArgb(200, chargeColor),
+                    chargeColor,
+                    LinearGradientMode.Vertical))
+                {
+                    g.FillRectangle(chargeBrush, chargeRect);
+                }
             }
         }
 
         private void DrawDetailsPanel(Graphics g, int x, int y, int width, int height)
         {
-            // Background
             using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(248, 249, 250)))
             using (Pen borderPen = new Pen(Color.FromArgb(200, 200, 200)))
             {
@@ -234,7 +366,6 @@ namespace TaskManagerPlus.Controls
             int leftCol = x + 30;
             int rightCol = x + width / 2 + 30;
 
-            // Title
             using (Font titleFont = new Font("Segoe UI Semibold", 14F, FontStyle.Bold))
             using (SolidBrush titleBrush = new SolidBrush(Color.FromArgb(0, 120, 212)))
             {
@@ -242,13 +373,19 @@ namespace TaskManagerPlus.Controls
             }
             yPos += 45;
 
-            // Details
             DrawDetail(g, "Battery Name:", currentBatteryInfo.BatteryName, leftCol, yPos);
             DrawDetail(g, "Power Plan:", currentBatteryInfo.PowerPlan, rightCol, yPos);
             yPos += 35;
 
-            DrawDetail(g, "Battery Health:", $"{currentBatteryInfo.BatteryHealth}% ({currentBatteryInfo.BatteryCondition})", leftCol, yPos);
-            DrawDetail(g, "Wear Level:", $"{currentBatteryInfo.WearLevel}%", rightCol, yPos);
+            // Chai pin + health
+            DrawDetail(g, "Battery Health:", currentBatteryInfo.BatteryHealth > 0
+                ? $"{currentBatteryInfo.BatteryHealth}% ({currentBatteryInfo.BatteryCondition})"
+                : "Unknown", leftCol, yPos);
+
+            DrawDetail(g, "Chai Pin (Wear):", currentBatteryInfo.BatteryHealth > 0
+                ? $"{currentBatteryInfo.WearLevel}%"
+                : "Unknown", rightCol, yPos);
+
             yPos += 35;
 
             if (currentBatteryInfo.DesignCapacity > 0)
@@ -258,7 +395,9 @@ namespace TaskManagerPlus.Controls
                 yPos += 35;
             }
 
-            DrawDetail(g, "Voltage:", $"{currentBatteryInfo.Voltage:F2} V", leftCol, yPos);
+            string voltageText = currentBatteryInfo.Voltage > 0 ? $"{currentBatteryInfo.Voltage:F2} V" : "Unknown";
+            DrawDetail(g, "Voltage:", voltageText, leftCol, yPos);
+
             DrawDetail(g, "Charge Status:", currentBatteryInfo.IsCharging ? "Charging" : "Discharging", rightCol, yPos);
             yPos += 35;
 
@@ -268,9 +407,21 @@ namespace TaskManagerPlus.Controls
                 yPos += 35;
             }
 
-            // Battery health bar
+            if (currentBatteryInfo.RemainingCapacity > 0)
+            {
+                DrawDetail(g, "Remaining Capacity:", $"{currentBatteryInfo.RemainingCapacity} mWh", leftCol, yPos);
+                if (currentBatteryInfo.ChargeRate != 0)
+                    DrawDetail(g, "Charge Rate:", $"{currentBatteryInfo.ChargeRate} mW", rightCol, yPos);
+                yPos += 35;
+            }
+
+            // Health bar
             yPos += 10;
             DrawHealthBar(g, leftCol, yPos, width - 60, currentBatteryInfo.BatteryHealth);
+
+            // Wear bar (chai pin)
+            yPos += 70;
+            DrawWearBar(g, leftCol, yPos, width - 60, currentBatteryInfo.WearLevel);
         }
 
         private void DrawDetail(Graphics g, string label, string value, int x, int y)
@@ -296,30 +447,61 @@ namespace TaskManagerPlus.Controls
             int barY = y + 25;
             int barHeight = 25;
 
-            // Background
             using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(220, 220, 220)))
-            {
                 g.FillRectangle(bgBrush, x, barY, width, barHeight);
-            }
 
-            // Health bar
-            int healthWidth = (int)(width * health / 100.0);
-            Color healthColor = health >= 80 ? Color.FromArgb(25, 135, 84) : 
-                              health >= 50 ? Color.FromArgb(255, 193, 7) : 
+            int h = Math.Max(0, Math.Min(100, health));
+            int healthWidth = (int)(width * h / 100.0);
+
+            Color healthColor = h >= 80 ? Color.FromArgb(25, 135, 84) :
+                              h >= 50 ? Color.FromArgb(255, 193, 7) :
                               Color.FromArgb(220, 53, 69);
 
             using (SolidBrush healthBrush = new SolidBrush(healthColor))
-            {
                 g.FillRectangle(healthBrush, x, barY, healthWidth, barHeight);
-            }
 
-            // Text
             using (Font percentFont = new Font("Segoe UI Semibold", 10F, FontStyle.Bold))
             using (SolidBrush textBrush = new SolidBrush(Color.White))
             {
-                string healthText = $"{health}%";
+                string healthText = h > 0 ? $"{h}%" : "N/A";
                 SizeF textSize = g.MeasureString(healthText, percentFont);
-                g.DrawString(healthText, percentFont, textBrush, x + width / 2 - textSize.Width / 2, barY + 4);
+                g.DrawString(healthText, percentFont, textBrush,
+                    x + width / 2 - textSize.Width / 2, barY + 4);
+            }
+        }
+
+        private void DrawWearBar(Graphics g, int x, int y, int width, int wear)
+        {
+            using (Font labelFont = new Font("Segoe UI", 9F))
+            using (SolidBrush labelBrush = new SolidBrush(Color.FromArgb(108, 117, 125)))
+            {
+                g.DrawString("Chai pin (Wear Level):", labelFont, labelBrush, x, y);
+            }
+
+            int barY = y + 25;
+            int barHeight = 25;
+
+            using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(220, 220, 220)))
+                g.FillRectangle(bgBrush, x, barY, width, barHeight);
+
+            int w = Math.Max(0, Math.Min(100, wear));
+            int wearWidth = (int)(width * w / 100.0);
+
+            // Wear càng cao càng xấu: xanh -> vàng -> đỏ
+            Color wearColor = w <= 20 ? Color.FromArgb(25, 135, 84) :
+                             w <= 40 ? Color.FromArgb(255, 193, 7) :
+                             Color.FromArgb(220, 53, 69);
+
+            using (SolidBrush wearBrush = new SolidBrush(wearColor))
+                g.FillRectangle(wearBrush, x, barY, wearWidth, barHeight);
+
+            using (Font percentFont = new Font("Segoe UI Semibold", 10F, FontStyle.Bold))
+            using (SolidBrush textBrush = new SolidBrush(Color.White))
+            {
+                string wearText = w > 0 ? $"{w}%" : "N/A";
+                SizeF textSize = g.MeasureString(wearText, percentFont);
+                g.DrawString(wearText, percentFont, textBrush,
+                    x + width / 2 - textSize.Width / 2, barY + 4);
             }
         }
 
@@ -328,9 +510,12 @@ namespace TaskManagerPlus.Controls
             using (Font font = new Font("Segoe UI", 14F))
             using (SolidBrush brush = new SolidBrush(Color.FromArgb(108, 117, 125)))
             {
-                StringFormat sf = new StringFormat();
-                sf.Alignment = StringAlignment.Center;
-                sf.LineAlignment = StringAlignment.Center;
+                StringFormat sf = new StringFormat
+                {
+                    Alignment = StringAlignment.Center,
+                    LineAlignment = StringAlignment.Center
+                };
+
                 g.DrawString("No battery detected.\nThis device may be using AC power only.",
                     font, brush, new RectangleF(0, 0, pictureBoxBattery.Width, pictureBoxBattery.Height), sf);
             }
@@ -363,16 +548,25 @@ namespace TaskManagerPlus.Controls
             public int ChargePercent { get; set; }
             public bool IsCharging { get; set; }
             public int TimeRemaining { get; set; }
+
+            // Capacities (usually mWh)
             public int DesignCapacity { get; set; }
             public int FullChargeCapacity { get; set; }
-            public int BatteryHealth { get; set; } = 100;
+            public int RemainingCapacity { get; set; }
+            public int ChargeRate { get; set; }
+
+            public int BatteryHealth { get; set; } = 0;
             public int WearLevel { get; set; } = 0;
+
             public string BatteryCondition { get; set; } = "Unknown";
             public string BatteryStatus { get; set; } = "Unknown";
             public int EstimatedChargeRemaining { get; set; }
+
             public string PowerPlan { get; set; } = "Balanced";
             public double Voltage { get; set; }
+
             public int CycleCount { get; set; } = -1;
+
             public string ErrorMessage { get; set; }
         }
     }

@@ -3,6 +3,14 @@
   "WorkspaceRootPath": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|e:\\wf\\taskmanagerplus\\taskmanagerplus\\taskmanagerplus\\controls\\batterytab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\controls\\batterytab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|e:\\wf\\taskmanagerplus\\taskmanagerplus\\taskmanagerplus\\controls\\batterytab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\controls\\batterytab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|e:\\wf\\taskmanagerplus\\taskmanagerplus\\taskmanagerplus\\services\\processmonitor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\services\\processmonitor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -66,7 +74,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 8,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -78,7 +86,32 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 0,
+              "Title": "BatteryTab.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\BatteryTab.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\BatteryTab.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\BatteryTab.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Controls\\BatteryTab.cs",
+              "ViewState": "AgIAACwCAAAAAAAAAAAwwDcCAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-15T08:05:01.056Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "BatteryTab.cs [Design]",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\BatteryTab.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\BatteryTab.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\BatteryTab.cs [Design]",
+              "RelativeToolTip": "TaskManagerPlus\\Controls\\BatteryTab.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-15T08:04:56.281Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
               "Title": "Form1.cs [Design]",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Form1.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Form1.cs",
@@ -89,7 +122,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 8,
               "Title": "app.manifest",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\app.manifest",
               "RelativeDocumentMoniker": "TaskManagerPlus\\app.manifest",
@@ -101,7 +134,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "HardwareInfo.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\HardwareInfo.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Models\\HardwareInfo.cs",
@@ -113,7 +146,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "ProcessesTab.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.cs",
@@ -125,7 +158,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "Form1.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Form1.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Form1.cs",
@@ -137,7 +170,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
               "Title": "ProcessInfo.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\ProcessInfo.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Models\\ProcessInfo.cs",
@@ -149,7 +182,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "ProcessMonitor.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\ProcessMonitor.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Services\\ProcessMonitor.cs",
@@ -162,7 +195,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 12,
               "Title": "ProcessesTab.cs [Design]",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.cs",
@@ -173,7 +206,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 10,
               "Title": "IconHelper.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\IconHelper.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Models\\IconHelper.cs",
@@ -185,7 +218,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 9,
               "Title": "StartupTab.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\StartupTab.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\StartupTab.cs",
@@ -197,7 +230,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 11,
               "Title": "AppUsageTracker.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\AppUsageTracker.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Services\\AppUsageTracker.cs",
@@ -209,7 +242,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 14,
               "Title": "PerformanceSidebar.cs [Design]",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\PerformanceSidebar.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\PerformanceSidebar.cs",
@@ -220,7 +253,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 15,
               "Title": "ProcessesTab.resx",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.resx",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.resx",
@@ -231,7 +264,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 13,
               "Title": "ProcessesTab.Designer.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.Designer.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.Designer.cs",
