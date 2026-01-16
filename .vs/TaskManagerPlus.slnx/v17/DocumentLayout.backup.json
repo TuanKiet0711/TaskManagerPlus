@@ -3,7 +3,23 @@
   "WorkspaceRootPath": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|e:\\wf\\taskmanagerplus\\taskmanagerplus\\taskmanagerplus\\services\\localizationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|e:\\wf\\taskmanagerplus\\taskmanagerplus\\taskmanagerplus\\controls\\temperaturetab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\controls\\temperaturetab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\services\\hardwaremonitor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\services\\hardwaremonitor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\models\\hardwareinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\models\\hardwareinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\models\\processinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\models\\processinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\services\\localizationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\services\\localizationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
@@ -43,16 +59,8 @@
       "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\controls\\processestab.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\models\\processinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\models\\processinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
       "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\models\\hardwareinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|solutionrelative:taskmanagerplus\\models\\hardwareinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{429D5AFC-432E-46FA-8F2D-55DCEFF29D92}|TaskManagerPlus\\TaskManagerPlus.csproj|E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\taskmanagerplus\\app.manifest||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
@@ -94,7 +102,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -106,32 +114,32 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "UILocalizer.cs",
-              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\UILocalizer.cs",
-              "RelativeDocumentMoniker": "TaskManagerPlus\\Services\\UILocalizer.cs",
-              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\UILocalizer.cs",
-              "RelativeToolTip": "TaskManagerPlus\\Services\\UILocalizer.cs",
-              "ViewState": "AgIAADgAAAAAAAAAAAAcwEQAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-15T08:50:04.828Z"
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "LocalizationService.cs",
-              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\LocalizationService.cs",
-              "RelativeDocumentMoniker": "TaskManagerPlus\\Services\\LocalizationService.cs",
-              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\LocalizationService.cs",
-              "RelativeToolTip": "TaskManagerPlus\\Services\\LocalizationService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAADEAAAAAAAAAAAAAAA==",
+              "Title": "TemperatureTab.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\TemperatureTab.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\TemperatureTab.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\TemperatureTab.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Controls\\TemperatureTab.cs",
+              "ViewState": "AgIAAGAAAAAAAAAAAAAmwHEAAABKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-15T08:49:36.815Z",
+              "WhenOpened": "2026-01-16T12:05:59.323Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 1,
+              "Title": "HardwareMonitor.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\HardwareMonitor.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Services\\HardwareMonitor.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\HardwareMonitor.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Services\\HardwareMonitor.cs",
+              "ViewState": "AgIAAAMAAABAMzMzM3MrwBsAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-16T11:20:37.933Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
               "Title": "en.json",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Localization\\en.json",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Localization\\en.json",
@@ -143,7 +151,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 5,
               "Title": "vi.json",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Localization\\vi.json",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Localization\\vi.json",
@@ -155,7 +163,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 8,
               "Title": "Form1.Designer.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Form1.Designer.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Form1.Designer.cs",
@@ -167,7 +175,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 11,
               "Title": "BatteryTab.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\BatteryTab.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\BatteryTab.cs",
@@ -179,7 +187,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 14,
               "Title": "Form1.cs [Design]",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Form1.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Form1.cs",
@@ -190,7 +198,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 15,
               "Title": "app.manifest",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\app.manifest",
               "RelativeDocumentMoniker": "TaskManagerPlus\\app.manifest",
@@ -202,7 +210,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 7,
               "Title": "Form1.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Form1.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Form1.cs",
@@ -214,19 +222,55 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 2,
               "Title": "HardwareInfo.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\HardwareInfo.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Models\\HardwareInfo.cs",
               "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\HardwareInfo.cs",
               "RelativeToolTip": "TaskManagerPlus\\Models\\HardwareInfo.cs",
-              "ViewState": "AgIAADsAAAAAAAAAAAA0wEYAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-01-11T05:01:35.199Z"
             },
             {
               "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ProcessInfo.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\ProcessInfo.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Models\\ProcessInfo.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\ProcessInfo.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Models\\ProcessInfo.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-11T04:52:44.071Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "LocalizationService.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\LocalizationService.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Services\\LocalizationService.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\LocalizationService.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Services\\LocalizationService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-15T08:49:36.815Z"
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 6,
+              "Title": "UILocalizer.cs",
+              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\UILocalizer.cs",
+              "RelativeDocumentMoniker": "TaskManagerPlus\\Services\\UILocalizer.cs",
+              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\UILocalizer.cs",
+              "RelativeToolTip": "TaskManagerPlus\\Services\\UILocalizer.cs",
+              "ViewState": "AgIAADgAAAAAAAAAAAAcwEQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-15T08:50:04.828Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
               "Title": "ProcessMonitor.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\ProcessMonitor.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Services\\ProcessMonitor.cs",
@@ -238,7 +282,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 12,
               "Title": "BatteryTab.cs [Design]",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\BatteryTab.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\BatteryTab.cs",
@@ -249,7 +293,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 13,
               "Title": "ProcessesTab.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.cs",
@@ -261,19 +305,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "ProcessInfo.cs",
-              "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\ProcessInfo.cs",
-              "RelativeDocumentMoniker": "TaskManagerPlus\\Models\\ProcessInfo.cs",
-              "ToolTip": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\ProcessInfo.cs",
-              "RelativeToolTip": "TaskManagerPlus\\Models\\ProcessInfo.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAvAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-11T04:52:44.071Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 19,
               "Title": "ProcessesTab.cs [Design]",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.cs",
@@ -284,7 +316,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 17,
               "Title": "IconHelper.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Models\\IconHelper.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Models\\IconHelper.cs",
@@ -296,7 +328,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 16,
               "Title": "StartupTab.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\StartupTab.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\StartupTab.cs",
@@ -308,7 +340,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 18,
               "Title": "AppUsageTracker.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Services\\AppUsageTracker.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Services\\AppUsageTracker.cs",
@@ -320,7 +352,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 21,
               "Title": "PerformanceSidebar.cs [Design]",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\PerformanceSidebar.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\PerformanceSidebar.cs",
@@ -331,7 +363,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 22,
               "Title": "ProcessesTab.resx",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.resx",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.resx",
@@ -342,7 +374,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 20,
               "Title": "ProcessesTab.Designer.cs",
               "DocumentMoniker": "E:\\WF\\TaskManagerPlus\\TaskManagerPlus\\TaskManagerPlus\\Controls\\ProcessesTab.Designer.cs",
               "RelativeDocumentMoniker": "TaskManagerPlus\\Controls\\ProcessesTab.Designer.cs",

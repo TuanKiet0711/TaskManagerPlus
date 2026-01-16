@@ -14,69 +14,59 @@ namespace TaskManagerPlus.Controls
     {
         private HardwareMonitor hardwareMonitor;
         private Dictionary<string, Queue<double>> temperatureHistory;
+        private Dictionary<string, TemperatureReading> temperatureReadings;
+        private List<TemperatureEntry> temperatureEntries;
         private const int MaxHistoryPoints = 60;
-        private Dictionary<string, string> hardwareNames;
-        private Random random = new Random();
-        private bool useSimulatedData = false;
+        private readonly Timer updateTimer;
 
         public TemperatureTab()
         {
             InitializeComponent();
             hardwareMonitor = new HardwareMonitor();
             temperatureHistory = new Dictionary<string, Queue<double>>();
-            hardwareNames = new Dictionary<string, string>();
+            temperatureReadings = new Dictionary<string, TemperatureReading>();
+            temperatureEntries = new List<TemperatureEntry>();
+            updateTimer = new Timer();
+            updateTimer.Interval = 1000;
+            updateTimer.Tick += async (s, e) => await UpdateTemperaturesAsync();
             SetupLocalizationTags();
         }
 
         public void Initialize()
         {
             pictureBoxTemp.Paint += PictureBoxTemp_Paint;
+            updateTimer.Start();
             ApplyLocalization();
+        }
+
+        public void PauseUpdates()
+        {
+            updateTimer.Stop();
+        }
+
+        public void ResumeUpdates()
+        {
+            updateTimer.Start();
         }
 
         public async Task UpdateTemperaturesAsync()
         {
             try
             {
-                var cpuInfo = await Task.Run(() => hardwareMonitor.GetCpuInfo());
-                var gpuInfo = await Task.Run(() => hardwareMonitor.GetGpuInfo());
-                var diskInfo = await Task.Run(() => hardwareMonitor.GetDiskInfo());
+                var entries = await Task.Run(() => hardwareMonitor.GetAllTemperatureReadings());
+                HashSet<string> currentKeys = new HashSet<string>(entries.Select(entry => entry.Key));
 
-                // Update CPU temperature
-                double cpuTemp = cpuInfo.Temperature;
-                if (cpuTemp <= 0)
+                temperatureEntries = entries;
+                foreach (var entry in entries)
                 {
-                    useSimulatedData = true;
-                    cpuTemp = GetSimulatedTemperature("CPU");
-                }
-                UpdateTemperature("CPU", cpuTemp, cpuInfo.Name);
-
-                // Update GPU temperatures
-                for (int i = 0; i < gpuInfo.Count; i++)
-                {
-                    double gpuTemp = gpuInfo[i].Temperature;
-                    if (gpuTemp <= 0 && useSimulatedData)
-                    {
-                        gpuTemp = GetSimulatedTemperature($"GPU{i}");
-                    }
-                    if (gpuTemp > 0 || useSimulatedData)
-                    {
-                        UpdateTemperature($"GPU{i}", gpuTemp, gpuInfo[i].Name);
-                    }
+                    UpdateTemperature(entry.Key, entry.Reading);
                 }
 
-                // Update Disk temperatures
-                for (int i = 0; i < diskInfo.Count && i < 2; i++)
+                var removedKeys = temperatureHistory.Keys.Where(k => !currentKeys.Contains(k)).ToList();
+                foreach (var key in removedKeys)
                 {
-                    double diskTemp = diskInfo[i].Temperature;
-                    if (diskTemp <= 0 && useSimulatedData)
-                    {
-                        diskTemp = GetSimulatedTemperature($"Disk{i}");
-                    }
-                    if (diskTemp > 0 || useSimulatedData)
-                    {
-                        UpdateTemperature($"Disk{i}", diskTemp, diskInfo[i].Name);
-                    }
+                    temperatureHistory.Remove(key);
+                    temperatureReadings.Remove(key);
                 }
 
                 // Calculate required height and update PictureBox size
@@ -84,7 +74,7 @@ namespace TaskManagerPlus.Controls
                 int spacing = 15; // Reduced from 20
                 int totalHeight = 10;
                 
-                int visibleItems = temperatureHistory.Count(kvp => kvp.Value.Count > 0 && kvp.Value.Last() > 0);
+                int visibleItems = temperatureEntries.Count(entry => entry.Reading != null && (entry.Reading.Current > 0 || entry.Reading.Max > 0 || entry.Reading.Min > 0));
                 totalHeight += (itemHeight + spacing) * visibleItems;
                 totalHeight += 150; // For summary panel
                 
@@ -94,74 +84,31 @@ namespace TaskManagerPlus.Controls
             catch (Exception ex)
             {
                 Console.WriteLine($"Error updating temperatures: {ex.Message}");
-                useSimulatedData = true;
-                InitializeSimulatedData();
             }
         }
 
-        private void InitializeSimulatedData()
-        {
-            if (temperatureHistory.Count == 0)
-            {
-                UpdateTemperature("CPU", GetSimulatedTemperature("CPU"), "AMD Ryzen 7 5800X");
-                UpdateTemperature("GPU0", GetSimulatedTemperature("GPU0"), "NVIDIA GeForce RTX 3070");
-                UpdateTemperature("Disk0", GetSimulatedTemperature("Disk0"), "Samsung SSD 970 EVO");
-            }
-        }
-
-        private double GetSimulatedTemperature(string component)
-        {
-            // Generate realistic temperature ranges
-            double baseTemp = 0;
-            double variance = 0;
-
-            switch (component)
-            {
-                case "CPU":
-                    baseTemp = 55;
-                    variance = 15;
-                    break;
-                case "GPU0":
-                    baseTemp = 50;
-                    variance = 12;
-                    break;
-                default:
-                    if (component.StartsWith("Disk"))
-                    {
-                        baseTemp = 35;
-                        variance = 8;
-                    }
-                    break;
-            }
-
-            // Add slight variation to make it look realistic
-            double temp = baseTemp + (random.NextDouble() - 0.5) * variance;
-            
-            // Keep history continuity
-            if (temperatureHistory.ContainsKey(component) && temperatureHistory[component].Count > 0)
-            {
-                double lastTemp = temperatureHistory[component].Last();
-                temp = lastTemp + (random.NextDouble() - 0.5) * 2; // Small change from last reading
-                temp = Math.Max(baseTemp - variance/2, Math.Min(baseTemp + variance/2, temp));
-            }
-
-            return Math.Round(temp, 1);
-        }
-
-        private void UpdateTemperature(string key, double temperature, string name)
+        private void UpdateTemperature(string key, TemperatureReading reading)
         {
             if (!temperatureHistory.ContainsKey(key))
             {
                 temperatureHistory[key] = new Queue<double>();
             }
 
-            temperatureHistory[key].Enqueue(temperature);
-            if (temperatureHistory[key].Count > MaxHistoryPoints)
+            if (reading != null && reading.Current > 0)
             {
-                temperatureHistory[key].Dequeue();
+                temperatureHistory[key].Enqueue(reading.Current);
+                if (temperatureHistory[key].Count > MaxHistoryPoints)
+                {
+                    temperatureHistory[key].Dequeue();
+                }
+                temperatureReadings[key] = reading;
+            }
+            else
+            {
+                temperatureHistory[key].Clear();
+                temperatureReadings.Remove(key);
             }
 
-            hardwareNames[key] = name;
         }
 
         private void PictureBoxTemp_Paint(object sender, PaintEventArgs e)
@@ -171,7 +118,7 @@ namespace TaskManagerPlus.Controls
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-            if (temperatureHistory.Count == 0)
+            if (!temperatureEntries.Any(entry => entry != null && entry.Reading != null && (entry.Reading.Current > 0 || entry.Reading.Max > 0 || entry.Reading.Min > 0)))
             {
                 DrawNoDataMessage(g);
                 return;
@@ -183,19 +130,16 @@ namespace TaskManagerPlus.Controls
             int chartWidth = Math.Min(pictureBoxTemp.Width - 380, 600); // Max width for chart
             int chartHeight = 100; // Reduced
 
-            foreach (var kvp in temperatureHistory)
+            foreach (var entry in temperatureEntries)
             {
-                if (kvp.Value.Count > 0)
-                {
-                    double currentTemp = kvp.Value.ToArray()[kvp.Value.Count - 1];
-                    
-                    if (currentTemp > 0)
-                    {
-                        string displayName = hardwareNames.ContainsKey(kvp.Key) ? hardwareNames[kvp.Key] : GetDisplayName(kvp.Key);
-                        DrawTemperatureItem(g, displayName, currentTemp, kvp.Value, 10, yPos, chartWidth, chartHeight);
-                        yPos += itemHeight + spacing;
-                    }
-                }
+                if (entry == null || entry.Reading == null || (entry.Reading.Current <= 0 && entry.Reading.Max <= 0 && entry.Reading.Min <= 0))
+                    continue;
+
+                Queue<double> history = temperatureHistory.ContainsKey(entry.Key)
+                    ? temperatureHistory[entry.Key]
+                    : new Queue<double>();
+                DrawTemperatureItem(g, entry.Name, entry.Reading, history, 10, yPos, chartWidth, chartHeight);
+                yPos += itemHeight + spacing;
             }
 
             // Draw summary statistics
@@ -241,23 +185,31 @@ namespace TaskManagerPlus.Controls
                 int statX = 40;
                 int columnWidth = 250;
 
-                var allTemps = temperatureHistory.Values
-                    .SelectMany(q => q.ToArray())
-                    .Where(t => t > 0)
+                var allTemps = temperatureReadings.Values
+                    .Where(r => r != null && r.Current > 0)
+                    .Select(r => r.Current)
+                    .ToList();
+                var allMaxTemps = temperatureReadings.Values
+                    .Where(r => r != null && r.Current > 0)
+                    .Select(r => r.Max > 0 ? r.Max : r.Current)
+                    .ToList();
+                var allMinTemps = temperatureReadings.Values
+                    .Where(r => r != null && r.Current > 0)
+                    .Select(r => r.Min > 0 ? r.Min : r.Current)
                     .ToList();
 
                 if (allTemps.Any())
                 {
                     double avgTemp = allTemps.Average();
-                    double maxTemp = allTemps.Max();
-                    double minTemp = allTemps.Min();
+                    double maxTemp = allMaxTemps.Any() ? allMaxTemps.Max() : allTemps.Max();
+                    double minTemp = allMinTemps.Any() ? allMinTemps.Min() : allTemps.Min();
 
                     DrawStatItem(g, LocalizationService.T("temp_avg_temp"), $"{avgTemp:F1}°C", statX, statY, GetTemperatureColor(avgTemp));
                     DrawStatItem(g, LocalizationService.T("temp_max_temp"), $"{maxTemp:F1}°C", statX + columnWidth, statY, GetTemperatureColor(maxTemp));
                     DrawStatItem(g, LocalizationService.T("temp_min_temp"), $"{minTemp:F1}°C", statX + columnWidth * 2, statY, GetTemperatureColor(minTemp));
                     
                     statY += 30;
-                    int componentsCount = temperatureHistory.Count(kvp => kvp.Value.Any(t => t > 0));
+                    int componentsCount = temperatureReadings.Count(kvp => kvp.Value != null && kvp.Value.Current > 0);
                     DrawStatItem(g, LocalizationService.T("temp_monitored_components"), componentsCount.ToString(), statX, statY, Color.FromArgb(52, 58, 64));
                     
                     string overallStatus = GetOverallStatusText(maxTemp);
@@ -279,29 +231,9 @@ namespace TaskManagerPlus.Controls
             }
         }
 
-        private string GetDisplayName(string key)
+        private void DrawTemperatureItem(Graphics g, string name, TemperatureReading reading, Queue<double> history, int x, int y, int width, int height)
         {
-            if (key.StartsWith("CPU"))
-                return LocalizationService.T("temp_cpu_label");
-            if (key.StartsWith("GPU"))
-            {
-                int index;
-                if (int.TryParse(key.Substring(3), out index))
-                    return string.Format(LocalizationService.T("temp_gpu_label"), index);
-                return key;
-            }
-            if (key.StartsWith("Disk"))
-            {
-                int index;
-                if (int.TryParse(key.Substring(4), out index))
-                    return string.Format(LocalizationService.T("temp_disk_label"), index);
-                return key;
-            }
-            return key;
-        }
-
-        private void DrawTemperatureItem(Graphics g, string name, double temperature, Queue<double> history, int x, int y, int width, int height)
-        {
+            double temperature = reading != null ? reading.Current : 0;
             // Draw background panel with gradient
             using (LinearGradientBrush bgBrush = new LinearGradientBrush(
                 new Rectangle(x, y, width + 340, height + 30),
@@ -327,17 +259,17 @@ namespace TaskManagerPlus.Controls
             using (SolidBrush textBrush = new SolidBrush(Color.FromArgb(52, 58, 64)))
             {
                 g.DrawString(name, titleFont, textBrush, x + 48, y + 10);
-                
-                Color tempColor = GetTemperatureColor(temperature);
+                string tempText = temperature > 0 ? $"{temperature:F1}°C" : LocalizationService.T("common_na");
+                Color tempColor = temperature > 0 ? GetTemperatureColor(temperature) : Color.FromArgb(108, 117, 125);
                 using (SolidBrush tempBrush = new SolidBrush(tempColor))
                 {
-                    g.DrawString($"{temperature:F1}°C", tempFont, tempBrush, x + width + 50, y + 30);
+                    g.DrawString(tempText, tempFont, tempBrush, x + width + 50, y + 30);
                 }
             }
 
             // Draw temperature status
             string status = GetTemperatureStatus(temperature);
-            Color statusColor = GetTemperatureColor(temperature);
+            Color statusColor = temperature > 0 ? GetTemperatureColor(temperature) : Color.FromArgb(108, 117, 125);
             using (Font statusFont = new Font("Segoe UI Semibold", 9F, FontStyle.Bold))
             using (Font detailFont = new Font("Segoe UI", 8F))
             using (SolidBrush statusBrush = new SolidBrush(statusColor))
@@ -346,21 +278,26 @@ namespace TaskManagerPlus.Controls
                 g.DrawString(status, statusFont, statusBrush, x + width + 50, y + 85);
                 
                 // Draw min/max temps
+                double min = reading != null && reading.Min > 0 ? reading.Min : 0;
+                double max = reading != null && reading.Max > 0 ? reading.Max : 0;
                 if (history.Count > 0)
                 {
                     var temps = history.Where(t => t > 0).ToArray();
                     if (temps.Any())
                     {
-                        double min = temps.Min();
-                        double max = temps.Max();
-                        string details = string.Format(LocalizationService.T("temp_min_max_format"), min, max);
-                        g.DrawString(details, detailFont, detailBrush, x + width + 50, y + 105);
+                        if (min <= 0) min = temps.Min();
+                        if (max <= 0) max = temps.Max();
                     }
+                }
+                if (min > 0 && max > 0)
+                {
+                    string details = string.Format(LocalizationService.T("temp_min_max_format"), min, max);
+                    g.DrawString(details, detailFont, detailBrush, x + width + 50, y + 105);
                 }
             }
 
             // Draw history chart
-            if (history.Count > 1)
+            if (history.Count > 1 && history.Any(t => t > 0))
             {
                 DrawEnhancedTemperatureChart(g, history, x + 10, y + 35, width - 20, height - 40);
             }
@@ -530,5 +467,19 @@ namespace TaskManagerPlus.Controls
             lblTitle.Tag = "temp_title";
             lblInfo.Tag = "temp_info";
         }
+
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            updateTimer?.Stop();
+            updateTimer?.Dispose();
+            hardwareMonitor?.Cleanup();
+            base.OnHandleDestroyed(e);
+        }
     }
 }
+
+
+
+
+
+

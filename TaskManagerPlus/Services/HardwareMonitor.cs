@@ -6,9 +6,24 @@ using System.Linq;
 using System.Management;
 using System.Net.NetworkInformation;
 using TaskManagerPlus.Models;
+using LibreHardwareMonitor.Hardware;
 
 namespace TaskManagerPlus.Services
 {
+    public class TemperatureReading
+    {
+        public double Current { get; set; }
+        public double Min { get; set; }
+        public double Max { get; set; }
+    }
+
+    public class TemperatureEntry
+    {
+        public string Key { get; set; }
+        public string Name { get; set; }
+        public TemperatureReading Reading { get; set; }
+    }
+
     public class HardwareMonitor
     {
         private Dictionary<string, PerformanceCounter> performanceCounters;
@@ -17,6 +32,7 @@ namespace TaskManagerPlus.Services
         private int processorCount;
         private string cpuName;
         private double baseSpeed;
+        private readonly Computer computer;
 
         public HardwareMonitor()
         {
@@ -25,6 +41,19 @@ namespace TaskManagerPlus.Services
             lastNetworkCheck = DateTime.Now;
             processorCount = Environment.ProcessorCount;
             InitializeCpuInfo();
+
+            computer = new Computer
+            {
+                IsCpuEnabled = true,
+                IsGpuEnabled = true,
+                IsStorageEnabled = true,
+                IsMotherboardEnabled = true
+            };
+            try
+            {
+                computer.Open();
+            }
+            catch { }
         }
 
         private void InitializeCpuInfo()
@@ -245,6 +274,191 @@ namespace TaskManagerPlus.Services
             return networks;
         }
 
+        public List<TemperatureEntry> GetAllTemperatureReadings()
+        {
+            List<SensorReading> sensors = GetTemperatureSensors();
+            List<TemperatureEntry> result = new List<TemperatureEntry>();
+
+            foreach (SensorReading sensor in sensors.Where(s => s.Value > 0 || (s.Min.HasValue && s.Min.Value > 0) || (s.Max.HasValue && s.Max.Value > 0)))
+            {
+                TemperatureEntry entry = new TemperatureEntry
+                {
+                    Key = $"temp::{sensor.HardwareType}::{sensor.Identifier}",
+                    Name = $"{sensor.HardwareName} - {sensor.SensorName}",
+                    Reading = ToTemperatureReading(sensor)
+                };
+                result.Add(entry);
+            }
+
+            bool hasCpuTemps = sensors.Any(s => s.HardwareType == HardwareType.Cpu);
+            bool hasStorageTemps = sensors.Any(s => s.HardwareType == HardwareType.Storage);
+
+            if (!hasCpuTemps)
+            {
+                double acpiTemp = GetAcpiTemperature();
+                if (acpiTemp > 0)
+                {
+                    result.Add(new TemperatureEntry
+                    {
+                        Key = "temp::fallback::cpu_acpi",
+                        Name = "CPU (ACPI)",
+                        Reading = new TemperatureReading { Current = acpiTemp }
+                    });
+                }
+            }
+
+            if (!hasStorageTemps)
+            {
+                result.AddRange(GetSmartTemperatureEntries());
+            }
+
+            return result
+                .OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private List<SensorReading> GetTemperatureSensors()
+        {
+            List<SensorReading> sensors = new List<SensorReading>();
+            if (computer == null) return sensors;
+
+            try
+            {
+                computer.Accept(new UpdateVisitor());
+                foreach (IHardware hw in computer.Hardware)
+                    CollectSensors(hw, sensors);
+            }
+            catch { }
+
+            return sensors;
+        }
+
+        private void CollectSensors(IHardware hardware, List<SensorReading> sensors)
+        {
+            foreach (ISensor sensor in hardware.Sensors)
+            {
+                if (sensor.SensorType == SensorType.Temperature && sensor.Value.HasValue)
+                {
+                    sensors.Add(new SensorReading
+                    {
+                        HardwareType = hardware.HardwareType,
+                        HardwareName = hardware.Name,
+                        SensorName = sensor.Name,
+                        Identifier = sensor.Identifier.ToString(),
+                        Value = sensor.Value.Value,
+                        Min = sensor.Min.HasValue ? (double?)sensor.Min.Value : null,
+                        Max = sensor.Max.HasValue ? (double?)sensor.Max.Value : null
+                    });
+                }
+            }
+
+            foreach (IHardware sub in hardware.SubHardware)
+                CollectSensors(sub, sensors);
+        }
+
+        private TemperatureReading ToTemperatureReading(SensorReading sensor)
+        {
+            if (sensor == null) return null;
+            return new TemperatureReading
+            {
+                Current = sensor.Value,
+                Min = sensor.Min ?? 0,
+                Max = sensor.Max ?? 0
+            };
+        }
+
+        private List<TemperatureEntry> GetSmartTemperatureEntries()
+        {
+            List<TemperatureEntry> result = new List<TemperatureEntry>();
+            try
+            {
+                using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM MSStorageDriver_ATAPISmartData"))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        byte[] data = obj["VendorSpecific"] as byte[];
+                        int temp = ExtractSmartTemperature(data);
+                        if (temp <= 0) continue;
+
+                        string instance = obj["InstanceName"]?.ToString() ?? "SMART";
+                        result.Add(new TemperatureEntry
+                        {
+                            Key = $"temp::smart::{instance}",
+                            Name = $"Disk - {instance} - Temperature",
+                            Reading = new TemperatureReading { Current = temp }
+                        });
+                    }
+                }
+            }
+            catch { }
+
+            return result;
+        }
+
+        private int ExtractSmartTemperature(byte[] data)
+        {
+            if (data == null || data.Length < 362) return 0;
+            for (int i = 2; i + 12 <= data.Length; i += 12)
+            {
+                byte id = data[i];
+                if (id == 0) break;
+                if (id == 194 || id == 190)
+                {
+                    int temp = data[i + 5];
+                    if (temp > 0) return temp;
+                }
+            }
+            return 0;
+        }
+
+        private double GetAcpiTemperature()
+        {
+            try
+            {
+                using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM MSAcpi_ThermalZoneTemperature"))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        double temp = Convert.ToDouble(obj["CurrentTemperature"]);
+                        return (temp - 2732) / 10.0; // Convert from decikelvin to Celsius
+                    }
+                }
+            }
+            catch { }
+            return 0;
+        }
+
+        private class SensorReading
+        {
+            public HardwareType HardwareType { get; set; }
+            public string HardwareName { get; set; }
+            public string SensorName { get; set; }
+            public string Identifier { get; set; }
+            public double Value { get; set; }
+            public double? Min { get; set; }
+            public double? Max { get; set; }
+        }
+
+        private class UpdateVisitor : IVisitor
+        {
+            public void VisitComputer(IComputer computer)
+            {
+                foreach (IHardware hardware in computer.Hardware)
+                    hardware.Accept(this);
+            }
+
+            public void VisitHardware(IHardware hardware)
+            {
+                hardware.Update();
+                foreach (IHardware sub in hardware.SubHardware)
+                    sub.Accept(this);
+            }
+
+            public void VisitSensor(ISensor sensor) { }
+
+            public void VisitParameter(IParameter parameter) { }
+        }
+
         private double GetCpuTemperature()
         {
             try
@@ -401,6 +615,11 @@ namespace TaskManagerPlus.Services
                 counter?.Dispose();
             }
             performanceCounters.Clear();
+            try
+            {
+                computer?.Close();
+            }
+            catch { }
         }
     }
 }

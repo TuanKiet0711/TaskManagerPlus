@@ -31,6 +31,16 @@ namespace TaskManagerPlus.Controls
             ApplyLocalization();
         }
 
+        public void PauseUpdates()
+        {
+            updateTimer.Stop();
+        }
+
+        public void ResumeUpdates()
+        {
+            updateTimer.Start();
+        }
+
         public async Task UpdateBatteryInfoAsync()
         {
             try

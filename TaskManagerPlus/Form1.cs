@@ -20,6 +20,10 @@ namespace TaskManagerPlus
 
         private bool isUpdating = false;
         private bool _preloaded = false;
+        private bool _allowClose = false;
+        private bool _isPaused = false;
+        private NotifyIcon trayIcon;
+        private ContextMenuStrip trayMenu;
 
         public Form1()
         {
@@ -37,6 +41,7 @@ namespace TaskManagerPlus
 
             InitializeTabs();
             SetupIcon();
+            InitializeTray();
 
             usageTracker.StartTracking();
         }
@@ -157,6 +162,60 @@ namespace TaskManagerPlus
                 iconBitmap.Dispose();
             }
             catch { }
+        }
+
+        private void InitializeTray()
+        {
+            trayMenu = new ContextMenuStrip();
+            trayMenu.Items.Add("Open", null, (s, e) => ShowFromTray());
+            trayMenu.Items.Add("Exit", null, (s, e) => ExitFromTray());
+
+            trayIcon = new NotifyIcon
+            {
+                Icon = this.Icon,
+                Text = "Task Manager+",
+                ContextMenuStrip = trayMenu,
+                Visible = true
+            };
+            trayIcon.DoubleClick += (s, e) => ShowFromTray();
+        }
+
+        private void ShowFromTray()
+        {
+            Show();
+            WindowState = FormWindowState.Normal;
+            ShowInTaskbar = true;
+            Activate();
+            ResumeUpdates();
+        }
+
+        private void ExitFromTray()
+        {
+            _allowClose = true;
+            Close();
+        }
+
+        private void PauseUpdates()
+        {
+            if (_isPaused) return;
+            _isPaused = true;
+
+            timerRefresh.Stop();
+            temperatureTab?.PauseUpdates();
+            batteryTab?.PauseUpdates();
+            usageTracker?.StopTracking();
+        }
+
+        private void ResumeUpdates()
+        {
+            if (!_isPaused) return;
+            _isPaused = false;
+
+            if (chkAutoRefresh.Checked)
+                timerRefresh.Start();
+            temperatureTab?.ResumeUpdates();
+            batteryTab?.ResumeUpdates();
+            usageTracker?.StartTracking();
         }
 
         private void InitializeTabs()
@@ -346,12 +405,22 @@ namespace TaskManagerPlus
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            if (!_allowClose)
+            {
+                e.Cancel = true;
+                Hide();
+                ShowInTaskbar = false;
+                PauseUpdates();
+                return;
+            }
+
             timerRefresh.Stop();
 
             usageTracker?.StopTracking();
             usageTracker?.UpdateDailySummary();
 
             processMonitor?.Cleanup();
+            trayIcon?.Dispose();
             base.OnFormClosing(e);
         }
 
