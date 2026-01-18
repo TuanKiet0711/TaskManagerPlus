@@ -62,7 +62,7 @@ namespace TaskManagerPlus.Services
             int duration = (int)(endTime - startTime).TotalSeconds;
 
             string line = $"{processName},{executablePath},{startTime:yyyy-MM-dd HH:mm:ss},{endTime:yyyy-MM-dd HH:mm:ss},{duration}\n";
-            File.AppendAllText(sessionsFile, line);
+            AppendLineShared(sessionsFile, line);
 
             activeSessionsstartTimes.Remove(processName);
             activeSessionsPaths.Remove(processName);
@@ -71,7 +71,7 @@ namespace TaskManagerPlus.Services
         public void RecordAppStats(string processName, double cpuUsage, long memoryUsage, double diskUsage, double networkUsage)
         {
             string line = $"{processName},{DateTime.Now:yyyy-MM-dd HH:mm:ss},{cpuUsage:F2},{memoryUsage},{diskUsage:F2},{networkUsage:F2}\n";
-            File.AppendAllText(statsFile, line);
+            AppendLineShared(statsFile, line);
         }
 
         public List<AppHistoryItem> GetAppHistory(DateTime? startDate = null, DateTime? endDate = null)
@@ -81,7 +81,7 @@ namespace TaskManagerPlus.Services
             if (!File.Exists(sessionsFile))
                 return new List<AppHistoryItem>();
 
-            var lines = File.ReadAllLines(sessionsFile).Skip(1); // Skip header
+            var lines = ReadAllLinesShared(sessionsFile).Skip(1); // Skip header
 
             foreach (var line in lines)
             {
@@ -119,7 +119,7 @@ namespace TaskManagerPlus.Services
             // Get stats
             if (File.Exists(statsFile))
             {
-                var statsLines = File.ReadAllLines(statsFile).Skip(1);
+                var statsLines = ReadAllLinesShared(statsFile).Skip(1);
                 var statsByProcess = new Dictionary<string, List<(double cpu, long memory)>>();
 
                 foreach (var line in statsLines)
@@ -212,6 +212,39 @@ namespace TaskManagerPlus.Services
                 }
 
                 File.WriteAllLines(statsFile, newLines);
+            }
+        }
+
+        private static void AppendLineShared(string path, string line)
+        {
+            try
+            {
+                using (FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
+                using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8))
+                {
+                    sw.Write(line);
+                }
+            }
+            catch { }
+        }
+
+        private static List<string> ReadAllLinesShared(string path)
+        {
+            try
+            {
+                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (StreamReader sr = new StreamReader(fs, Encoding.UTF8))
+                {
+                    List<string> lines = new List<string>();
+                    string line;
+                    while ((line = sr.ReadLine()) != null)
+                        lines.Add(line);
+                    return lines;
+                }
+            }
+            catch
+            {
+                return new List<string>();
             }
         }
     }

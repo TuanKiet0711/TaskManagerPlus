@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
+using System.Management;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using TaskManagerPlus.Models;
@@ -18,6 +19,18 @@ namespace TaskManagerPlus.Controls
 
         private string currentSortColumn = "MemoryColumn";
         private bool sortAscending = false;
+        private bool refreshQueued = false;
+        private bool watchersStarted = false;
+        private readonly object refreshLock = new object();
+        private readonly System.Threading.SemaphoreSlim loadSemaphore = new System.Threading.SemaphoreSlim(1, 1);
+        private int refreshPending = 0;
+        private readonly Dictionary<int, DateTime> suppressedPids = new Dictionary<int, DateTime>();
+        private static readonly TimeSpan SuppressDuration = TimeSpan.FromSeconds(3);
+        private ManagementEventWatcher processStartWatcher;
+        private ManagementEventWatcher processStopWatcher;
+        private Timer processRefreshTimer;
+        private const int ProcessPollIntervalMs = 500;
+        private const int RefreshDebounceMs = 50;
 
         private Dictionary<string, bool> groupExpanded = new Dictionary<string, bool>
         {
@@ -42,6 +55,7 @@ namespace TaskManagerPlus.Controls
         {
             SetupDataGridView();
             ApplyLocalization();
+            StartProcessWatchers();
         }
 
         private void SetupDataGridView()
@@ -311,6 +325,12 @@ namespace TaskManagerPlus.Controls
         {
             if (processMonitor == null) return;
 
+            if (!loadSemaphore.Wait(0))
+            {
+                System.Threading.Interlocked.Exchange(ref refreshPending, 1);
+                return;
+            }
+
             try
             {
                 dataGridViewProcesses.SuspendLayout();
@@ -324,6 +344,12 @@ namespace TaskManagerPlus.Controls
             finally
             {
                 dataGridViewProcesses.ResumeLayout();
+                loadSemaphore.Release();
+
+                if (System.Threading.Interlocked.Exchange(ref refreshPending, 0) == 1)
+                {
+                    BeginInvoke(new Action(async () => await LoadProcessesAsync()));
+                }
             }
         }
 
@@ -455,12 +481,21 @@ namespace TaskManagerPlus.Controls
             ProcessInfo selectedProcess = selectedRow as ProcessInfo;
             if (selectedProcess == null) return;
 
-            // Grouped process: kill children
+            string processName = (selectedProcess.ProcessName ?? "").ToLowerInvariant();
+            if (processName == "explorer")
+            {
+                MessageBox.Show("Windows Explorer is required for the desktop and taskbar and cannot be ended here.",
+                    LocalizationService.T("common_info_title"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // Grouped process: only end the selected app process (do not kill all children)
             if (selectedProcess.IsGroup && selectedProcess.ChildProcesses != null && selectedProcess.ChildProcesses.Count > 1)
             {
                 DialogResult result = MessageBox.Show(
-                    string.Format(LocalizationService.T("processes_confirm_end_multiple"),
-                        selectedProcess.ChildProcesses.Count, selectedProcess.ProcessName),
+                    string.Format(LocalizationService.T("processes_confirm_end_single"),
+                        selectedProcess.ProcessName, selectedProcess.ProcessId),
                     LocalizationService.T("common_confirm_title"),
                     MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
@@ -471,18 +506,16 @@ namespace TaskManagerPlus.Controls
                         btnKillProcess.Enabled = false;
                         btnKillProcess.Text = LocalizationService.T("processes_ending");
 
-                        foreach (ProcessInfo child in selectedProcess.ChildProcesses)
-                        {
-                            try { processMonitor.KillProcess(child.ProcessId); }
-                            catch { }
-                        }
+                        int killedId = selectedProcess.ProcessId;
+                        processMonitor.KillProcess(killedId);
 
-                        await Task.Delay(100);
-                        await LoadProcessesAsync();
+                        SuppressProcesses(new[] { killedId });
+                        RemoveProcessesFromGroups(new[] { killedId });
+                        _ = RefreshAfterKillAsync(new[] { killedId });
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show(string.Format(LocalizationService.T("processes_error_end"), ex.Message),
+                        MessageBox.Show(string.Format(LocalizationService.T("processes_error_end_single"), ex.Message),
                             LocalizationService.T("common_error_title"),
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
@@ -508,10 +541,12 @@ namespace TaskManagerPlus.Controls
                         btnKillProcess.Enabled = false;
                         btnKillProcess.Text = LocalizationService.T("processes_ending");
 
-                        processMonitor.KillProcess(selectedProcess.ProcessId);
+                        int killedId = selectedProcess.ProcessId;
+                        processMonitor.KillProcess(killedId);
 
-                        await Task.Delay(100);
-                        await LoadProcessesAsync();
+                        SuppressProcesses(new[] { killedId });
+                        RemoveProcessesFromGroups(new[] { killedId });
+                        _ = RefreshAfterKillAsync(new[] { killedId });
                     }
                     catch (Exception ex)
                     {
@@ -526,6 +561,161 @@ namespace TaskManagerPlus.Controls
                     }
                 }
             }
+        }
+
+        private async Task RefreshAfterKillAsync(IEnumerable<int> processIds)
+        {
+            try
+            {
+                await LoadProcessesAsync();
+                RemoveSuppressedProcesses();
+                if (processIds == null) return;
+
+                await Task.Delay(500);
+                await LoadProcessesAsync();
+                RemoveSuppressedProcesses();
+            }
+            catch { }
+        }
+
+        private bool ProcessExists(int processId)
+        {
+            if (groupedProcesses == null) return false;
+            foreach (var list in groupedProcesses.Values)
+            {
+                if (list.Any(p => p.ProcessId == processId))
+                    return true;
+            }
+            return false;
+        }
+
+        private void RemoveProcessesFromGroups(IEnumerable<int> processIds)
+        {
+            if (groupedProcesses == null || processIds == null) return;
+
+            HashSet<int> idSet = new HashSet<int>(processIds);
+            foreach (var key in groupedProcesses.Keys.ToList())
+            {
+                groupedProcesses[key].RemoveAll(p => idSet.Contains(p.ProcessId));
+            }
+
+            RefreshDisplay();
+        }
+
+        private void SuppressProcesses(IEnumerable<int> processIds)
+        {
+            if (processIds == null) return;
+            DateTime until = DateTime.UtcNow.Add(SuppressDuration);
+            foreach (int id in processIds)
+            {
+                if (id <= 0) continue;
+                suppressedPids[id] = until;
+            }
+        }
+
+        private void RemoveSuppressedProcesses()
+        {
+            if (groupedProcesses == null) return;
+
+            DateTime now = DateTime.UtcNow;
+            List<int> expired = suppressedPids.Where(kvp => kvp.Value <= now).Select(kvp => kvp.Key).ToList();
+            foreach (int id in expired) suppressedPids.Remove(id);
+
+            if (suppressedPids.Count == 0) return;
+
+            HashSet<int> idSet = new HashSet<int>(suppressedPids.Keys);
+
+            if (groupedProcesses.ContainsKey("Apps"))
+            {
+                List<ProcessInfo> apps = groupedProcesses["Apps"];
+                apps.RemoveAll(p => idSet.Contains(p.ProcessId));
+                foreach (var app in apps)
+                {
+                    if (app.ChildProcesses != null)
+                        app.ChildProcesses.RemoveAll(p => idSet.Contains(p.ProcessId));
+                }
+            }
+
+            if (groupedProcesses.ContainsKey("Background processes"))
+            {
+                groupedProcesses["Background processes"].RemoveAll(p => idSet.Contains(p.ProcessId));
+            }
+
+            RefreshDisplay();
+        }
+
+        private void StartProcessWatchers()
+        {
+            if (watchersStarted) return;
+            watchersStarted = true;
+
+            try
+            {
+                processStartWatcher = new ManagementEventWatcher(new WqlEventQuery("SELECT * FROM Win32_ProcessStartTrace"));
+                processStartWatcher.EventArrived += (s, e) => ScheduleProcessRefresh();
+                processStartWatcher.Start();
+            }
+            catch { }
+
+            try
+            {
+                processStopWatcher = new ManagementEventWatcher(new WqlEventQuery("SELECT * FROM Win32_ProcessStopTrace"));
+                processStopWatcher.EventArrived += (s, e) => ScheduleProcessRefresh();
+                processStopWatcher.Start();
+            }
+            catch { }
+
+            StartProcessPolling();
+        }
+
+        private void StopProcessWatchers()
+        {
+            try { processStartWatcher?.Stop(); } catch { }
+            try { processStopWatcher?.Stop(); } catch { }
+            processStartWatcher?.Dispose();
+            processStopWatcher?.Dispose();
+
+            if (processRefreshTimer != null)
+            {
+                processRefreshTimer.Stop();
+                processRefreshTimer.Dispose();
+                processRefreshTimer = null;
+            }
+        }
+
+        private void StartProcessPolling()
+        {
+            if (processRefreshTimer != null) return;
+
+            processRefreshTimer = new Timer();
+            processRefreshTimer.Interval = ProcessPollIntervalMs;
+            processRefreshTimer.Tick += (s, e) => ScheduleProcessRefresh();
+            processRefreshTimer.Start();
+        }
+
+        private void ScheduleProcessRefresh()
+        {
+            if (!IsHandleCreated) return;
+
+            lock (refreshLock)
+            {
+                if (refreshQueued) return;
+                refreshQueued = true;
+            }
+
+            BeginInvoke(new Action(async () =>
+            {
+                await Task.Delay(RefreshDebounceMs);
+                lock (refreshLock) refreshQueued = false;
+                await LoadProcessesAsync();
+                RemoveSuppressedProcesses();
+            }));
+        }
+
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            StopProcessWatchers();
+            base.OnHandleDestroyed(e);
         }
 
         public void ApplyLocalization()

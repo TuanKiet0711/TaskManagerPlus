@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Management;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TaskManagerPlus.Models;
@@ -32,7 +34,16 @@ namespace TaskManagerPlus.Services
         // =========================
         public List<ProcessInfo> GetAllProcesses()
         {
+            return GetAllProcesses(false);
+        }
+
+        public List<ProcessInfo> GetAllProcesses(bool currentSessionOnly)
+        {
             Process[] processes = Process.GetProcesses();
+            HashSet<int> realWindowPids;
+            HashSet<int> anyVisibleWindowPids = GetVisibleWindowPids(out realWindowPids);
+            bool useFallbackWindowCheck = anyVisibleWindowPids.Count == 0;
+            int currentSession = currentSessionOnly ? Process.GetCurrentProcess().SessionId : -1;
             ConcurrentBag<ProcessInfo> bag = new ConcurrentBag<ProcessInfo>();
 
             Parallel.ForEach(processes, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, p =>
@@ -43,7 +54,24 @@ namespace TaskManagerPlus.Services
 
                     // some processes may throw
                     int sessionId = SafeGetInt(() => p.SessionId, -1);
-                    bool hasWindow = SafeGetBool(() => p.MainWindowHandle != IntPtr.Zero, false);
+                    if (currentSessionOnly && sessionId != currentSession)
+                        return;
+
+                    string procName = (p.ProcessName ?? "").ToLowerInvariant();
+                    bool hasWindow;
+
+                    if (useFallbackWindowCheck)
+                    {
+                        hasWindow = SafeHasVisibleWindow(p);
+                        if (procName == "explorer")
+                            hasWindow = SafeExplorerHasWindow(p);
+                    }
+                    else
+                    {
+                        hasWindow = procName == "explorer"
+                            ? realWindowPids.Contains(pid)
+                            : anyVisibleWindowPids.Contains(pid);
+                    }
                     long mem = SafeGetLong(() => p.WorkingSet64, 0L);
 
                     string filePath = GetExecutablePathWmi(pid);
@@ -97,11 +125,7 @@ namespace TaskManagerPlus.Services
         /// </summary>
         public Dictionary<string, List<ProcessInfo>> GetGroupedProcesses()
         {
-            List<ProcessInfo> all = GetAllProcesses();
-
-            // 1) Filter: only current session (critical for "195 vs 89" problem)
-            int currentSession = Process.GetCurrentProcess().SessionId;
-            all = all.Where(p => p.SessionId == currentSession).ToList();
+            List<ProcessInfo> all = GetAllProcesses(true);
 
             // 2) Remove idle/invalid
             all = all.Where(p => p.ProcessId != 0 && !string.IsNullOrWhiteSpace(p.ProcessName)).ToList();
@@ -354,7 +378,7 @@ namespace TaskManagerPlus.Services
             {
                 Process proc = Process.GetProcessById(processId);
                 proc.Kill();
-                proc.WaitForExit(1000);
+                proc.WaitForExit(150);
             }
             catch (Exception ex)
             {
@@ -589,6 +613,97 @@ namespace TaskManagerPlus.Services
             if (bytes < 1024L * 1024) return (bytes / 1024.0).ToString("F1") + " KB";
             if (bytes < 1024L * 1024 * 1024) return (bytes / (1024.0 * 1024.0)).ToString("F1") + " MB";
             return (bytes / (1024.0 * 1024.0 * 1024.0)).ToString("F2") + " GB";
+        }
+
+        private static HashSet<int> GetVisibleWindowPids(out HashSet<int> realWindowPids)
+        {
+            HashSet<int> anyVisible = new HashSet<int>();
+            HashSet<int> localRealWindowPids = new HashSet<int>();
+
+            try
+            {
+                NativeMethods.EnumWindows((hWnd, lParam) =>
+                {
+                    if (!NativeMethods.IsWindowVisible(hWnd)) return true;
+
+                    uint windowPid;
+                    NativeMethods.GetWindowThreadProcessId(hWnd, out windowPid);
+                    if (windowPid == 0) return true;
+
+                    anyVisible.Add((int)windowPid);
+
+                    string title = GetWindowTitle(hWnd);
+                    if (!title.Equals("Program Manager", StringComparison.OrdinalIgnoreCase))
+                        localRealWindowPids.Add((int)windowPid);
+
+                    return true;
+                }, IntPtr.Zero);
+            }
+            catch { }
+
+            realWindowPids = localRealWindowPids;
+            return anyVisible;
+        }
+
+        private static string GetWindowTitle(IntPtr hWnd)
+        {
+            int len = NativeMethods.GetWindowTextLength(hWnd);
+            if (len <= 0) return "";
+            StringBuilder sb = new StringBuilder(len + 1);
+            NativeMethods.GetWindowText(hWnd, sb, sb.Capacity);
+            return sb.ToString();
+        }
+
+        private static bool SafeHasVisibleWindow(Process p)
+        {
+            try
+            {
+                IntPtr handle = p.MainWindowHandle;
+                if (handle == IntPtr.Zero) return false;
+                return NativeMethods.IsWindowVisible(handle);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool SafeExplorerHasWindow(Process p)
+        {
+            try
+            {
+                IntPtr handle = p.MainWindowHandle;
+                if (handle == IntPtr.Zero) return false;
+                if (!NativeMethods.IsWindowVisible(handle)) return false;
+
+                string title = p.MainWindowTitle;
+                if (string.IsNullOrWhiteSpace(title)) return false;
+                return !title.Equals("Program Manager", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static class NativeMethods
+        {
+            [DllImport("user32.dll")]
+            internal static extern bool IsWindowVisible(IntPtr hWnd);
+
+            [DllImport("user32.dll")]
+            internal static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+            [DllImport("user32.dll")]
+            internal static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+            [DllImport("user32.dll", CharSet = CharSet.Auto)]
+            internal static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+            [DllImport("user32.dll", CharSet = CharSet.Auto)]
+            internal static extern int GetWindowTextLength(IntPtr hWnd);
+
+            internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
         }
     }
 
