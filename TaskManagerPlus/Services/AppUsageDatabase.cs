@@ -1,250 +1,317 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace TaskManagerPlus.Services
 {
     public class AppUsageDatabase
     {
-        private string dataPath;
-        private string sessionsFile;
-        private string statsFile;
-        private Dictionary<string, DateTime> activeSessionsstartTimes;
-        private Dictionary<string, string> activeSessionsPaths;
+        private const string ConnectionName = "TaskManagerPlus";
+        private readonly string connectionString;
+        private readonly int userId;
+        private readonly string userName;
+        private readonly string computerName;
+        private readonly Dictionary<string, DateTime> activeSessionsstartTimes;
+        private readonly Dictionary<string, string> activeSessionsPaths;
+        private readonly Dictionary<string, int> activeSessionIds;
 
         public AppUsageDatabase()
         {
-            dataPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "TaskManagerPlus");
-            
-            if (!Directory.Exists(dataPath))
-            {
-                Directory.CreateDirectory(dataPath);
-            }
+            connectionString = GetConnectionString();
+            userName = Environment.UserName ?? "unknown";
+            computerName = Environment.MachineName ?? "unknown";
+            activeSessionsstartTimes = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+            activeSessionsPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            activeSessionIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-            sessionsFile = Path.Combine(dataPath, "sessions.csv");
-            statsFile = Path.Combine(dataPath, "stats.csv");
-            activeSessionsstartTimes = new Dictionary<string, DateTime>();
-            activeSessionsPaths = new Dictionary<string, string>();
-            
-            InitializeFiles();
-        }
-
-        private void InitializeFiles()
-        {
-            if (!File.Exists(sessionsFile))
-            {
-                File.WriteAllText(sessionsFile, "ProcessName,ExecutablePath,StartTime,EndTime,Duration\n");
-            }
-            if (!File.Exists(statsFile))
-            {
-                File.WriteAllText(statsFile, "ProcessName,RecordTime,CpuUsage,MemoryUsage,DiskUsage,NetworkUsage\n");
-            }
+            userId = EnsureUser();
         }
 
         public void StartAppSession(string processName, string executablePath)
         {
-            activeSessionsstartTimes[processName] = DateTime.Now;
+            if (string.IsNullOrWhiteSpace(processName))
+                return;
+
+            int appId = EnsureApplication(processName, executablePath);
+            DateTime startTime = DateTime.Now;
+
+            int sessionId;
+            using (SqlConnection conn = OpenConnection())
+            using (SqlCommand cmd = new SqlCommand(
+                "INSERT INTO sessions (user_id, app_id, start_time) VALUES (@userId, @appId, @startTime); SELECT CAST(SCOPE_IDENTITY() AS INT);",
+                conn))
+            {
+                cmd.Parameters.AddWithValue("@userId", userId);
+                cmd.Parameters.AddWithValue("@appId", appId);
+                cmd.Parameters.AddWithValue("@startTime", startTime);
+                sessionId = (int)cmd.ExecuteScalar();
+            }
+
+            activeSessionsstartTimes[processName] = startTime;
             activeSessionsPaths[processName] = executablePath ?? "";
+            activeSessionIds[processName] = sessionId;
         }
 
         public void EndAppSession(string processName)
         {
+            if (string.IsNullOrWhiteSpace(processName))
+                return;
             if (!activeSessionsstartTimes.ContainsKey(processName))
                 return;
 
             DateTime startTime = activeSessionsstartTimes[processName];
-            string executablePath = activeSessionsPaths.ContainsKey(processName) ? activeSessionsPaths[processName] : "";
             DateTime endTime = DateTime.Now;
             int duration = (int)(endTime - startTime).TotalSeconds;
 
-            string line = $"{processName},{executablePath},{startTime:yyyy-MM-dd HH:mm:ss},{endTime:yyyy-MM-dd HH:mm:ss},{duration}\n";
-            AppendLineShared(sessionsFile, line);
+            int sessionId = 0;
+            if (activeSessionIds.TryGetValue(processName, out int storedSessionId))
+                sessionId = storedSessionId;
+
+            using (SqlConnection conn = OpenConnection())
+            using (SqlCommand cmd = new SqlCommand(
+                "UPDATE sessions SET end_time = @endTime, duration_seconds = @duration WHERE session_id = @sessionId;",
+                conn))
+            {
+                if (sessionId == 0)
+                    sessionId = FindOpenSessionId(conn, processName);
+
+                if (sessionId != 0)
+                {
+                    cmd.Parameters.AddWithValue("@endTime", endTime);
+                    cmd.Parameters.AddWithValue("@duration", duration);
+                    cmd.Parameters.AddWithValue("@sessionId", sessionId);
+                    cmd.ExecuteNonQuery();
+                }
+            }
 
             activeSessionsstartTimes.Remove(processName);
             activeSessionsPaths.Remove(processName);
+            activeSessionIds.Remove(processName);
         }
 
         public void RecordAppStats(string processName, double cpuUsage, long memoryUsage, double diskUsage, double networkUsage)
         {
-            string line = $"{processName},{DateTime.Now:yyyy-MM-dd HH:mm:ss},{cpuUsage:F2},{memoryUsage},{diskUsage:F2},{networkUsage:F2}\n";
-            AppendLineShared(statsFile, line);
+            if (string.IsNullOrWhiteSpace(processName))
+                return;
+
+            int sessionId = 0;
+            if (activeSessionIds.TryGetValue(processName, out int storedSessionId))
+                sessionId = storedSessionId;
+
+            using (SqlConnection conn = OpenConnection())
+            {
+                if (sessionId == 0)
+                    sessionId = FindOpenSessionId(conn, processName);
+
+                if (sessionId == 0)
+                    return;
+
+                using (SqlCommand cmd = new SqlCommand(
+                    "INSERT INTO app_resource_usage (session_id, cpu_usage, ram_usage, gpu_usage, recorded_at) VALUES (@sessionId, @cpu, @ram, @gpu, @recordedAt);",
+                    conn))
+                {
+                    cmd.Parameters.AddWithValue("@sessionId", sessionId);
+                    cmd.Parameters.AddWithValue("@cpu", cpuUsage);
+                    cmd.Parameters.AddWithValue("@ram", memoryUsage);
+                    cmd.Parameters.AddWithValue("@gpu", DBNull.Value);
+                    cmd.Parameters.AddWithValue("@recordedAt", DateTime.Now);
+                    cmd.ExecuteNonQuery();
+                }
+            }
         }
 
         public List<AppHistoryItem> GetAppHistory(DateTime? startDate = null, DateTime? endDate = null)
         {
-            var items = new Dictionary<string, AppHistoryItem>();
+            var items = new List<AppHistoryItem>();
 
-            if (!File.Exists(sessionsFile))
-                return new List<AppHistoryItem>();
+            DateTime? start = startDate?.Date;
+            DateTime? endExclusive = endDate?.Date.AddDays(1);
 
-            var lines = ReadAllLinesShared(sessionsFile).Skip(1); // Skip header
-
-            foreach (var line in lines)
+            using (SqlConnection conn = OpenConnection())
+            using (SqlCommand cmd = new SqlCommand(@"
+SELECT 
+    a.app_name,
+    SUM(ISNULL(s.duration_seconds, 0)) AS total_duration,
+    COUNT(s.session_id) AS launch_count,
+    AVG(r.cpu_usage) AS avg_cpu,
+    AVG(r.ram_usage) AS avg_ram
+FROM sessions s
+INNER JOIN applications a ON s.app_id = a.app_id
+LEFT JOIN app_resource_usage r ON r.session_id = s.session_id
+WHERE s.user_id = @userId
+  AND (@start IS NULL OR s.start_time >= @start)
+  AND (@end IS NULL OR s.start_time < @end)
+GROUP BY a.app_name
+ORDER BY total_duration DESC;", conn))
             {
-                var parts = line.Split(',');
-                if (parts.Length < 5) continue;
+                cmd.Parameters.AddWithValue("@userId", userId);
+                cmd.Parameters.Add("@start", SqlDbType.DateTime).Value = (object)start ?? DBNull.Value;
+                cmd.Parameters.Add("@end", SqlDbType.DateTime).Value = (object)endExclusive ?? DBNull.Value;
 
-                string processName = parts[0];
-                if (!DateTime.TryParse(parts[2], out DateTime sessionStart))
-                    continue;
-                if (!int.TryParse(parts[4], out int duration))
-                    continue;
-
-                // Filter by date range
-                if (startDate.HasValue && sessionStart.Date < startDate.Value.Date)
-                    continue;
-                if (endDate.HasValue && sessionStart.Date > endDate.Value.Date)
-                    continue;
-
-                if (!items.ContainsKey(processName))
+                using (SqlDataReader reader = cmd.ExecuteReader())
                 {
-                    items[processName] = new AppHistoryItem
+                    while (reader.Read())
                     {
-                        ProcessName = processName,
-                        TotalDuration = 0,
-                        LaunchCount = 0,
-                        AverageCpu = 0,
-                        AverageMemory = 0
-                    };
-                }
+                        string appName = reader.GetString(0);
+                        int totalDuration = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+                        int launchCount = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
+                        double avgCpu = reader.IsDBNull(3) ? 0 : reader.GetDouble(3);
+                        long avgMemory = reader.IsDBNull(4) ? 0 : Convert.ToInt64(reader.GetDouble(4));
 
-                items[processName].TotalDuration += duration;
-                items[processName].LaunchCount++;
-            }
-
-            // Get stats
-            if (File.Exists(statsFile))
-            {
-                var statsLines = ReadAllLinesShared(statsFile).Skip(1);
-                var statsByProcess = new Dictionary<string, List<(double cpu, long memory)>>();
-
-                foreach (var line in statsLines)
-                {
-                    var parts = line.Split(',');
-                    if (parts.Length < 4) continue;
-
-                    string processName = parts[0];
-                    if (!items.ContainsKey(processName)) continue;
-
-                    if (!double.TryParse(parts[2], out double cpu))
-                        continue;
-                    if (!long.TryParse(parts[3], out long memory))
-                        continue;
-
-                    if (!statsByProcess.ContainsKey(processName))
-                    {
-                        statsByProcess[processName] = new List<(double, long)>();
-                    }
-                    statsByProcess[processName].Add((cpu, memory));
-                }
-
-                foreach (var kvp in statsByProcess)
-                {
-                    if (items.ContainsKey(kvp.Key))
-                    {
-                        items[kvp.Key].AverageCpu = kvp.Value.Average(s => s.cpu);
-                        items[kvp.Key].AverageMemory = (long)kvp.Value.Average(s => s.memory);
+                        items.Add(new AppHistoryItem
+                        {
+                            ProcessName = appName,
+                            TotalDuration = totalDuration,
+                            LaunchCount = launchCount,
+                            AverageCpu = avgCpu,
+                            AverageMemory = avgMemory
+                        });
                     }
                 }
             }
 
-            return items.Values.OrderByDescending(i => i.TotalDuration).ToList();
+            return items;
         }
 
         public void UpdateDailySummary()
         {
-            // Not needed for CSV implementation
+            // Not implemented for SQL version
         }
 
         public void CleanOldData(int daysToKeep = 30)
         {
-            if (daysToKeep == 0)
+            using (SqlConnection conn = OpenConnection())
+            using (SqlTransaction tx = conn.BeginTransaction())
             {
-                // Clear all data
-                File.WriteAllText(sessionsFile, "ProcessName,ExecutablePath,StartTime,EndTime,Duration\n");
-                File.WriteAllText(statsFile, "ProcessName,RecordTime,CpuUsage,MemoryUsage,DiskUsage,NetworkUsage\n");
-                return;
-            }
-
-            DateTime cutoffDate = DateTime.Now.AddDays(-daysToKeep);
-
-            // Clean sessions
-            if (File.Exists(sessionsFile))
-            {
-                var lines = File.ReadAllLines(sessionsFile);
-                var newLines = new List<string> { lines[0] }; // Keep header
-
-                for (int i = 1; i < lines.Length; i++)
+                try
                 {
-                    var parts = lines[i].Split(',');
-                    if (parts.Length >= 3 && DateTime.TryParse(parts[2], out DateTime startTime))
+                    if (daysToKeep == 0)
                     {
-                        if (startTime >= cutoffDate)
+                        using (SqlCommand cmd = new SqlCommand(
+                            "DELETE FROM sessions WHERE user_id = @userId;", conn, tx))
                         {
-                            newLines.Add(lines[i]);
+                            cmd.Parameters.AddWithValue("@userId", userId);
+                            cmd.ExecuteNonQuery();
                         }
                     }
-                }
-
-                File.WriteAllLines(sessionsFile, newLines);
-            }
-
-            // Clean stats
-            if (File.Exists(statsFile))
-            {
-                var lines = File.ReadAllLines(statsFile);
-                var newLines = new List<string> { lines[0] }; // Keep header
-
-                for (int i = 1; i < lines.Length; i++)
-                {
-                    var parts = lines[i].Split(',');
-                    if (parts.Length >= 2 && DateTime.TryParse(parts[1], out DateTime recordTime))
+                    else
                     {
-                        if (recordTime >= cutoffDate)
+                        DateTime cutoff = DateTime.Now.AddDays(-daysToKeep);
+                        using (SqlCommand cmd = new SqlCommand(
+                            "DELETE FROM sessions WHERE user_id = @userId AND start_time < @cutoff;",
+                            conn, tx))
                         {
-                            newLines.Add(lines[i]);
+                            cmd.Parameters.AddWithValue("@userId", userId);
+                            cmd.Parameters.AddWithValue("@cutoff", cutoff);
+                            cmd.ExecuteNonQuery();
                         }
                     }
-                }
 
-                File.WriteAllLines(statsFile, newLines);
+                    tx.Commit();
+                }
+                catch
+                {
+                    tx.Rollback();
+                    throw;
+                }
             }
         }
 
-        private static void AppendLineShared(string path, string line)
+        private string GetConnectionString()
         {
-            try
-            {
-                using (FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
-                using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8))
-                {
-                    sw.Write(line);
-                }
-            }
-            catch { }
+            string cs = ConfigurationManager.ConnectionStrings[ConnectionName]?.ConnectionString;
+            if (string.IsNullOrWhiteSpace(cs))
+                throw new InvalidOperationException("Missing connection string 'TaskManagerPlus' in App.config.");
+            return cs;
         }
 
-        private static List<string> ReadAllLinesShared(string path)
+        private SqlConnection OpenConnection()
         {
-            try
+            SqlConnection conn = new SqlConnection(connectionString);
+            conn.Open();
+            return conn;
+        }
+
+        private int EnsureUser()
+        {
+            using (SqlConnection conn = OpenConnection())
+            using (SqlCommand cmd = new SqlCommand(
+                "SELECT TOP 1 user_id FROM users WHERE username = @username AND computer_name = @computerName;",
+                conn))
             {
-                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                using (StreamReader sr = new StreamReader(fs, Encoding.UTF8))
-                {
-                    List<string> lines = new List<string>();
-                    string line;
-                    while ((line = sr.ReadLine()) != null)
-                        lines.Add(line);
-                    return lines;
-                }
+                cmd.Parameters.AddWithValue("@username", userName);
+                cmd.Parameters.AddWithValue("@computerName", computerName);
+
+                object result = cmd.ExecuteScalar();
+                if (result != null && result != DBNull.Value)
+                    return Convert.ToInt32(result);
             }
-            catch
+
+            using (SqlConnection conn = OpenConnection())
+            using (SqlCommand cmd = new SqlCommand(
+                "INSERT INTO users (username, computer_name) VALUES (@username, @computerName); SELECT CAST(SCOPE_IDENTITY() AS INT);",
+                conn))
             {
-                return new List<string>();
+                cmd.Parameters.AddWithValue("@username", userName);
+                cmd.Parameters.AddWithValue("@computerName", computerName);
+                return (int)cmd.ExecuteScalar();
+            }
+        }
+
+        private int EnsureApplication(string processName, string executablePath)
+        {
+            string exeName = "";
+            if (!string.IsNullOrWhiteSpace(executablePath))
+                exeName = Path.GetFileName(executablePath);
+
+            using (SqlConnection conn = OpenConnection())
+            using (SqlCommand cmd = new SqlCommand(
+                "SELECT TOP 1 app_id FROM applications WHERE app_name = @appName AND ISNULL(exe_name, '') = @exeName;",
+                conn))
+            {
+                cmd.Parameters.AddWithValue("@appName", processName);
+                cmd.Parameters.AddWithValue("@exeName", exeName ?? "");
+
+                object result = cmd.ExecuteScalar();
+                if (result != null && result != DBNull.Value)
+                    return Convert.ToInt32(result);
+            }
+
+            using (SqlConnection conn = OpenConnection())
+            using (SqlCommand cmd = new SqlCommand(
+                "INSERT INTO applications (app_name, exe_name) VALUES (@appName, @exeName); SELECT CAST(SCOPE_IDENTITY() AS INT);",
+                conn))
+            {
+                cmd.Parameters.AddWithValue("@appName", processName);
+                cmd.Parameters.AddWithValue("@exeName", exeName ?? "");
+                return (int)cmd.ExecuteScalar();
+            }
+        }
+
+        private int FindOpenSessionId(SqlConnection conn, string processName)
+        {
+            if (string.IsNullOrWhiteSpace(processName))
+                return 0;
+
+            int appId = EnsureApplication(processName, activeSessionsPaths.ContainsKey(processName) ? activeSessionsPaths[processName] : "");
+
+            using (SqlCommand cmd = new SqlCommand(
+                @"SELECT TOP 1 session_id 
+                  FROM sessions 
+                  WHERE user_id = @userId AND app_id = @appId AND end_time IS NULL
+                  ORDER BY start_time DESC;",
+                conn))
+            {
+                cmd.Parameters.AddWithValue("@userId", userId);
+                cmd.Parameters.AddWithValue("@appId", appId);
+                object result = cmd.ExecuteScalar();
+                if (result == null || result == DBNull.Value)
+                    return 0;
+                return Convert.ToInt32(result);
             }
         }
     }
