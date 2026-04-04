@@ -55,3 +55,6 @@ E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskMana.651D276
 E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.exe
 E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.pdb
 E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.exe.config
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\bin\Debug\MySql.Data.dll
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\bin\Debug\MySql.Data.xml
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.csproj.SuggestedBindingRedirects.cache

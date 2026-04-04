@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
-using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
+using MySql.Data.MySqlClient;
 
 namespace TaskManagerPlus.Services
 {
@@ -40,15 +40,22 @@ namespace TaskManagerPlus.Services
             DateTime startTime = DateTime.Now;
 
             int sessionId;
-            using (SqlConnection conn = OpenConnection())
-            using (SqlCommand cmd = new SqlCommand(
-                "INSERT INTO sessions (user_id, app_id, start_time) VALUES (@userId, @appId, @startTime); SELECT CAST(SCOPE_IDENTITY() AS INT);",
-                conn))
+            using (MySqlConnection conn = OpenConnection())
             {
-                cmd.Parameters.AddWithValue("@userId", userId);
-                cmd.Parameters.AddWithValue("@appId", appId);
-                cmd.Parameters.AddWithValue("@startTime", startTime);
-                sessionId = (int)cmd.ExecuteScalar();
+                using (MySqlCommand cmd = new MySqlCommand(
+                    "INSERT INTO sessions (user_id, app_id, start_time) VALUES (@userId, @appId, @startTime);",
+                    conn))
+                {
+                    cmd.Parameters.AddWithValue("@userId", userId);
+                    cmd.Parameters.AddWithValue("@appId", appId);
+                    cmd.Parameters.AddWithValue("@startTime", startTime);
+                    cmd.ExecuteNonQuery();
+                }
+
+                using (MySqlCommand cmd = new MySqlCommand("SELECT LAST_INSERT_ID();", conn))
+                {
+                    sessionId = Convert.ToInt32(cmd.ExecuteScalar());
+                }
             }
 
             activeSessionsstartTimes[processName] = startTime;
@@ -71,20 +78,22 @@ namespace TaskManagerPlus.Services
             if (activeSessionIds.TryGetValue(processName, out int storedSessionId))
                 sessionId = storedSessionId;
 
-            using (SqlConnection conn = OpenConnection())
-            using (SqlCommand cmd = new SqlCommand(
-                "UPDATE sessions SET end_time = @endTime, duration_seconds = @duration WHERE session_id = @sessionId;",
-                conn))
+            using (MySqlConnection conn = OpenConnection())
             {
                 if (sessionId == 0)
                     sessionId = FindOpenSessionId(conn, processName);
 
                 if (sessionId != 0)
                 {
-                    cmd.Parameters.AddWithValue("@endTime", endTime);
-                    cmd.Parameters.AddWithValue("@duration", duration);
-                    cmd.Parameters.AddWithValue("@sessionId", sessionId);
-                    cmd.ExecuteNonQuery();
+                    using (MySqlCommand cmd = new MySqlCommand(
+                        "UPDATE sessions SET end_time = @endTime, duration_seconds = @duration WHERE session_id = @sessionId;",
+                        conn))
+                    {
+                        cmd.Parameters.AddWithValue("@endTime", endTime);
+                        cmd.Parameters.AddWithValue("@duration", duration);
+                        cmd.Parameters.AddWithValue("@sessionId", sessionId);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
             }
 
@@ -102,7 +111,7 @@ namespace TaskManagerPlus.Services
             if (activeSessionIds.TryGetValue(processName, out int storedSessionId))
                 sessionId = storedSessionId;
 
-            using (SqlConnection conn = OpenConnection())
+            using (MySqlConnection conn = OpenConnection())
             {
                 if (sessionId == 0)
                     sessionId = FindOpenSessionId(conn, processName);
@@ -110,7 +119,7 @@ namespace TaskManagerPlus.Services
                 if (sessionId == 0)
                     return;
 
-                using (SqlCommand cmd = new SqlCommand(
+                using (MySqlCommand cmd = new MySqlCommand(
                     "INSERT INTO app_resource_usage (session_id, cpu_usage, ram_usage, gpu_usage, recorded_at) VALUES (@sessionId, @cpu, @ram, @gpu, @recordedAt);",
                     conn))
                 {
@@ -131,11 +140,11 @@ namespace TaskManagerPlus.Services
             DateTime? start = startDate?.Date;
             DateTime? endExclusive = endDate?.Date.AddDays(1);
 
-            using (SqlConnection conn = OpenConnection())
-            using (SqlCommand cmd = new SqlCommand(@"
+            using (MySqlConnection conn = OpenConnection())
+            using (MySqlCommand cmd = new MySqlCommand(@"
 SELECT 
     a.app_name,
-    SUM(ISNULL(s.duration_seconds, 0)) AS total_duration,
+    SUM(IFNULL(s.duration_seconds, 0)) AS total_duration,
     COUNT(s.session_id) AS launch_count,
     AVG(r.cpu_usage) AS avg_cpu,
     AVG(r.ram_usage) AS avg_ram
@@ -149,18 +158,18 @@ GROUP BY a.app_name
 ORDER BY total_duration DESC;", conn))
             {
                 cmd.Parameters.AddWithValue("@userId", userId);
-                cmd.Parameters.Add("@start", SqlDbType.DateTime).Value = (object)start ?? DBNull.Value;
-                cmd.Parameters.Add("@end", SqlDbType.DateTime).Value = (object)endExclusive ?? DBNull.Value;
+                cmd.Parameters.Add("@start", MySqlDbType.DateTime).Value = (object)start ?? DBNull.Value;
+                cmd.Parameters.Add("@end", MySqlDbType.DateTime).Value = (object)endExclusive ?? DBNull.Value;
 
-                using (SqlDataReader reader = cmd.ExecuteReader())
+                using (MySqlDataReader reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
                     {
                         string appName = reader.GetString(0);
                         int totalDuration = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                         int launchCount = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
-                        double avgCpu = reader.IsDBNull(3) ? 0 : reader.GetDouble(3);
-                        long avgMemory = reader.IsDBNull(4) ? 0 : Convert.ToInt64(reader.GetDouble(4));
+                        double avgCpu = reader.IsDBNull(3) ? 0 : Convert.ToDouble(reader.GetValue(3));
+                        long avgMemory = reader.IsDBNull(4) ? 0 : Convert.ToInt64(Convert.ToDouble(reader.GetValue(4)));
 
                         items.Add(new AppHistoryItem
                         {
@@ -184,14 +193,14 @@ ORDER BY total_duration DESC;", conn))
 
         public void CleanOldData(int daysToKeep = 30)
         {
-            using (SqlConnection conn = OpenConnection())
-            using (SqlTransaction tx = conn.BeginTransaction())
+            using (MySqlConnection conn = OpenConnection())
+            using (MySqlTransaction tx = conn.BeginTransaction())
             {
                 try
                 {
                     if (daysToKeep == 0)
                     {
-                        using (SqlCommand cmd = new SqlCommand(
+                        using (MySqlCommand cmd = new MySqlCommand(
                             "DELETE FROM sessions WHERE user_id = @userId;", conn, tx))
                         {
                             cmd.Parameters.AddWithValue("@userId", userId);
@@ -201,7 +210,7 @@ ORDER BY total_duration DESC;", conn))
                     else
                     {
                         DateTime cutoff = DateTime.Now.AddDays(-daysToKeep);
-                        using (SqlCommand cmd = new SqlCommand(
+                        using (MySqlCommand cmd = new MySqlCommand(
                             "DELETE FROM sessions WHERE user_id = @userId AND start_time < @cutoff;",
                             conn, tx))
                         {
@@ -229,18 +238,18 @@ ORDER BY total_duration DESC;", conn))
             return cs;
         }
 
-        private SqlConnection OpenConnection()
+        private MySqlConnection OpenConnection()
         {
-            SqlConnection conn = new SqlConnection(connectionString);
+            MySqlConnection conn = new MySqlConnection(connectionString);
             conn.Open();
             return conn;
         }
 
         private int EnsureUser()
         {
-            using (SqlConnection conn = OpenConnection())
-            using (SqlCommand cmd = new SqlCommand(
-                "SELECT TOP 1 user_id FROM users WHERE username = @username AND computer_name = @computerName;",
+            using (MySqlConnection conn = OpenConnection())
+            using (MySqlCommand cmd = new MySqlCommand(
+                "SELECT user_id FROM users WHERE username = @username AND computer_name = @computerName LIMIT 1;",
                 conn))
             {
                 cmd.Parameters.AddWithValue("@username", userName);
@@ -251,14 +260,21 @@ ORDER BY total_duration DESC;", conn))
                     return Convert.ToInt32(result);
             }
 
-            using (SqlConnection conn = OpenConnection())
-            using (SqlCommand cmd = new SqlCommand(
-                "INSERT INTO users (username, computer_name) VALUES (@username, @computerName); SELECT CAST(SCOPE_IDENTITY() AS INT);",
-                conn))
+            using (MySqlConnection conn = OpenConnection())
             {
-                cmd.Parameters.AddWithValue("@username", userName);
-                cmd.Parameters.AddWithValue("@computerName", computerName);
-                return (int)cmd.ExecuteScalar();
+                using (MySqlCommand cmd = new MySqlCommand(
+                    "INSERT INTO users (username, computer_name) VALUES (@username, @computerName);",
+                    conn))
+                {
+                    cmd.Parameters.AddWithValue("@username", userName);
+                    cmd.Parameters.AddWithValue("@computerName", computerName);
+                    cmd.ExecuteNonQuery();
+                }
+
+                using (MySqlCommand cmd = new MySqlCommand("SELECT LAST_INSERT_ID();", conn))
+                {
+                    return Convert.ToInt32(cmd.ExecuteScalar());
+                }
             }
         }
 
@@ -268,9 +284,9 @@ ORDER BY total_duration DESC;", conn))
             if (!string.IsNullOrWhiteSpace(executablePath))
                 exeName = Path.GetFileName(executablePath);
 
-            using (SqlConnection conn = OpenConnection())
-            using (SqlCommand cmd = new SqlCommand(
-                "SELECT TOP 1 app_id FROM applications WHERE app_name = @appName AND ISNULL(exe_name, '') = @exeName;",
+            using (MySqlConnection conn = OpenConnection())
+            using (MySqlCommand cmd = new MySqlCommand(
+                "SELECT app_id FROM applications WHERE app_name = @appName AND IFNULL(exe_name, '') = @exeName LIMIT 1;",
                 conn))
             {
                 cmd.Parameters.AddWithValue("@appName", processName);
@@ -281,29 +297,37 @@ ORDER BY total_duration DESC;", conn))
                     return Convert.ToInt32(result);
             }
 
-            using (SqlConnection conn = OpenConnection())
-            using (SqlCommand cmd = new SqlCommand(
-                "INSERT INTO applications (app_name, exe_name) VALUES (@appName, @exeName); SELECT CAST(SCOPE_IDENTITY() AS INT);",
-                conn))
+            using (MySqlConnection conn = OpenConnection())
             {
-                cmd.Parameters.AddWithValue("@appName", processName);
-                cmd.Parameters.AddWithValue("@exeName", exeName ?? "");
-                return (int)cmd.ExecuteScalar();
+                using (MySqlCommand cmd = new MySqlCommand(
+                    "INSERT INTO applications (app_name, exe_name) VALUES (@appName, @exeName);",
+                    conn))
+                {
+                    cmd.Parameters.AddWithValue("@appName", processName);
+                    cmd.Parameters.AddWithValue("@exeName", exeName ?? "");
+                    cmd.ExecuteNonQuery();
+                }
+
+                using (MySqlCommand cmd = new MySqlCommand("SELECT LAST_INSERT_ID();", conn))
+                {
+                    return Convert.ToInt32(cmd.ExecuteScalar());
+                }
             }
         }
 
-        private int FindOpenSessionId(SqlConnection conn, string processName)
+        private int FindOpenSessionId(MySqlConnection conn, string processName)
         {
             if (string.IsNullOrWhiteSpace(processName))
                 return 0;
 
             int appId = EnsureApplication(processName, activeSessionsPaths.ContainsKey(processName) ? activeSessionsPaths[processName] : "");
 
-            using (SqlCommand cmd = new SqlCommand(
-                @"SELECT TOP 1 session_id 
+            using (MySqlCommand cmd = new MySqlCommand(
+                @"SELECT session_id 
                   FROM sessions 
                   WHERE user_id = @userId AND app_id = @appId AND end_time IS NULL
-                  ORDER BY start_time DESC;",
+                  ORDER BY start_time DESC
+                  LIMIT 1;",
                 conn))
             {
                 cmd.Parameters.AddWithValue("@userId", userId);
