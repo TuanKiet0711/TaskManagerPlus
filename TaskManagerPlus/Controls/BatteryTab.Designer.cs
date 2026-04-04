@@ -8,21 +8,32 @@ namespace TaskManagerPlus.Controls
 
         private void InitializeComponent()
         {
+            this.panelScroll = new System.Windows.Forms.Panel();
             this.pictureBoxBattery = new System.Windows.Forms.PictureBox();
             this.lblTitle = new System.Windows.Forms.Label();
             this.lblInfo = new System.Windows.Forms.Label();
+            this.panelScroll.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxBattery)).BeginInit();
             this.SuspendLayout();
             // 
+            // panelScroll
+            // 
+            this.panelScroll.AutoScroll = true;
+            this.panelScroll.BackColor = System.Drawing.Color.White;
+            this.panelScroll.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelScroll.Location = new System.Drawing.Point(0, 0);
+            this.panelScroll.Name = "panelScroll";
+            this.panelScroll.Size = new System.Drawing.Size(1000, 660);
+            this.panelScroll.TabIndex = 3;
+            // 
             // pictureBoxBattery
             // 
-            this.pictureBoxBattery.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.pictureBoxBattery.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.pictureBoxBattery.BackColor = System.Drawing.Color.White;
             this.pictureBoxBattery.Location = new System.Drawing.Point(20, 80);
             this.pictureBoxBattery.Name = "pictureBoxBattery";
-            this.pictureBoxBattery.Size = new System.Drawing.Size(960, 560);
+            this.pictureBoxBattery.Size = new System.Drawing.Size(960, 820);
             this.pictureBoxBattery.TabIndex = 0;
             this.pictureBoxBattery.TabStop = false;
             // 
@@ -53,20 +64,23 @@ namespace TaskManagerPlus.Controls
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
-            this.Controls.Add(this.lblInfo);
-            this.Controls.Add(this.lblTitle);
-            this.Controls.Add(this.pictureBoxBattery);
+            this.panelScroll.Controls.Add(this.lblInfo);
+            this.panelScroll.Controls.Add(this.lblTitle);
+            this.panelScroll.Controls.Add(this.pictureBoxBattery);
+            this.Controls.Add(this.panelScroll);
             this.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.Name = "BatteryTab";
             this.Size = new System.Drawing.Size(1000, 660);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxBattery)).EndInit();
+            this.panelScroll.ResumeLayout(false);
+            this.panelScroll.PerformLayout();
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
         #endregion
 
+        private System.Windows.Forms.Panel panelScroll;
         private System.Windows.Forms.PictureBox pictureBoxBattery;
         private System.Windows.Forms.Label lblTitle;
         private System.Windows.Forms.Label lblInfo;

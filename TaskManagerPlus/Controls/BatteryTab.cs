@@ -1,7 +1,11 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Globalization;
 using System.Management;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using TaskManagerPlus.Services;
@@ -12,12 +16,21 @@ namespace TaskManagerPlus.Controls
     {
         private BatteryInfo currentBatteryInfo;
         private Timer updateTimer;
+        private Panel tipsContainer;
+        private Label tipsTitle;
+        private FlowLayoutPanel tipsListPanel;
+        private const int BrightnessTarget = 55;
+        private bool brightnessApplied;
+        private int brightnessOriginal = -1;
+        private bool powerSaverApplied;
+        private string previousPowerPlanGuid;
 
         public BatteryTab()
         {
             InitializeComponent();
             currentBatteryInfo = new BatteryInfo();
             SetupLocalizationTags();
+            InitializeTipsPanel();
 
             updateTimer = new Timer();
             updateTimer.Interval = 2000; // Update every 2 seconds
@@ -27,6 +40,7 @@ namespace TaskManagerPlus.Controls
         public void Initialize()
         {
             pictureBoxBattery.Paint += PictureBoxBattery_Paint;
+            pictureBoxBattery.Resize += (s, e) => UpdateTipsLayout();
             updateTimer.Start();
             ApplyLocalization();
         }
@@ -46,6 +60,18 @@ namespace TaskManagerPlus.Controls
             try
             {
                 currentBatteryInfo = await Task.Run(() => GetBatteryInfo());
+                if (powerSaverApplied && !IsPowerSaverPlan(currentBatteryInfo.PowerPlan))
+                {
+                    powerSaverApplied = false;
+                }
+                if (brightnessApplied && currentBatteryInfo.ScreenBrightness >= 0 &&
+                    Math.Abs(currentBatteryInfo.ScreenBrightness - BrightnessTarget) > 5)
+                {
+                    brightnessApplied = false;
+                    brightnessOriginal = -1;
+                }
+                UpdateTipsUI();
+                UpdateTipsLayout();
                 pictureBoxBattery.Invalidate();
             }
             catch (Exception ex)
@@ -85,8 +111,14 @@ namespace TaskManagerPlus.Controls
                 // 3) Compute health / wear / condition
                 ComputeHealthWearCondition(info);
 
-                // 4) Power plan
-                TryReadPowerPlan(info);
+            // 4) Power plan
+            TryReadPowerPlan(info);
+
+            // 5) Screen brightness (if supported)
+            TryReadScreenBrightness(info);
+
+            // 6) Top CPU process (short sample)
+            TryReadTopCpuProcess(info);
             }
             catch (Exception ex)
             {
@@ -94,6 +126,37 @@ namespace TaskManagerPlus.Controls
             }
 
             return info;
+        }
+
+        private void InitializeTipsPanel()
+        {
+            tipsContainer = new Panel
+            {
+                BackColor = Color.FromArgb(248, 249, 250)
+            };
+
+            tipsTitle = new Label
+            {
+                AutoSize = true,
+                Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(0, 120, 212),
+                Location = new Point(0, 0)
+            };
+
+            tipsListPanel = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                Location = new Point(0, 28),
+                Margin = new Padding(0)
+            };
+
+            tipsContainer.Controls.Add(tipsTitle);
+            tipsContainer.Controls.Add(tipsListPanel);
+
+            pictureBoxBattery.Controls.Add(tipsContainer);
+            tipsContainer.BringToFront();
         }
 
         private void TryReadBatteryFromRootWmi(BatteryInfo info)
@@ -204,6 +267,91 @@ namespace TaskManagerPlus.Controls
                         break;
                     }
                 }
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private void TryReadScreenBrightness(BatteryInfo info)
+        {
+            try
+            {
+                var scope = new ManagementScope(@"\\.\root\WMI");
+                scope.Connect();
+
+                using (var searcher = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT * FROM WmiMonitorBrightness")))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        info.ScreenBrightness = ToInt(obj["CurrentBrightness"]);
+                        break;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore: not supported on some hardware
+            }
+        }
+
+        private void TryReadTopCpuProcess(BatteryInfo info)
+        {
+            try
+            {
+                const int sampleMs = 500;
+                var startTimes = new Dictionary<int, TimeSpan>();
+
+                foreach (var proc in Process.GetProcesses())
+                {
+                    try
+                    {
+                        startTimes[proc.Id] = proc.TotalProcessorTime;
+                    }
+                    catch
+                    {
+                        // ignore inaccessible processes
+                    }
+                    finally
+                    {
+                        proc.Dispose();
+                    }
+                }
+
+                System.Threading.Thread.Sleep(sampleMs);
+
+                int cpuCount = Math.Max(1, Environment.ProcessorCount);
+                double maxPercent = 0;
+                string maxName = null;
+
+                foreach (var proc in Process.GetProcesses())
+                {
+                    try
+                    {
+                        if (!startTimes.TryGetValue(proc.Id, out TimeSpan start)) continue;
+                        TimeSpan end = proc.TotalProcessorTime;
+                        double deltaMs = (end - start).TotalMilliseconds;
+                        double percent = deltaMs / (sampleMs * cpuCount) * 100.0;
+
+                        if (percent > maxPercent)
+                        {
+                            maxPercent = percent;
+                            maxName = proc.ProcessName;
+                        }
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                    finally
+                    {
+                        proc.Dispose();
+                    }
+                }
+
+                info.TopCpuProcessName = maxName;
+                info.TopCpuPercent = (int)Math.Round(maxPercent);
             }
             catch
             {
@@ -336,7 +484,17 @@ namespace TaskManagerPlus.Controls
             }
 
             // Draw details panel
-            DrawDetailsPanel(g, 50, yPos, pictureBoxBattery.Width - 100, 320);
+            int detailsHeight = CalculateDetailsPanelHeight();
+            DrawDetailsPanel(g, 20, yPos, pictureBoxBattery.Width - 40, detailsHeight);
+
+            // Ensure scroll can reach full content
+            int contentBottom = yPos + detailsHeight + 20;
+            if (tipsContainer != null)
+                contentBottom = Math.Max(contentBottom, tipsContainer.Bottom + 20);
+            if (pictureBoxBattery.Height < contentBottom)
+            {
+                pictureBoxBattery.Height = contentBottom;
+            }
         }
 
         private void DrawBatteryIcon(Graphics g, int x, int y, int width, int height, int chargePercent)
@@ -450,6 +608,15 @@ namespace TaskManagerPlus.Controls
             DrawWearBar(g, leftCol, yPos, width - 60, currentBatteryInfo.WearLevel);
         }
 
+        private int CalculateDetailsPanelHeight()
+        {
+            int tipsCount = GetBatteryTipItems(currentBatteryInfo).Count;
+            int tipsHeight = CalculateTipsPanelHeight(tipsCount);
+            int tipsTopOffset = CalculateTipsTopOffset();
+
+            return tipsTopOffset + tipsHeight + 40; // bottom padding
+        }
+
         private void DrawDetail(Graphics g, string label, string value, int x, int y)
         {
             using (Font labelFont = new Font("Segoe UI", 9F))
@@ -531,6 +698,255 @@ namespace TaskManagerPlus.Controls
             }
         }
 
+        private void UpdateTipsUI()
+        {
+            List<TipItem> tips = GetBatteryTipItems(currentBatteryInfo);
+
+            tipsTitle.Text = LocalizationService.T("battery_tips_title");
+            tipsListPanel.SuspendLayout();
+            tipsListPanel.Controls.Clear();
+
+            foreach (TipItem tip in tips)
+            {
+                Panel row = new Panel
+                {
+                    Height = 24,
+                    Margin = new Padding(0, 0, 0, 6)
+                };
+
+                Label label = new Label
+                {
+                    AutoSize = true,
+                    Text = "- " + tip.Text,
+                    Font = new Font("Segoe UI", 9F),
+                    ForeColor = Color.FromArgb(52, 58, 64),
+                    Location = new Point(0, 4)
+                };
+
+                row.Controls.Add(label);
+
+                if (tip.Action != TipAction.None)
+                {
+                    Button btn = new Button
+                    {
+                        Text = GetTipActionText(tip.Action),
+                        AutoSize = true,
+                        Height = 22
+                    };
+                    btn.Click += async (s, e) =>
+                    {
+                        btn.Enabled = false;
+                        await ExecuteTipActionAsync(tip.Action);
+                        btn.Enabled = true;
+                    };
+                    row.Controls.Add(btn);
+                }
+
+                tipsListPanel.Controls.Add(row);
+            }
+
+            tipsListPanel.ResumeLayout();
+        }
+
+        private void UpdateTipsLayout()
+        {
+            int detailsTop = CalculateDetailsPanelTopY();
+            int detailsWidth = pictureBoxBattery.Width - 40;
+            int tipsTop = detailsTop + CalculateTipsTopOffset();
+
+            tipsContainer.Location = new Point(20 + 30, tipsTop);
+            tipsContainer.Width = Math.Max(100, detailsWidth - 60);
+
+            tipsTitle.Location = new Point(0, 0);
+            tipsListPanel.Location = new Point(0, 28);
+            tipsListPanel.Width = tipsContainer.Width;
+
+            int totalHeight = 0;
+            int rowGap = 6;
+            foreach (Control ctrl in tipsListPanel.Controls)
+            {
+                if (ctrl is Panel row)
+                {
+                    row.Width = tipsListPanel.Width;
+                    Button btn = null;
+                    Label lbl = null;
+                    foreach (Control child in row.Controls)
+                    {
+                        if (child is Button b) btn = b;
+                        if (child is Label l) lbl = l;
+                    }
+
+                    if (btn != null)
+                    {
+                        btn.Location = new Point(row.Width - btn.Width, 1);
+                    }
+
+                    if (lbl != null)
+                    {
+                        int btnWidth = btn != null ? btn.Width + 8 : 0;
+                        int maxTextWidth = Math.Max(50, row.Width - btnWidth);
+                        lbl.MaximumSize = new Size(maxTextWidth, 0);
+                        lbl.Location = new Point(0, 4);
+                        lbl.AutoSize = true;
+                        int rowHeight = Math.Max(lbl.Height + 8, btn != null ? btn.Height + 4 : 0);
+                        row.Height = rowHeight;
+                    }
+                    totalHeight += row.Height + rowGap;
+                }
+            }
+
+            if (totalHeight > 0)
+                totalHeight -= rowGap;
+
+            tipsContainer.Height = 28 + totalHeight;
+        }
+
+        private int CalculateTipsPanelHeight(int tipsCount)
+        {
+            int rowHeight = 32; // allow wrapping
+            int rowGap = 8;
+            int listHeight = tipsCount > 0 ? tipsCount * rowHeight + (tipsCount - 1) * rowGap : 0;
+            return 28 + listHeight;
+        }
+
+        private int CalculateTipsTopOffset()
+        {
+            int yPos = 20; // top padding inside panel
+
+            yPos += 45; // title block
+            yPos += 35; // name + power plan
+            yPos += 35; // health + wear
+
+            if (currentBatteryInfo.DesignCapacity > 0)
+                yPos += 35;
+
+            yPos += 35; // voltage + charge status
+
+            if (currentBatteryInfo.CycleCount >= 0)
+                yPos += 35;
+
+            if (currentBatteryInfo.RemainingCapacity > 0)
+                yPos += 35;
+
+            yPos += 10; // spacing before bars
+            yPos += 70; // health bar block
+            yPos += 70; // wear bar block
+
+            return yPos;
+        }
+
+        private int CalculateDetailsPanelTopY()
+        {
+            int yPos = 20;
+            yPos += 140;
+            yPos += 70;
+            yPos += 40;
+
+            if (currentBatteryInfo.BatteryHealth > 0)
+                yPos += 35;
+
+            if (!currentBatteryInfo.IsCharging && currentBatteryInfo.TimeRemaining > 0)
+                yPos += 40;
+
+            return yPos;
+        }
+
+        private List<TipItem> GetBatteryTipItems(BatteryInfo info)
+        {
+            var tips = new List<TipItem>();
+
+            if (!info.IsCharging)
+            {
+                if (brightnessApplied && brightnessOriginal >= 0)
+                {
+                    tips.Add(new TipItem(
+                        LocalizationService.T("battery_tip_brightness_applied"),
+                        TipAction.OpenDisplaySettings));
+                }
+                else if (info.ScreenBrightness >= 70)
+                {
+                    tips.Add(new TipItem(
+                        string.Format(LocalizationService.T("battery_tip_brightness_format"), info.ScreenBrightness),
+                        TipAction.OpenDisplaySettings));
+                }
+
+                if (powerSaverApplied)
+                {
+                    tips.Add(new TipItem(
+                        LocalizationService.T("battery_tip_power_plan_applied"),
+                        TipAction.EnablePowerSaver));
+                }
+                else if (!IsPowerSaverPlan(info.PowerPlan))
+                {
+                    tips.Add(new TipItem(
+                        LocalizationService.T("battery_tip_power_plan"),
+                        TipAction.EnablePowerSaver));
+                }
+
+                if (!string.IsNullOrWhiteSpace(info.TopCpuProcessName) && info.TopCpuPercent >= 20)
+                {
+                    tips.Add(new TipItem(
+                        string.Format(LocalizationService.T("battery_tip_high_cpu_format"),
+                            info.TopCpuProcessName, info.TopCpuPercent),
+                        TipAction.OpenTaskManager));
+                }
+
+                if (info.ChargePercent <= 20 && info.ChargePercent >= 0)
+                {
+                    tips.Add(new TipItem(
+                        LocalizationService.T("battery_tip_low_battery"),
+                        TipAction.OpenBatterySaverSettings));
+                }
+            }
+
+            if (tips.Count == 0)
+                tips.Add(new TipItem(LocalizationService.T("battery_tip_none"), TipAction.None));
+
+            return tips;
+        }
+
+        private bool IsPowerSaverPlan(string powerPlan)
+        {
+            if (string.IsNullOrWhiteSpace(powerPlan)) return false;
+
+            string normalized = RemoveDiacritics(powerPlan).ToLowerInvariant();
+            return normalized.Contains("power saver") ||
+                   normalized.Contains("powersaver") ||
+                   normalized.Contains("tiet kiem");
+        }
+
+        private string RemoveDiacritics(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+
+            string normalized = text.Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder(normalized.Length);
+            foreach (char c in normalized)
+            {
+                UnicodeCategory uc = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (uc != UnicodeCategory.NonSpacingMark)
+                    sb.Append(c);
+            }
+            return sb.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        private string GetTipActionText(TipAction action)
+        {
+            switch (action)
+            {
+                case TipAction.OpenDisplaySettings:
+                    return brightnessApplied
+                        ? LocalizationService.T("battery_tip_action_revert")
+                        : LocalizationService.T("battery_tip_action_apply");
+                case TipAction.EnablePowerSaver:
+                    return powerSaverApplied
+                        ? LocalizationService.T("battery_tip_action_revert")
+                        : LocalizationService.T("battery_tip_action_apply");
+                default:
+                    return LocalizationService.T("battery_tip_action_apply");
+            }
+        }
+
         private void DrawNoBatteryMessage(Graphics g)
         {
             using (Font font = new Font("Segoe UI", 14F))
@@ -560,6 +976,8 @@ namespace TaskManagerPlus.Controls
         public void ApplyLocalization()
         {
             UILocalizer.Apply(this);
+            UpdateTipsUI();
+            UpdateTipsLayout();
             pictureBoxBattery.Invalidate();
         }
 
@@ -604,8 +1022,193 @@ namespace TaskManagerPlus.Controls
             public double Voltage { get; set; }
 
             public int CycleCount { get; set; } = -1;
+            public int ScreenBrightness { get; set; } = -1;
+            public string TopCpuProcessName { get; set; }
+            public int TopCpuPercent { get; set; }
 
             public string ErrorMessage { get; set; }
+        }
+
+        private enum TipAction
+        {
+            None,
+            OpenDisplaySettings,
+            OpenBatterySaverSettings,
+            EnablePowerSaver,
+            OpenTaskManager
+        }
+
+        private class TipItem
+        {
+            public TipItem(string text, TipAction action)
+            {
+                Text = text;
+                Action = action;
+            }
+
+            public string Text { get; }
+            public TipAction Action { get; }
+        }
+
+        private async Task ExecuteTipActionAsync(TipAction action)
+        {
+            try
+            {
+                switch (action)
+                {
+                    case TipAction.OpenDisplaySettings:
+                        if (brightnessApplied)
+                        {
+                            brightnessApplied = false;
+                            await RestoreBrightnessAsync();
+                        }
+                        else
+                        {
+                            if (brightnessOriginal < 0)
+                                brightnessOriginal = currentBatteryInfo.ScreenBrightness;
+                            brightnessApplied = true;
+                            UpdateTipsUI();
+                            UpdateTipsLayout();
+                            pictureBoxBattery.Invalidate();
+                            await ApplyBrightnessAsync(BrightnessTarget);
+                        }
+                        break;
+                    case TipAction.OpenBatterySaverSettings:
+                        Process.Start(new ProcessStartInfo("ms-settings:batterysaver") { UseShellExecute = true });
+                        break;
+                    case TipAction.EnablePowerSaver:
+                        if (powerSaverApplied)
+                        {
+                            powerSaverApplied = false;
+                            await RestorePowerPlanAsync();
+                        }
+                        else
+                        {
+                            if (string.IsNullOrEmpty(previousPowerPlanGuid))
+                                previousPowerPlanGuid = await GetActivePowerPlanGuidAsync();
+                            powerSaverApplied = true;
+                            UpdateTipsUI();
+                            UpdateTipsLayout();
+                            pictureBoxBattery.Invalidate();
+                            await SetPowerPlanAsync("SCHEME_MIN");
+                        }
+                        break;
+                    case TipAction.OpenTaskManager:
+                        Process.Start(new ProcessStartInfo("taskmgr") { UseShellExecute = true });
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, LocalizationService.T("common_error_title"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                await UpdateBatteryInfoAsync();
+            }
+        }
+
+        private async Task ApplyBrightnessAsync(int target)
+        {
+            await Task.Run(() =>
+            {
+                try
+                {
+                    var scope = new ManagementScope(@"\\.\root\WMI");
+                    scope.Connect();
+
+                    using (var searcher = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT * FROM WmiMonitorBrightnessMethods")))
+                    {
+                        foreach (ManagementObject obj in searcher.Get())
+                        {
+                            obj.InvokeMethod("WmiSetBrightness", new object[] { 1, (byte)Math.Max(1, Math.Min(100, target)) });
+                            break;
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+            });
+        }
+
+        private async Task RestoreBrightnessAsync()
+        {
+            if (brightnessOriginal < 0) return;
+            int restoreTo = brightnessOriginal;
+            brightnessOriginal = -1;
+            brightnessApplied = false;
+            await ApplyBrightnessAsync(restoreTo);
+        }
+
+        private async Task<string> GetActivePowerPlanGuidAsync()
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    using (var proc = new Process())
+                    {
+                        proc.StartInfo = new ProcessStartInfo("powercfg", "/getactivescheme")
+                        {
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            CreateNoWindow = true
+                        };
+                        proc.Start();
+                        string output = proc.StandardOutput.ReadToEnd();
+                        proc.WaitForExit(1000);
+
+                        int idx = output.IndexOf(':');
+                        if (idx >= 0)
+                        {
+                            string tail = output.Substring(idx + 1).Trim();
+                            string[] parts = tail.Split(' ');
+                            if (parts.Length > 0)
+                                return parts[0].Trim();
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+                return null;
+            });
+        }
+
+        private async Task SetPowerPlanAsync(string scheme)
+        {
+            await Task.Run(() =>
+            {
+                try
+                {
+                    using (var proc = new Process())
+                    {
+                        proc.StartInfo = new ProcessStartInfo("powercfg", "/setactive " + scheme)
+                        {
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+                        proc.Start();
+                        proc.WaitForExit(1000);
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+            });
+        }
+
+        private async Task RestorePowerPlanAsync()
+        {
+            if (string.IsNullOrEmpty(previousPowerPlanGuid)) return;
+            string plan = previousPowerPlanGuid;
+            previousPowerPlanGuid = null;
+            await SetPowerPlanAsync(plan);
         }
     }
 }
