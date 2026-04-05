@@ -14,16 +14,16 @@ namespace TaskManagerPlus.Services
 {
     public class ProcessMonitor
     {
-        private readonly Dictionary<int, DateTime> lastCpuCheckTime;
-        private readonly Dictionary<int, TimeSpan> lastCpuTime;
+        private readonly ConcurrentDictionary<int, DateTime> lastCpuCheckTime;
+        private readonly ConcurrentDictionary<int, TimeSpan> lastCpuTime;
 
         private readonly ConcurrentDictionary<string, System.Drawing.Icon> iconCache;
         private readonly ConcurrentDictionary<string, string> descCache;
 
         public ProcessMonitor()
         {
-            lastCpuCheckTime = new Dictionary<int, DateTime>();
-            lastCpuTime = new Dictionary<int, TimeSpan>();
+            lastCpuCheckTime = new ConcurrentDictionary<int, DateTime>();
+            lastCpuTime = new ConcurrentDictionary<int, TimeSpan>();
 
             iconCache = new ConcurrentDictionary<string, System.Drawing.Icon>();
             descCache = new ConcurrentDictionary<string, string>();

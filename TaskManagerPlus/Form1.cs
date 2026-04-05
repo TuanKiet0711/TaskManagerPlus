@@ -332,6 +332,10 @@ namespace TaskManagerPlus
                 else if (tabControl.SelectedTab == tabAppHistory)
                     await appHistoryTab.LoadAppHistoryAsync();
 
+                // Keep history updated even when not on the tab
+                if (chkAutoRefresh.Checked && tabControl.SelectedTab != tabAppHistory)
+                    await appHistoryTab.LoadAppHistoryAsync();
+
                 // Always update performance tab (lightweight)
                 await performanceTab.UpdatePerformanceAsync();
             }
@@ -388,8 +392,6 @@ namespace TaskManagerPlus
         private async void tabControl_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (isUpdating) return;
-
-            if (_preloaded) return;
 
             if (tabControl.SelectedTab == tabProcesses)
                 await processesTab.LoadProcessesAsync();

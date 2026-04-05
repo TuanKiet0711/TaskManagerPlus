@@ -19,11 +19,6 @@ namespace TaskManagerPlus.Controls
         private Panel tipsContainer;
         private Label tipsTitle;
         private FlowLayoutPanel tipsListPanel;
-        private const int BrightnessTarget = 55;
-        private bool brightnessApplied;
-        private int brightnessOriginal = -1;
-        private bool powerSaverApplied;
-        private string previousPowerPlanGuid;
 
         public BatteryTab()
         {
@@ -60,16 +55,6 @@ namespace TaskManagerPlus.Controls
             try
             {
                 currentBatteryInfo = await Task.Run(() => GetBatteryInfo());
-                if (powerSaverApplied && !IsPowerSaverPlan(currentBatteryInfo.PowerPlan))
-                {
-                    powerSaverApplied = false;
-                }
-                if (brightnessApplied && currentBatteryInfo.ScreenBrightness >= 0 &&
-                    Math.Abs(currentBatteryInfo.ScreenBrightness - BrightnessTarget) > 5)
-                {
-                    brightnessApplied = false;
-                    brightnessOriginal = -1;
-                }
                 UpdateTipsUI();
                 UpdateTipsLayout();
                 pictureBoxBattery.Invalidate();
@@ -725,22 +710,7 @@ namespace TaskManagerPlus.Controls
 
                 row.Controls.Add(label);
 
-                if (tip.Action != TipAction.None)
-                {
-                    Button btn = new Button
-                    {
-                        Text = GetTipActionText(tip.Action),
-                        AutoSize = true,
-                        Height = 22
-                    };
-                    btn.Click += async (s, e) =>
-                    {
-                        btn.Enabled = false;
-                        await ExecuteTipActionAsync(tip.Action);
-                        btn.Enabled = true;
-                    };
-                    row.Controls.Add(btn);
-                }
+                // No action button: tips are display-only
 
                 tipsListPanel.Controls.Add(row);
             }
@@ -776,19 +746,13 @@ namespace TaskManagerPlus.Controls
                         if (child is Label l) lbl = l;
                     }
 
-                    if (btn != null)
-                    {
-                        btn.Location = new Point(row.Width - btn.Width, 1);
-                    }
-
                     if (lbl != null)
                     {
-                        int btnWidth = btn != null ? btn.Width + 8 : 0;
-                        int maxTextWidth = Math.Max(50, row.Width - btnWidth);
+                        int maxTextWidth = Math.Max(50, row.Width);
                         lbl.MaximumSize = new Size(maxTextWidth, 0);
                         lbl.Location = new Point(0, 4);
                         lbl.AutoSize = true;
-                        int rowHeight = Math.Max(lbl.Height + 8, btn != null ? btn.Height + 4 : 0);
+                        int rowHeight = lbl.Height + 8;
                         row.Height = rowHeight;
                     }
                     totalHeight += row.Height + rowGap;
@@ -857,50 +821,32 @@ namespace TaskManagerPlus.Controls
 
             if (!info.IsCharging)
             {
-                if (brightnessApplied && brightnessOriginal >= 0)
+                if (info.ScreenBrightness >= 70)
                 {
                     tips.Add(new TipItem(
-                        LocalizationService.T("battery_tip_brightness_applied"),
-                        TipAction.OpenDisplaySettings));
-                }
-                else if (info.ScreenBrightness >= 70)
-                {
-                    tips.Add(new TipItem(
-                        string.Format(LocalizationService.T("battery_tip_brightness_format"), info.ScreenBrightness),
-                        TipAction.OpenDisplaySettings));
-                }
-
-                if (powerSaverApplied)
-                {
-                    tips.Add(new TipItem(
-                        LocalizationService.T("battery_tip_power_plan_applied"),
-                        TipAction.EnablePowerSaver));
-                }
-                else if (!IsPowerSaverPlan(info.PowerPlan))
-                {
-                    tips.Add(new TipItem(
-                        LocalizationService.T("battery_tip_power_plan"),
-                        TipAction.EnablePowerSaver));
+                        string.Format(LocalizationService.T("battery_tip_brightness_format"), info.ScreenBrightness)));
                 }
 
                 if (!string.IsNullOrWhiteSpace(info.TopCpuProcessName) && info.TopCpuPercent >= 20)
                 {
                     tips.Add(new TipItem(
                         string.Format(LocalizationService.T("battery_tip_high_cpu_format"),
-                            info.TopCpuProcessName, info.TopCpuPercent),
-                        TipAction.OpenTaskManager));
+                            info.TopCpuProcessName, info.TopCpuPercent)));
+                }
+
+                if (!IsPowerSaverPlan(info.PowerPlan))
+                {
+                    tips.Add(new TipItem(LocalizationService.T("battery_tip_power_plan")));
                 }
 
                 if (info.ChargePercent <= 20 && info.ChargePercent >= 0)
                 {
-                    tips.Add(new TipItem(
-                        LocalizationService.T("battery_tip_low_battery"),
-                        TipAction.OpenBatterySaverSettings));
+                    tips.Add(new TipItem(LocalizationService.T("battery_tip_low_battery")));
                 }
             }
 
             if (tips.Count == 0)
-                tips.Add(new TipItem(LocalizationService.T("battery_tip_none"), TipAction.None));
+                tips.Add(new TipItem(LocalizationService.T("battery_tip_none")));
 
             return tips;
         }
@@ -928,23 +874,6 @@ namespace TaskManagerPlus.Controls
                     sb.Append(c);
             }
             return sb.ToString().Normalize(NormalizationForm.FormC);
-        }
-
-        private string GetTipActionText(TipAction action)
-        {
-            switch (action)
-            {
-                case TipAction.OpenDisplaySettings:
-                    return brightnessApplied
-                        ? LocalizationService.T("battery_tip_action_revert")
-                        : LocalizationService.T("battery_tip_action_apply");
-                case TipAction.EnablePowerSaver:
-                    return powerSaverApplied
-                        ? LocalizationService.T("battery_tip_action_revert")
-                        : LocalizationService.T("battery_tip_action_apply");
-                default:
-                    return LocalizationService.T("battery_tip_action_apply");
-            }
         }
 
         private void DrawNoBatteryMessage(Graphics g)
@@ -1029,186 +958,14 @@ namespace TaskManagerPlus.Controls
             public string ErrorMessage { get; set; }
         }
 
-        private enum TipAction
-        {
-            None,
-            OpenDisplaySettings,
-            OpenBatterySaverSettings,
-            EnablePowerSaver,
-            OpenTaskManager
-        }
-
         private class TipItem
         {
-            public TipItem(string text, TipAction action)
+            public TipItem(string text)
             {
                 Text = text;
-                Action = action;
             }
 
             public string Text { get; }
-            public TipAction Action { get; }
-        }
-
-        private async Task ExecuteTipActionAsync(TipAction action)
-        {
-            try
-            {
-                switch (action)
-                {
-                    case TipAction.OpenDisplaySettings:
-                        if (brightnessApplied)
-                        {
-                            brightnessApplied = false;
-                            await RestoreBrightnessAsync();
-                        }
-                        else
-                        {
-                            if (brightnessOriginal < 0)
-                                brightnessOriginal = currentBatteryInfo.ScreenBrightness;
-                            brightnessApplied = true;
-                            UpdateTipsUI();
-                            UpdateTipsLayout();
-                            pictureBoxBattery.Invalidate();
-                            await ApplyBrightnessAsync(BrightnessTarget);
-                        }
-                        break;
-                    case TipAction.OpenBatterySaverSettings:
-                        Process.Start(new ProcessStartInfo("ms-settings:batterysaver") { UseShellExecute = true });
-                        break;
-                    case TipAction.EnablePowerSaver:
-                        if (powerSaverApplied)
-                        {
-                            powerSaverApplied = false;
-                            await RestorePowerPlanAsync();
-                        }
-                        else
-                        {
-                            if (string.IsNullOrEmpty(previousPowerPlanGuid))
-                                previousPowerPlanGuid = await GetActivePowerPlanGuidAsync();
-                            powerSaverApplied = true;
-                            UpdateTipsUI();
-                            UpdateTipsLayout();
-                            pictureBoxBattery.Invalidate();
-                            await SetPowerPlanAsync("SCHEME_MIN");
-                        }
-                        break;
-                    case TipAction.OpenTaskManager:
-                        Process.Start(new ProcessStartInfo("taskmgr") { UseShellExecute = true });
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, LocalizationService.T("common_error_title"),
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                await UpdateBatteryInfoAsync();
-            }
-        }
-
-        private async Task ApplyBrightnessAsync(int target)
-        {
-            await Task.Run(() =>
-            {
-                try
-                {
-                    var scope = new ManagementScope(@"\\.\root\WMI");
-                    scope.Connect();
-
-                    using (var searcher = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT * FROM WmiMonitorBrightnessMethods")))
-                    {
-                        foreach (ManagementObject obj in searcher.Get())
-                        {
-                            obj.InvokeMethod("WmiSetBrightness", new object[] { 1, (byte)Math.Max(1, Math.Min(100, target)) });
-                            break;
-                        }
-                    }
-                }
-                catch
-                {
-                    // ignore
-                }
-            });
-        }
-
-        private async Task RestoreBrightnessAsync()
-        {
-            if (brightnessOriginal < 0) return;
-            int restoreTo = brightnessOriginal;
-            brightnessOriginal = -1;
-            brightnessApplied = false;
-            await ApplyBrightnessAsync(restoreTo);
-        }
-
-        private async Task<string> GetActivePowerPlanGuidAsync()
-        {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    using (var proc = new Process())
-                    {
-                        proc.StartInfo = new ProcessStartInfo("powercfg", "/getactivescheme")
-                        {
-                            UseShellExecute = false,
-                            RedirectStandardOutput = true,
-                            CreateNoWindow = true
-                        };
-                        proc.Start();
-                        string output = proc.StandardOutput.ReadToEnd();
-                        proc.WaitForExit(1000);
-
-                        int idx = output.IndexOf(':');
-                        if (idx >= 0)
-                        {
-                            string tail = output.Substring(idx + 1).Trim();
-                            string[] parts = tail.Split(' ');
-                            if (parts.Length > 0)
-                                return parts[0].Trim();
-                        }
-                    }
-                }
-                catch
-                {
-                    // ignore
-                }
-                return null;
-            });
-        }
-
-        private async Task SetPowerPlanAsync(string scheme)
-        {
-            await Task.Run(() =>
-            {
-                try
-                {
-                    using (var proc = new Process())
-                    {
-                        proc.StartInfo = new ProcessStartInfo("powercfg", "/setactive " + scheme)
-                        {
-                            UseShellExecute = false,
-                            CreateNoWindow = true
-                        };
-                        proc.Start();
-                        proc.WaitForExit(1000);
-                    }
-                }
-                catch
-                {
-                    // ignore
-                }
-            });
-        }
-
-        private async Task RestorePowerPlanAsync()
-        {
-            if (string.IsNullOrEmpty(previousPowerPlanGuid)) return;
-            string plan = previousPowerPlanGuid;
-            previousPowerPlanGuid = null;
-            await SetPowerPlanAsync(plan);
         }
     }
 }

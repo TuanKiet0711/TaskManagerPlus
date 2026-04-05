@@ -52,6 +52,7 @@ CREATE TABLE sessions (
     session_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     app_id INT NOT NULL,
+    process_id INT NOT NULL,
     start_time DATETIME NOT NULL,
     end_time DATETIME,
     duration_seconds INT,
@@ -70,6 +71,9 @@ CREATE TABLE sessions (
 -- Indexes
 CREATE INDEX idx_sessions_user_app_time
 ON sessions(user_id, app_id, start_time DESC);
+
+CREATE INDEX idx_sessions_user_process_time
+ON sessions(user_id, process_id, start_time DESC);
 
 CREATE INDEX idx_sessions_app_time
 ON sessions(app_id, start_time DESC);
@@ -108,7 +112,7 @@ CREATE TABLE app_resource_usage (
     session_id BIGINT NOT NULL,
 
     cpu_usage DECIMAL(5,2),
-    ram_usage DECIMAL(5,2),
+    ram_usage BIGINT,
     gpu_usage DECIMAL(5,2),
 
     recorded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

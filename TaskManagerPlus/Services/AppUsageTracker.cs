@@ -12,15 +12,16 @@ namespace TaskManagerPlus.Services
     {
         private AppUsageDatabase database;
         private ProcessMonitor processMonitor;
-        private Dictionary<string, ProcessTrackingInfo> trackedProcesses;
+        private Dictionary<int, ProcessTrackingInfo> trackedProcesses;
         private Timer trackingTimer;
         private bool isTracking;
+        private static readonly TimeSpan EndSessionGrace = TimeSpan.FromSeconds(30);
 
         public AppUsageTracker(ProcessMonitor monitor)
         {
             database = new AppUsageDatabase();
             processMonitor = monitor;
-            trackedProcesses = new Dictionary<string, ProcessTrackingInfo>();
+            trackedProcesses = new Dictionary<int, ProcessTrackingInfo>();
         }
 
         public void StartTracking()
@@ -28,7 +29,7 @@ namespace TaskManagerPlus.Services
             if (isTracking) return;
 
             isTracking = true;
-            trackingTimer = new Timer(TrackingCallback, null, 0, 5000); // Track every 5 seconds
+            trackingTimer = new Timer(TrackingCallback, null, 0, 2000); // Track every 2 seconds
         }
 
         public void StopTracking()
@@ -39,7 +40,7 @@ namespace TaskManagerPlus.Services
             // End all active sessions
             foreach (var proc in trackedProcesses.Values.Where(p => p.IsTracking))
             {
-                database.EndAppSession(proc.ProcessName);
+                database.EndAppSession(proc.ProcessId);
             }
             trackedProcesses.Clear();
         }
@@ -50,34 +51,40 @@ namespace TaskManagerPlus.Services
 
             try
             {
-                var currentProcesses = processMonitor.GetAllProcesses();
-                var currentProcessNames = new HashSet<string>();
+                var currentProcesses = processMonitor
+                    .GetAllProcesses(true)
+                    .Where(p => p.HasWindow)
+                    .ToList();
+                var currentProcessIds = new HashSet<int>();
 
                 foreach (var process in currentProcesses)
                 {
+                    int pid = process.ProcessId;
                     string processName = process.ProcessName;
-                    currentProcessNames.Add(processName);
+                    currentProcessIds.Add(pid);
 
-                    if (!trackedProcesses.ContainsKey(processName))
+                    if (!trackedProcesses.ContainsKey(pid))
                     {
                         // New process detected
-                        trackedProcesses[processName] = new ProcessTrackingInfo
+                        trackedProcesses[pid] = new ProcessTrackingInfo
                         {
+                            ProcessId = pid,
                             ProcessName = processName,
                             ExecutablePath = process.FilePath,
                             IsTracking = true,
                             LastSeen = DateTime.Now
                         };
 
-                        database.StartAppSession(processName, process.FilePath);
+                        database.StartAppSession(pid, processName, process.FilePath);
                     }
                     else
                     {
-                        trackedProcesses[processName].LastSeen = DateTime.Now;
+                        trackedProcesses[pid].LastSeen = DateTime.Now;
                     }
 
                     // Record stats
                     database.RecordAppStats(
+                        pid,
                         processName,
                         process.CpuUsage,
                         process.MemoryBytes,
@@ -88,26 +95,27 @@ namespace TaskManagerPlus.Services
 
                 // End sessions for processes that are no longer running
                 var endedProcesses = trackedProcesses.Keys
-                    .Where(name => !currentProcessNames.Contains(name))
+                    .Where(id => !currentProcessIds.Contains(id))
                     .ToList();
 
-                foreach (var processName in endedProcesses)
+                foreach (var processId in endedProcesses)
                 {
-                    if (trackedProcesses[processName].IsTracking)
+                    if (trackedProcesses[processId].IsTracking)
                     {
-                        database.EndAppSession(processName);
-                        trackedProcesses[processName].IsTracking = false;
+                        // Avoid ending sessions on transient misses (window detection can be flaky)
+                        trackedProcesses[processId].IsTracking = false;
                     }
                 }
 
                 // Clean up old entries
                 var toRemove = trackedProcesses
-                    .Where(kvp => !kvp.Value.IsTracking && (DateTime.Now - kvp.Value.LastSeen).TotalMinutes > 5)
+                    .Where(kvp => !kvp.Value.IsTracking && (DateTime.Now - kvp.Value.LastSeen) > EndSessionGrace)
                     .Select(kvp => kvp.Key)
                     .ToList();
 
                 foreach (var key in toRemove)
                 {
+                    database.EndAppSession(key);
                     trackedProcesses.Remove(key);
                 }
             }
@@ -129,6 +137,7 @@ namespace TaskManagerPlus.Services
 
         private class ProcessTrackingInfo
         {
+            public int ProcessId { get; set; }
             public string ProcessName { get; set; }
             public string ExecutablePath { get; set; }
             public bool IsTracking { get; set; }

@@ -15,23 +15,23 @@ namespace TaskManagerPlus.Services
         private readonly int userId;
         private readonly string userName;
         private readonly string computerName;
-        private readonly Dictionary<string, DateTime> activeSessionsstartTimes;
-        private readonly Dictionary<string, string> activeSessionsPaths;
-        private readonly Dictionary<string, int> activeSessionIds;
+        private readonly Dictionary<int, DateTime> activeSessionsstartTimes;
+        private readonly Dictionary<int, string> activeSessionsPaths;
+        private readonly Dictionary<int, int> activeSessionIds;
 
         public AppUsageDatabase()
         {
             connectionString = GetConnectionString();
             userName = Environment.UserName ?? "unknown";
             computerName = Environment.MachineName ?? "unknown";
-            activeSessionsstartTimes = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
-            activeSessionsPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            activeSessionIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            activeSessionsstartTimes = new Dictionary<int, DateTime>();
+            activeSessionsPaths = new Dictionary<int, string>();
+            activeSessionIds = new Dictionary<int, int>();
 
             userId = EnsureUser();
         }
 
-        public void StartAppSession(string processName, string executablePath)
+        public void StartAppSession(int processId, string processName, string executablePath)
         {
             if (string.IsNullOrWhiteSpace(processName))
                 return;
@@ -43,11 +43,12 @@ namespace TaskManagerPlus.Services
             using (MySqlConnection conn = OpenConnection())
             {
                 using (MySqlCommand cmd = new MySqlCommand(
-                    "INSERT INTO sessions (user_id, app_id, start_time) VALUES (@userId, @appId, @startTime);",
+                    "INSERT INTO sessions (user_id, app_id, process_id, start_time) VALUES (@userId, @appId, @processId, @startTime);",
                     conn))
                 {
                     cmd.Parameters.AddWithValue("@userId", userId);
                     cmd.Parameters.AddWithValue("@appId", appId);
+                    cmd.Parameters.AddWithValue("@processId", processId);
                     cmd.Parameters.AddWithValue("@startTime", startTime);
                     cmd.ExecuteNonQuery();
                 }
@@ -58,30 +59,28 @@ namespace TaskManagerPlus.Services
                 }
             }
 
-            activeSessionsstartTimes[processName] = startTime;
-            activeSessionsPaths[processName] = executablePath ?? "";
-            activeSessionIds[processName] = sessionId;
+            activeSessionsstartTimes[processId] = startTime;
+            activeSessionsPaths[processId] = executablePath ?? "";
+            activeSessionIds[processId] = sessionId;
         }
 
-        public void EndAppSession(string processName)
+        public void EndAppSession(int processId)
         {
-            if (string.IsNullOrWhiteSpace(processName))
-                return;
-            if (!activeSessionsstartTimes.ContainsKey(processName))
+            if (!activeSessionsstartTimes.ContainsKey(processId))
                 return;
 
-            DateTime startTime = activeSessionsstartTimes[processName];
+            DateTime startTime = activeSessionsstartTimes[processId];
             DateTime endTime = DateTime.Now;
             int duration = (int)(endTime - startTime).TotalSeconds;
 
             int sessionId = 0;
-            if (activeSessionIds.TryGetValue(processName, out int storedSessionId))
+            if (activeSessionIds.TryGetValue(processId, out int storedSessionId))
                 sessionId = storedSessionId;
 
             using (MySqlConnection conn = OpenConnection())
             {
                 if (sessionId == 0)
-                    sessionId = FindOpenSessionId(conn, processName);
+                    sessionId = FindOpenSessionId(conn, processId);
 
                 if (sessionId != 0)
                 {
@@ -97,24 +96,24 @@ namespace TaskManagerPlus.Services
                 }
             }
 
-            activeSessionsstartTimes.Remove(processName);
-            activeSessionsPaths.Remove(processName);
-            activeSessionIds.Remove(processName);
+            activeSessionsstartTimes.Remove(processId);
+            activeSessionsPaths.Remove(processId);
+            activeSessionIds.Remove(processId);
         }
 
-        public void RecordAppStats(string processName, double cpuUsage, long memoryUsage, double diskUsage, double networkUsage)
+        public void RecordAppStats(int processId, string processName, double cpuUsage, long memoryUsage, double diskUsage, double networkUsage)
         {
             if (string.IsNullOrWhiteSpace(processName))
                 return;
 
             int sessionId = 0;
-            if (activeSessionIds.TryGetValue(processName, out int storedSessionId))
+            if (activeSessionIds.TryGetValue(processId, out int storedSessionId))
                 sessionId = storedSessionId;
 
             using (MySqlConnection conn = OpenConnection())
             {
                 if (sessionId == 0)
-                    sessionId = FindOpenSessionId(conn, processName);
+                    sessionId = FindOpenSessionId(conn, processId);
 
                 if (sessionId == 0)
                     return;
@@ -144,16 +143,56 @@ namespace TaskManagerPlus.Services
             using (MySqlCommand cmd = new MySqlCommand(@"
 SELECT 
     a.app_name,
-    SUM(IFNULL(s.duration_seconds, 0)) AS total_duration,
-    COUNT(s.session_id) AS launch_count,
-    AVG(r.cpu_usage) AS avg_cpu,
-    AVG(r.ram_usage) AS avg_ram
-FROM sessions s
-INNER JOIN applications a ON s.app_id = a.app_id
-LEFT JOIN app_resource_usage r ON r.session_id = s.session_id
-WHERE s.user_id = @userId
-  AND (@start IS NULL OR s.start_time >= @start)
-  AND (@end IS NULL OR s.start_time < @end)
+    SUM(sx.session_duration) AS total_duration,
+    COUNT(DISTINCT sx.session_id) AS launch_count,
+    MAX(CASE WHEN sx.end_time IS NULL THEN 1 ELSE 0 END) AS has_running,
+    AVG(rx.avg_cpu) AS avg_cpu,
+    AVG(rx.avg_ram) AS avg_ram,
+    MAX(rx.last_seen) AS last_seen
+FROM (
+    SELECT 
+        s.session_id,
+        s.app_id,
+        s.end_time,
+        CASE
+            WHEN (@start IS NULL AND @end IS NULL) THEN
+                CASE 
+                    WHEN s.end_time IS NULL THEN TIMESTAMPDIFF(SECOND, s.start_time, NOW())
+                    ELSE IFNULL(s.duration_seconds, 0)
+                END
+            ELSE
+                CASE
+                    WHEN (@start IS NULL OR IFNULL(s.end_time, NOW()) >= @start)
+                         AND (@end IS NULL OR s.start_time < @end)
+                    THEN
+                        GREATEST(
+                            0,
+                            TIMESTAMPDIFF(
+                                SECOND,
+                                GREATEST(s.start_time, IFNULL(@start, s.start_time)),
+                                LEAST(IFNULL(s.end_time, NOW()), IFNULL(@end, IFNULL(s.end_time, NOW())))
+                            )
+                        )
+                    ELSE 0
+                END
+        END AS session_duration
+    FROM sessions s
+    WHERE s.user_id = @userId
+      AND (@start IS NULL OR IFNULL(s.end_time, NOW()) >= @start)
+      AND (@end IS NULL OR s.start_time < @end)
+) sx
+INNER JOIN applications a ON sx.app_id = a.app_id
+LEFT JOIN (
+    SELECT 
+        r.session_id,
+        AVG(r.cpu_usage) AS avg_cpu,
+        AVG(r.ram_usage) AS avg_ram,
+        MAX(r.recorded_at) AS last_seen
+    FROM app_resource_usage r
+    WHERE (@start IS NULL OR r.recorded_at >= @start)
+      AND (@end IS NULL OR r.recorded_at < @end)
+    GROUP BY r.session_id
+) rx ON rx.session_id = sx.session_id
 GROUP BY a.app_name
 ORDER BY total_duration DESC;", conn))
             {
@@ -168,14 +207,22 @@ ORDER BY total_duration DESC;", conn))
                         string appName = reader.GetString(0);
                         int totalDuration = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                         int launchCount = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
-                        double avgCpu = reader.IsDBNull(3) ? 0 : Convert.ToDouble(reader.GetValue(3));
-                        long avgMemory = reader.IsDBNull(4) ? 0 : Convert.ToInt64(Convert.ToDouble(reader.GetValue(4)));
+                        bool hasRunning = !reader.IsDBNull(3) && Convert.ToInt32(reader.GetValue(3)) > 0;
+                        double avgCpu = reader.IsDBNull(4) ? 0 : Convert.ToDouble(reader.GetValue(4));
+                        long avgMemory = reader.IsDBNull(5) ? 0 : Convert.ToInt64(Convert.ToDouble(reader.GetValue(5)));
+                        DateTime? lastSeen = reader.IsDBNull(6) ? (DateTime?)null : reader.GetDateTime(6);
+                        bool isRunning = hasRunning;
+                        if (lastSeen.HasValue)
+                        {
+                            isRunning = (DateTime.Now - lastSeen.Value) <= TimeSpan.FromSeconds(6);
+                        }
 
                         items.Add(new AppHistoryItem
                         {
                             ProcessName = appName,
                             TotalDuration = totalDuration,
                             LaunchCount = launchCount,
+                            IsRunning = isRunning,
                             AverageCpu = avgCpu,
                             AverageMemory = avgMemory
                         });
@@ -315,23 +362,18 @@ ORDER BY total_duration DESC;", conn))
             }
         }
 
-        private int FindOpenSessionId(MySqlConnection conn, string processName)
+        private int FindOpenSessionId(MySqlConnection conn, int processId)
         {
-            if (string.IsNullOrWhiteSpace(processName))
-                return 0;
-
-            int appId = EnsureApplication(processName, activeSessionsPaths.ContainsKey(processName) ? activeSessionsPaths[processName] : "");
-
             using (MySqlCommand cmd = new MySqlCommand(
                 @"SELECT session_id 
                   FROM sessions 
-                  WHERE user_id = @userId AND app_id = @appId AND end_time IS NULL
+                  WHERE user_id = @userId AND process_id = @processId AND end_time IS NULL
                   ORDER BY start_time DESC
                   LIMIT 1;",
                 conn))
             {
                 cmd.Parameters.AddWithValue("@userId", userId);
-                cmd.Parameters.AddWithValue("@appId", appId);
+                cmd.Parameters.AddWithValue("@processId", processId);
                 object result = cmd.ExecuteScalar();
                 if (result == null || result == DBNull.Value)
                     return 0;
@@ -347,6 +389,7 @@ ORDER BY total_duration DESC;", conn))
         public double AverageCpu { get; set; }
         public long AverageMemory { get; set; }
         public int LaunchCount { get; set; }
+        public bool IsRunning { get; set; }
 
         public string FormattedDuration
         {

@@ -18,7 +18,9 @@ namespace TaskManagerPlus.Controls
             this.lblFrom = new System.Windows.Forms.Label();
             this.dateTimePickerStart = new System.Windows.Forms.DateTimePicker();
             this.dataGridViewHistory = new System.Windows.Forms.DataGridView();
-            this.panelStats = new System.Windows.Forms.Panel();
+            this.panelStats = new System.Windows.Forms.TableLayoutPanel();
+            this.lblTopRam = new System.Windows.Forms.Label();
+            this.lblTopCpu = new System.Windows.Forms.Label();
             this.lblMostUsed = new System.Windows.Forms.Label();
             this.lblTotalTime = new System.Windows.Forms.Label();
             this.lblTotalApps = new System.Windows.Forms.Label();
@@ -165,20 +167,57 @@ namespace TaskManagerPlus.Controls
             // panelStats
             // 
             this.panelStats.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
-            this.panelStats.Controls.Add(this.lblMostUsed);
-            this.panelStats.Controls.Add(this.lblTotalTime);
-            this.panelStats.Controls.Add(this.lblTotalApps);
+            this.panelStats.ColumnCount = 5;
+            this.panelStats.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.panelStats.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.panelStats.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.panelStats.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.panelStats.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.panelStats.Controls.Add(this.lblTotalApps, 0, 0);
+            this.panelStats.Controls.Add(this.lblTotalTime, 1, 0);
+            this.panelStats.Controls.Add(this.lblMostUsed, 2, 0);
+            this.panelStats.Controls.Add(this.lblTopCpu, 3, 0);
+            this.panelStats.Controls.Add(this.lblTopRam, 4, 0);
             this.panelStats.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panelStats.GrowStyle = System.Windows.Forms.TableLayoutPanelGrowStyle.FixedSize;
             this.panelStats.Location = new System.Drawing.Point(0, 500);
+            this.panelStats.Margin = new System.Windows.Forms.Padding(0);
             this.panelStats.Name = "panelStats";
+            this.panelStats.Padding = new System.Windows.Forms.Padding(12, 0, 12, 0);
+            this.panelStats.RowCount = 1;
+            this.panelStats.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.panelStats.Size = new System.Drawing.Size(1000, 50);
             this.panelStats.TabIndex = 2;
             // 
+            // lblTopRam
+            // 
+            this.lblTopRam.AutoSize = true;
+            this.lblTopRam.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.lblTopRam.Location = new System.Drawing.Point(922, 18);
+            this.lblTopRam.Margin = new System.Windows.Forms.Padding(12, 18, 0, 0);
+            this.lblTopRam.Name = "lblTopRam";
+            this.lblTopRam.Size = new System.Drawing.Size(82, 15);
+            this.lblTopRam.TabIndex = 4;
+            this.lblTopRam.Text = "Top RAM: N/A";
+            // 
+            // lblTopCpu
+            // 
+            this.lblTopCpu.AutoSize = true;
+            this.lblTopCpu.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.lblTopCpu.Location = new System.Drawing.Point(843, 18);
+            this.lblTopCpu.Margin = new System.Windows.Forms.Padding(12, 18, 0, 0);
+            this.lblTopCpu.Name = "lblTopCpu";
+            this.lblTopCpu.Size = new System.Drawing.Size(79, 15);
+            this.lblTopCpu.TabIndex = 3;
+            this.lblTopCpu.Text = "Top CPU: N/A";
+            // 
             // lblMostUsed
             // 
+            this.lblMostUsed.AutoEllipsis = true;
             this.lblMostUsed.AutoSize = true;
             this.lblMostUsed.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
-            this.lblMostUsed.Location = new System.Drawing.Point(500, 18);
+            this.lblMostUsed.Location = new System.Drawing.Point(276, 18);
+            this.lblMostUsed.Margin = new System.Windows.Forms.Padding(12, 18, 0, 0);
             this.lblMostUsed.Name = "lblMostUsed";
             this.lblMostUsed.Size = new System.Drawing.Size(100, 15);
             this.lblMostUsed.TabIndex = 2;
@@ -188,7 +227,8 @@ namespace TaskManagerPlus.Controls
             // 
             this.lblTotalTime.AutoSize = true;
             this.lblTotalTime.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
-            this.lblTotalTime.Location = new System.Drawing.Point(250, 18);
+            this.lblTotalTime.Location = new System.Drawing.Point(117, 18);
+            this.lblTotalTime.Margin = new System.Windows.Forms.Padding(12, 18, 0, 0);
             this.lblTotalTime.Name = "lblTotalTime";
             this.lblTotalTime.Size = new System.Drawing.Size(90, 15);
             this.lblTotalTime.TabIndex = 1;
@@ -198,7 +238,8 @@ namespace TaskManagerPlus.Controls
             // 
             this.lblTotalApps.AutoSize = true;
             this.lblTotalApps.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
-            this.lblTotalApps.Location = new System.Drawing.Point(15, 18);
+            this.lblTotalApps.Location = new System.Drawing.Point(12, 18);
+            this.lblTotalApps.Margin = new System.Windows.Forms.Padding(0, 18, 0, 0);
             this.lblTotalApps.Name = "lblTotalApps";
             this.lblTotalApps.Size = new System.Drawing.Size(84, 15);
             this.lblTotalApps.TabIndex = 0;
@@ -233,10 +274,12 @@ namespace TaskManagerPlus.Controls
         private System.Windows.Forms.DateTimePicker dateTimePickerEnd;
         private System.Windows.Forms.Button btnRefresh;
         private System.Windows.Forms.DataGridView dataGridViewHistory;
-        private System.Windows.Forms.Panel panelStats;
+        private System.Windows.Forms.TableLayoutPanel panelStats;
         private System.Windows.Forms.Label lblTotalApps;
         private System.Windows.Forms.Label lblTotalTime;
         private System.Windows.Forms.Label lblMostUsed;
+        private System.Windows.Forms.Label lblTopCpu;
+        private System.Windows.Forms.Label lblTopRam;
         private System.Windows.Forms.Button btnLast7Days;
         private System.Windows.Forms.Button btnLast30Days;
         private System.Windows.Forms.Button btnClearData;

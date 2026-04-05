@@ -15,6 +15,8 @@ namespace TaskManagerPlus.Controls
         private BindingList<AppHistoryItem> historyItems;
         private DateTime selectedStartDate;
         private DateTime selectedEndDate;
+        private int loadSequence;
+        private readonly Timer dateChangeTimer;
 
         public AppHistoryTab()
         {
@@ -23,6 +25,8 @@ namespace TaskManagerPlus.Controls
             historyItems = new BindingList<AppHistoryItem>();
             selectedStartDate = DateTime.Today.AddDays(-7);
             selectedEndDate = DateTime.Today;
+            dateChangeTimer = new Timer { Interval = 250 };
+            dateChangeTimer.Tick += DateChangeTimer_Tick;
             SetupLocalizationTags();
         }
 
@@ -40,6 +44,8 @@ namespace TaskManagerPlus.Controls
             
             dateTimePickerStart.ValueChanged += DatePicker_ValueChanged;
             dateTimePickerEnd.ValueChanged += DatePicker_ValueChanged;
+            dateTimePickerStart.CloseUp += DatePicker_CloseUp;
+            dateTimePickerEnd.CloseUp += DatePicker_CloseUp;
         }
 
         private void SetupDataGridView()
@@ -102,6 +108,16 @@ namespace TaskManagerPlus.Controls
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
 
+            dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "IsRunning",
+                Tag = "app_history_col_status",
+                HeaderText = LocalizationService.T("app_history_col_status"),
+                Width = 100,
+                FillWeight = 12,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
+            });
+
             dataGridViewHistory.DataSource = historyItems;
             dataGridViewHistory.CellFormatting += DataGridViewHistory_CellFormatting;
         }
@@ -118,21 +134,43 @@ namespace TaskManagerPlus.Controls
                         e.CellStyle.ForeColor = Color.FromArgb(255, 193, 7);
                 }
             }
+
+            if (dataGridViewHistory.Columns[e.ColumnIndex].DataPropertyName == "IsRunning" && e.RowIndex >= 0)
+            {
+                bool isRunning = false;
+                if (e.Value is bool b) isRunning = b;
+                else if (e.Value != null && bool.TryParse(e.Value.ToString(), out bool parsed)) isRunning = parsed;
+
+                e.Value = isRunning
+                    ? LocalizationService.T("app_history_status_running")
+                    : LocalizationService.T("app_history_status_closed");
+                e.FormattingApplied = true;
+            }
         }
 
         public async Task LoadHistoryAsync()
         {
+            int seq = System.Threading.Interlocked.Increment(ref loadSequence);
             try
             {
                 var items = await Task.Run(() => database.GetAppHistory(selectedStartDate, selectedEndDate));
                 
-                historyItems.Clear();
+                // If a newer load started, drop this result to avoid stale UI
+                if (seq != loadSequence)
+                    return;
+
+                if (seq != loadSequence)
+                    return;
+
+                var newItems = new BindingList<AppHistoryItem>();
                 foreach (var item in items)
                 {
-                    historyItems.Add(item);
+                    newItems.Add(item);
                 }
 
-                UpdateStatistics(items);
+                historyItems = newItems;
+                dataGridViewHistory.DataSource = historyItems;
+                UpdateStatistics(historyItems.ToList());
             }
             catch (Exception ex)
             {
@@ -155,6 +193,8 @@ namespace TaskManagerPlus.Controls
                 lblTotalApps.Text = string.Format(LocalizationService.T("app_history_total_apps_format"), 0);
                 lblTotalTime.Text = string.Format(LocalizationService.T("app_history_total_time_format"), 0, 0);
                 lblMostUsed.Text = LocalizationService.T("app_history_most_used_na");
+                lblTopCpu.Text = LocalizationService.T("app_history_top_na");
+                lblTopRam.Text = LocalizationService.T("app_history_top_na");
                 return;
             }
 
@@ -162,8 +202,16 @@ namespace TaskManagerPlus.Controls
             
             int totalSeconds = items.Sum(i => i.TotalDuration);
             TimeSpan totalTime = TimeSpan.FromSeconds(totalSeconds);
-            lblTotalTime.Text = string.Format(LocalizationService.T("app_history_total_time_format"),
-                (int)totalTime.TotalHours, totalTime.Minutes);
+            if (totalTime.TotalMinutes < 1)
+            {
+                lblTotalTime.Text = string.Format(LocalizationService.T("app_history_total_time_format_short"),
+                    0, totalTime.Seconds);
+            }
+            else
+            {
+                lblTotalTime.Text = string.Format(LocalizationService.T("app_history_total_time_format"),
+                    (int)totalTime.TotalHours, totalTime.Minutes);
+            }
 
             var mostUsed = items.OrderByDescending(i => i.TotalDuration).FirstOrDefault();
             if (mostUsed != null)
@@ -171,12 +219,52 @@ namespace TaskManagerPlus.Controls
                 lblMostUsed.Text = string.Format(LocalizationService.T("app_history_most_used_format"),
                     mostUsed.ProcessName, mostUsed.FormattedDuration);
             }
+
+            var topCpu = items.OrderByDescending(i => i.AverageCpu).FirstOrDefault();
+            if (topCpu != null && topCpu.AverageCpu > 0)
+            {
+                lblTopCpu.Text = string.Format(LocalizationService.T("app_history_top_cpu_format"),
+                    topCpu.ProcessName, topCpu.AverageCpu);
+            }
+            else
+            {
+                lblTopCpu.Text = LocalizationService.T("app_history_top_na");
+            }
+
+            var topRam = items.OrderByDescending(i => i.AverageMemory).FirstOrDefault();
+            if (topRam != null && topRam.AverageMemory > 0)
+            {
+                lblTopRam.Text = string.Format(LocalizationService.T("app_history_top_ram_format"),
+                    topRam.ProcessName, topRam.FormattedMemory);
+            }
+            else
+            {
+                lblTopRam.Text = LocalizationService.T("app_history_top_na");
+            }
         }
 
-        private async void DatePicker_ValueChanged(object sender, EventArgs e)
+        private void DatePicker_ValueChanged(object sender, EventArgs e)
+        {
+            ScheduleHistoryReload();
+        }
+
+        private void DatePicker_CloseUp(object sender, EventArgs e)
+        {
+            ScheduleHistoryReload();
+        }
+
+        private void ScheduleHistoryReload()
         {
             selectedStartDate = dateTimePickerStart.Value.Date;
             selectedEndDate = dateTimePickerEnd.Value.Date;
+
+            dateChangeTimer.Stop();
+            dateChangeTimer.Start();
+        }
+
+        private async void DateChangeTimer_Tick(object sender, EventArgs e)
+        {
+            dateChangeTimer.Stop();
             await LoadHistoryAsync();
         }
 
@@ -191,15 +279,17 @@ namespace TaskManagerPlus.Controls
         {
             dateTimePickerStart.Value = DateTime.Today.AddDays(-7);
             dateTimePickerEnd.Value = DateTime.Today;
+            ScheduleHistoryReload();
         }
 
         private void btnLast30Days_Click(object sender, EventArgs e)
         {
             dateTimePickerStart.Value = DateTime.Today.AddDays(-30);
             dateTimePickerEnd.Value = DateTime.Today;
+            ScheduleHistoryReload();
         }
 
-        private void btnClearData_Click(object sender, EventArgs e)
+        private async void btnClearData_Click(object sender, EventArgs e)
         {
             DialogResult result = MessageBox.Show(
                 LocalizationService.T("app_history_confirm_clear"),
@@ -212,7 +302,7 @@ namespace TaskManagerPlus.Controls
                 try
                 {
                     database.CleanOldData(0); // Delete all
-                    LoadHistoryAsync();
+                    await LoadHistoryAsync();
                     MessageBox.Show(LocalizationService.T("app_history_cleared_success"),
                         LocalizationService.T("common_success_title"),
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -241,6 +331,8 @@ namespace TaskManagerPlus.Controls
             btnLast7Days.Tag = "app_history_last_7_days";
             btnLast30Days.Tag = "app_history_last_30_days";
             btnClearData.Tag = "app_history_clear_data";
+            lblTopCpu.Tag = "app_history_top_cpu_format";
+            lblTopRam.Tag = "app_history_top_ram_format";
         }
     }
 }
