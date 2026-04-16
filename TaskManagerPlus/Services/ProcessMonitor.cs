@@ -74,7 +74,10 @@ namespace TaskManagerPlus.Services
                     }
                     long mem = SafeGetLong(() => p.WorkingSet64, 0L);
 
-                    string filePath = GetExecutablePathWmi(pid);
+
+                    string filePath = "";
+                    try { filePath = p.MainModule?.FileName ?? ""; } catch { } 
+
                     string desc = GetDescriptionCached(p.ProcessName, filePath);
 
                     ProcessInfo info = new ProcessInfo();
@@ -82,7 +85,10 @@ namespace TaskManagerPlus.Services
                     info.ProcessName = p.ProcessName;
                     info.SessionId = sessionId;
 
-                    info.ParentProcessId = GetParentProcessIdWmi(pid);
+                    // We skip ParentProcessId via WMI entirely for real-time performance.
+                    // If we absolutely must group children, we should use NtQueryInformationProcess or create a cached mapping.
+                    // For now, set to 0. 
+                    info.ParentProcessId = 0; 
 
                     info.MemoryBytes = mem;
                     info.MemoryUsage = FormatBytes(mem);

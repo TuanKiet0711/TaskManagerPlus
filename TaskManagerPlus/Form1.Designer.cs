@@ -268,12 +268,14 @@
             // 
             this.numRefreshInterval.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.numRefreshInterval.Location = new System.Drawing.Point(405, 13);
-            this.numRefreshInterval.Maximum = new decimal(new int[] { 60, 0, 0, 0 });
-            this.numRefreshInterval.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            this.numRefreshInterval.Maximum = new decimal(new int[] { 600, 0, 0, 65536 });
+            this.numRefreshInterval.Minimum = new decimal(new int[] { 1, 0, 0, 65536 });
+            this.numRefreshInterval.DecimalPlaces = 1;
+            this.numRefreshInterval.Increment = new decimal(new int[] { 1, 0, 0, 65536 });
             this.numRefreshInterval.Name = "numRefreshInterval";
             this.numRefreshInterval.Size = new System.Drawing.Size(60, 27);
             this.numRefreshInterval.TabIndex = 3;
-            this.numRefreshInterval.Value = new decimal(new int[] { 3, 0, 0, 0 });
+            this.numRefreshInterval.Value = new decimal(new int[] { 1, 0, 0, 0 });
             this.numRefreshInterval.ValueChanged += new System.EventHandler(this.numRefreshInterval_ValueChanged);
 
             // 

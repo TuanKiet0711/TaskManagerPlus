@@ -383,7 +383,7 @@ namespace TaskManagerPlus
 
         private void numRefreshInterval_ValueChanged(object sender, EventArgs e)
         {
-            timerRefresh.Interval = (int)numRefreshInterval.Value * 1000;
+            timerRefresh.Interval = (int)(numRefreshInterval.Value * 1000);
         }
 
         // ===========================
