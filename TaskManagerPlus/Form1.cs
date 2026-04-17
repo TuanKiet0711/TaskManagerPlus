@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -24,6 +24,8 @@ namespace TaskManagerPlus
         private bool _isPaused = false;
         private NotifyIcon trayIcon;
         private ContextMenuStrip trayMenu;
+        private ToolStripMenuItem trayOpenItem;
+        private ToolStripMenuItem trayExitItem;
 
         public Form1()
         {
@@ -82,6 +84,7 @@ namespace TaskManagerPlus
 
             // Apply theo Tag cho toàn bộ control tree + menu/toolstrip...
             UILocalizer.Apply(this);
+            UpdateTrayMenuLanguage();
 
             // lblStatus theo state (không gắn Tag cố định)
             if (!chkAutoRefresh.Checked)
@@ -167,8 +170,10 @@ namespace TaskManagerPlus
         private void InitializeTray()
         {
             trayMenu = new ContextMenuStrip();
-            trayMenu.Items.Add("Open", null, (s, e) => ShowFromTray());
-            trayMenu.Items.Add("Exit", null, (s, e) => ExitFromTray());
+            trayOpenItem = new ToolStripMenuItem(LocalizationService.T("tray_open"), null, (s, e) => ShowFromTray());
+            trayExitItem = new ToolStripMenuItem(LocalizationService.T("tray_exit"), null, (s, e) => ExitFromTray());
+            trayMenu.Items.Add(trayOpenItem);
+            trayMenu.Items.Add(trayExitItem);
 
             trayIcon = new NotifyIcon
             {
@@ -178,6 +183,12 @@ namespace TaskManagerPlus
                 Visible = true
             };
             trayIcon.DoubleClick += (s, e) => ShowFromTray();
+        }
+
+        private void UpdateTrayMenuLanguage()
+        {
+            if (trayOpenItem != null) trayOpenItem.Text = LocalizationService.T("tray_open");
+            if (trayExitItem != null) trayExitItem.Text = LocalizationService.T("tray_exit");
         }
 
         private void ShowFromTray()
@@ -332,9 +343,9 @@ namespace TaskManagerPlus
                 else if (tabControl.SelectedTab == tabAppHistory)
                     await appHistoryTab.LoadAppHistoryAsync();
 
-                // Keep history updated even when not on the tab
-                if (chkAutoRefresh.Checked && tabControl.SelectedTab != tabAppHistory)
-                    await appHistoryTab.LoadAppHistoryAsync();
+                // Do NOT query history in background loop if we are not on the history tab - it causes WMI/JSON lag!
+                // if (chkAutoRefresh.Checked && tabControl.SelectedTab != tabAppHistory)
+                //    await appHistoryTab.LoadAppHistoryAsync();
 
                 // Always update performance tab (lightweight)
                 await performanceTab.UpdatePerformanceAsync();

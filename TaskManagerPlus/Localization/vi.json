@@ -190,5 +190,22 @@
   "battery_condition_replace_soon": "N\u00EAn thay pin",
   "battery_condition_unknown": "Kh\u00F4ng r\u00F5",
   "battery_charge_status_charging": "\u0110ang s\u1EA1c",
-  "battery_charge_status_discharging": "\u0110ang x\u1EA3"
+  "battery_charge_status_discharging": "\u0110ang x\u1EA3",
+
+  "tray_open": "M\u1EDF",
+  "tray_exit": "Tho\u00E1t",
+
+  "processes_explorer_protected": "Windows Explorer c\u1EA7n thi\u1EBFt cho desktop v\u00E0 taskbar, kh\u00F4ng th\u1EC3 k\u1EBFt th\u00FAc t\u1EA1i \u0111\u00E2y.",
+  "processes_tooltip_pid": "PID",
+  "processes_tooltip_desc": "M\u00F4 t\u1EA3",
+  "processes_tooltip_path": "\u0110\u01B0\u1EDDng d\u1EABn",
+
+  "app_detail_sessions": "L\u1ECBch s\u1EED phi\u00EAn",
+  "app_detail_session_start": "Th\u1EDDi \u0111i\u1EC3m m\u1EDF",
+  "app_detail_session_duration": "Th\u1EDDi gian",
+  "app_detail_open_location": "M\u1EDF v\u1ECB tr\u00ED",
+  "app_detail_end_task": "K\u1EBFt th\u00FAc",
+  "app_detail_close": "\u0110\u00F3ng",
+  "app_detail_not_running": "\u1EE8ng d\u1EE5ng n\u00E0y hi\u1EC7n kh\u00F4ng ch\u1EA1y.",
+  "app_detail_location_not_found": "Kh\u00F4ng t\u00ECm th\u1EA5y t\u1EADp tin \u1EE9ng d\u1EE5ng."
 }

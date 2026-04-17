@@ -395,24 +395,32 @@ namespace TaskManagerPlus.Services
         // =========================
         // System info
         // =========================
+        private PerformanceCounter _sysCpuCounter;
+        private PerformanceCounter _sysRamCounter;
         public SystemInfo GetSystemInfo()
         {
             SystemInfo info = new SystemInfo();
 
             try
             {
-                using (PerformanceCounter cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total"))
-                using (PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes"))
+                if (_sysCpuCounter == null)
                 {
-                    cpuCounter.NextValue();
-                    Thread.Sleep(120);
-
-                    info.CpuUsage = cpuCounter.NextValue();
-                    info.AvailableRAM = ramCounter.NextValue();
-
-                    info.TotalRAM = GetTotalPhysicalMemoryMB();
-                    info.UsedRAM = info.TotalRAM - info.AvailableRAM;
+                    _sysCpuCounter = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
+                    _sysCpuCounter.NextValue();
                 }
+                if (_sysRamCounter == null)
+                {
+                    _sysRamCounter = new PerformanceCounter("Memory", "Available MBytes");
+                    _sysRamCounter.NextValue();
+                }
+
+                float cpuVal = _sysCpuCounter.NextValue();
+                if (cpuVal > 100f) cpuVal = 100f;
+                info.CpuUsage = cpuVal;
+
+                info.AvailableRAM = _sysRamCounter.NextValue();
+                info.TotalRAM = GetTotalPhysicalMemoryMB();
+                info.UsedRAM = info.TotalRAM - info.AvailableRAM;
 
                 Process[] ps = Process.GetProcesses();
                 info.ProcessCount = ps.Length;

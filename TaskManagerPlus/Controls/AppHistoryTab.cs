@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using TaskManagerPlus.Models;
 using TaskManagerPlus.Services;
 
 namespace TaskManagerPlus.Controls
@@ -53,15 +54,55 @@ namespace TaskManagerPlus.Controls
             dataGridViewHistory.AutoGenerateColumns = false;
             dataGridViewHistory.Columns.Clear();
             dataGridViewHistory.DoubleBuffered(true);
-            dataGridViewHistory.RowTemplate.Height = 28;
+            dataGridViewHistory.RowTemplate.Height = 32;
+
+            // Make it match Processes tab UI style (Win 11)
+            dataGridViewHistory.BackgroundColor = Color.White;
+            dataGridViewHistory.BorderStyle = BorderStyle.None;
+            dataGridViewHistory.EnableHeadersVisualStyles = false;
+            dataGridViewHistory.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dataGridViewHistory.GridColor = Color.FromArgb(240, 240, 240);
+            dataGridViewHistory.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dataGridViewHistory.AllowUserToResizeRows = false;
+
+            DataGridViewCellStyle headerStyle = new DataGridViewCellStyle();
+            headerStyle.BackColor = Color.White;
+            headerStyle.ForeColor = Color.FromArgb(60, 60, 60);
+            headerStyle.Font = new Font("Segoe UI Semibold", 9.5f, FontStyle.Bold);
+            headerStyle.SelectionBackColor = Color.White;
+            headerStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            headerStyle.Padding = new Padding(5, 5, 5, 5);
+            dataGridViewHistory.ColumnHeadersDefaultCellStyle = headerStyle;
+            dataGridViewHistory.ColumnHeadersHeight = 35;
+            dataGridViewHistory.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+
+            DataGridViewCellStyle cellStyle = new DataGridViewCellStyle();
+            cellStyle.BackColor = Color.White;
+            cellStyle.ForeColor = Color.FromArgb(30, 30, 30);
+            cellStyle.SelectionBackColor = Color.FromArgb(230, 242, 255);
+            cellStyle.SelectionForeColor = Color.Black;
+            cellStyle.Font = new Font("Segoe UI", 9f, FontStyle.Regular);
+            cellStyle.Padding = new Padding(2);
+            dataGridViewHistory.DefaultCellStyle = cellStyle;
+
+            dataGridViewHistory.Columns.Add(new DataGridViewImageColumn
+            {
+                Name = "Icon",
+                DataPropertyName = "Icon",
+                HeaderText = "",
+                Width = 32,
+                MinimumWidth = 32,
+                FillWeight = 5,
+                ImageLayout = DataGridViewImageCellLayout.Zoom,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter, NullValue = null }
+            });
 
             dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "ProcessName",
                 Tag = "app_history_col_application",
                 HeaderText = LocalizationService.T("app_history_col_application"),
-                Width = 250,
-                FillWeight = 30
+                FillWeight = 25
             });
 
             dataGridViewHistory.Columns.Add(new DataGridViewTextBoxColumn
@@ -69,8 +110,7 @@ namespace TaskManagerPlus.Controls
                 DataPropertyName = "FormattedDuration",
                 Tag = "app_history_col_total_runtime",
                 HeaderText = LocalizationService.T("app_history_col_total_runtime"),
-                Width = 120,
-                FillWeight = 15,
+                FillWeight = 20,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
 
@@ -79,8 +119,7 @@ namespace TaskManagerPlus.Controls
                 DataPropertyName = "AverageCpu",
                 Tag = "app_history_col_avg_cpu",
                 HeaderText = LocalizationService.T("app_history_col_avg_cpu"),
-                Width = 100,
-                FillWeight = 12,
+                FillWeight = 10,
                 DefaultCellStyle = new DataGridViewCellStyle 
                 { 
                     Alignment = DataGridViewContentAlignment.MiddleRight,
@@ -93,7 +132,6 @@ namespace TaskManagerPlus.Controls
                 DataPropertyName = "FormattedMemory",
                 Tag = "app_history_col_avg_memory",
                 HeaderText = LocalizationService.T("app_history_col_avg_memory"),
-                Width = 120,
                 FillWeight = 15,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
@@ -103,8 +141,7 @@ namespace TaskManagerPlus.Controls
                 DataPropertyName = "LaunchCount",
                 Tag = "app_history_col_launch_count",
                 HeaderText = LocalizationService.T("app_history_col_launch_count"),
-                Width = 100,
-                FillWeight = 12,
+                FillWeight = 10,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
 
@@ -113,13 +150,85 @@ namespace TaskManagerPlus.Controls
                 DataPropertyName = "IsRunning",
                 Tag = "app_history_col_status",
                 HeaderText = LocalizationService.T("app_history_col_status"),
-                Width = 100,
-                FillWeight = 12,
+                FillWeight = 15,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
             });
 
             dataGridViewHistory.DataSource = historyItems;
             dataGridViewHistory.CellFormatting += DataGridViewHistory_CellFormatting;
+            dataGridViewHistory.ColumnHeaderMouseClick += DataGridViewHistory_ColumnHeaderMouseClick;
+            dataGridViewHistory.CellClick += DataGridViewHistory_CellClick;
+            dataGridViewHistory.CellDoubleClick += DataGridViewHistory_CellDoubleClick;
+        }
+
+        private void DataGridViewHistory_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.RowIndex < historyItems.Count)
+                ShowAppDetails(historyItems[e.RowIndex]);
+        }
+
+        private void DataGridViewHistory_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.RowIndex < historyItems.Count)
+                ShowAppDetails(historyItems[e.RowIndex]);
+        }
+
+        private void ShowAppDetails(AppHistoryItem item)
+        {
+            var sessions = database.GetSessionsForApp(item.ProcessName, selectedStartDate, selectedEndDate);
+            using (var form = new AppDetailForm(item, sessions))
+                form.ShowDialog(this.FindForm());
+        }
+
+        private string currentSortColumn = "FormattedDuration";
+        private bool sortAscending = false;
+
+        private void DataGridViewHistory_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            string columnName = dataGridViewHistory.Columns[e.ColumnIndex].DataPropertyName;
+
+            if (currentSortColumn == columnName)
+                sortAscending = !sortAscending;
+            else
+            {
+                currentSortColumn = columnName;
+                sortAscending = false;
+            }
+
+            foreach (DataGridViewColumn col in dataGridViewHistory.Columns)
+                col.HeaderCell.SortGlyphDirection = SortOrder.None;
+
+            dataGridViewHistory.Columns[e.ColumnIndex].HeaderCell.SortGlyphDirection =
+                sortAscending ? SortOrder.Ascending : SortOrder.Descending;
+
+            SortHistoryList();
+        }
+
+        private void SortHistoryList()
+        {
+            if (historyItems == null || historyItems.Count == 0) return;
+
+            var list = historyItems.ToList();
+            IEnumerable<AppHistoryItem> sorted = list;
+
+            if (currentSortColumn == "ProcessName")
+                sorted = sortAscending ? list.OrderBy(x => x.ProcessName) : list.OrderByDescending(x => x.ProcessName);
+            else if (currentSortColumn == "FormattedDuration")
+                sorted = sortAscending ? list.OrderBy(x => x.TotalDuration) : list.OrderByDescending(x => x.TotalDuration);
+            else if (currentSortColumn == "AverageCpu")
+                sorted = sortAscending ? list.OrderBy(x => x.AverageCpu) : list.OrderByDescending(x => x.AverageCpu);
+            else if (currentSortColumn == "FormattedMemory")
+                sorted = sortAscending ? list.OrderBy(x => x.AverageMemory) : list.OrderByDescending(x => x.AverageMemory);
+            else if (currentSortColumn == "LaunchCount")
+                sorted = sortAscending ? list.OrderBy(x => x.LaunchCount) : list.OrderByDescending(x => x.LaunchCount);
+            else if (currentSortColumn == "IsRunning")
+                sorted = sortAscending ? list.OrderBy(x => x.IsRunning) : list.OrderByDescending(x => x.IsRunning);
+
+            var newItems = new BindingList<AppHistoryItem>();
+            foreach (var item in sorted) newItems.Add(item);
+
+            historyItems = newItems;
+            dataGridViewHistory.DataSource = historyItems;
         }
 
         private void DataGridViewHistory_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
@@ -154,23 +263,51 @@ namespace TaskManagerPlus.Controls
             try
             {
                 var items = await Task.Run(() => database.GetAppHistory(selectedStartDate, selectedEndDate));
-                
-                // If a newer load started, drop this result to avoid stale UI
-                if (seq != loadSequence)
-                    return;
 
                 if (seq != loadSequence)
                     return;
 
-                var newItems = new BindingList<AppHistoryItem>();
-                foreach (var item in items)
+                // Load icons in background (multi-strategy)
+                await Task.Run(() =>
                 {
-                    newItems.Add(item);
+                    foreach (var item in items)
+                    {
+                        try
+                        {
+                            var bestIcon = IconHelper.GetBestIcon(item.ProcessName, item.ExePath);
+                            item.Icon = bestIcon != null
+                                ? bestIcon.ToBitmap()
+                                : IconHelper.GetPlaceholderBitmap(item.ProcessName, 24);
+                        }
+                        catch
+                        {
+                            item.Icon = IconHelper.GetPlaceholderBitmap(item.ProcessName, 24);
+                        }
+                    }
+                });
+
+                if (seq != loadSequence)
+                    return;
+
+                if (historyItems.Count == 0 || items.Count != historyItems.Count)
+                {
+                    var newItems = new BindingList<AppHistoryItem>();
+                    foreach (var item in items) newItems.Add(item);
+                    historyItems = newItems;
+                    dataGridViewHistory.DataSource = historyItems;
+                }
+                else
+                {
+                    for (int i = 0; i < items.Count; i++)
+                    {
+                        if (items[i].Icon == null)
+                            items[i].Icon = historyItems[i].Icon;
+                        historyItems[i] = items[i];
+                    }
+                    dataGridViewHistory.Invalidate();
                 }
 
-                historyItems = newItems;
-                dataGridViewHistory.DataSource = historyItems;
-                UpdateStatistics(historyItems.ToList());
+                UpdateStatistics(items);
             }
             catch (Exception ex)
             {

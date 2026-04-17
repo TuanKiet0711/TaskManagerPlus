@@ -110,7 +110,7 @@
             this.tabControl.Controls.Add(this.tabStartup);
             this.tabControl.Controls.Add(this.tabAppHistory);
             this.tabControl.Font = new System.Drawing.Font("Segoe UI", 9.75F);
-            this.tabControl.ItemSize = new System.Drawing.Size(110, 32);
+            this.tabControl.ItemSize = new System.Drawing.Size(120, 32);
             this.tabControl.Location = new System.Drawing.Point(0, 93); // 28 menu + 65 top panel
             this.tabControl.Name = "tabControl";
             this.tabControl.SelectedIndex = 0;

@@ -33,6 +33,12 @@ namespace TaskManagerPlus.Controls
             this.lblDetail3Value = new System.Windows.Forms.Label();
             this.lblDetail4 = new System.Windows.Forms.Label();
             this.lblDetail4Value = new System.Windows.Forms.Label();
+            this.lblDetail5 = new System.Windows.Forms.Label();
+            this.lblDetail5Value = new System.Windows.Forms.Label();
+            this.lblDetail6 = new System.Windows.Forms.Label();
+            this.lblDetail6Value = new System.Windows.Forms.Label();
+            this.lblDetail7 = new System.Windows.Forms.Label();
+            this.lblDetail7Value = new System.Windows.Forms.Label();
             this.lblTitle = new System.Windows.Forms.Label();
             this.lblSubtitle = new System.Windows.Forms.Label();
             this.panelMain.SuspendLayout();
@@ -52,18 +58,16 @@ namespace TaskManagerPlus.Controls
             // 
             // panelMain
             // 
-            this.panelMain.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.panelMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panelMain.BackColor = System.Drawing.Color.White;
             this.panelMain.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.panelMain.Controls.Add(this.lblSubtitle);
             this.panelMain.Controls.Add(this.lblTitle);
-            this.panelMain.Controls.Add(this.panelDetails);
             this.panelMain.Controls.Add(this.pictureBoxMain);
-            this.panelMain.Location = new System.Drawing.Point(230, 10);
+            this.panelMain.Controls.Add(this.panelDetails);
+            this.panelMain.Location = new System.Drawing.Point(220, 0);
             this.panelMain.Name = "panelMain";
-            this.panelMain.Size = new System.Drawing.Size(750, 640);
+            this.panelMain.Size = new System.Drawing.Size(530, 660);
             this.panelMain.TabIndex = 1;
             // 
             // pictureBoxMain
@@ -74,14 +78,20 @@ namespace TaskManagerPlus.Controls
             this.pictureBoxMain.BackColor = System.Drawing.Color.White;
             this.pictureBoxMain.Location = new System.Drawing.Point(15, 80);
             this.pictureBoxMain.Name = "pictureBoxMain";
-            this.pictureBoxMain.Size = new System.Drawing.Size(480, 400);
+            this.pictureBoxMain.Size = new System.Drawing.Size(480, 260);
             this.pictureBoxMain.TabIndex = 0;
             this.pictureBoxMain.TabStop = false;
             // 
             // panelDetails
             // 
-            this.panelDetails.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.panelDetails.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panelDetails.AutoScroll = true;
+            this.panelDetails.Controls.Add(this.lblDetail7Value);
+            this.panelDetails.Controls.Add(this.lblDetail7);
+            this.panelDetails.Controls.Add(this.lblDetail6Value);
+            this.panelDetails.Controls.Add(this.lblDetail6);
+            this.panelDetails.Controls.Add(this.lblDetail5Value);
+            this.panelDetails.Controls.Add(this.lblDetail5);
             this.panelDetails.Controls.Add(this.lblDetail4Value);
             this.panelDetails.Controls.Add(this.lblDetail4);
             this.panelDetails.Controls.Add(this.lblDetail3Value);
@@ -94,9 +104,9 @@ namespace TaskManagerPlus.Controls
             this.panelDetails.Controls.Add(this.lblSpeed);
             this.panelDetails.Controls.Add(this.lblUtilizationValue);
             this.panelDetails.Controls.Add(this.lblUtilization);
-            this.panelDetails.Location = new System.Drawing.Point(510, 80);
+            this.panelDetails.Location = new System.Drawing.Point(0, 460);
             this.panelDetails.Name = "panelDetails";
-            this.panelDetails.Size = new System.Drawing.Size(225, 545);
+            this.panelDetails.Size = new System.Drawing.Size(530, 200);
             this.panelDetails.TabIndex = 1;
             // 
             // lblUtilization
@@ -104,7 +114,7 @@ namespace TaskManagerPlus.Controls
             this.lblUtilization.AutoSize = true;
             this.lblUtilization.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblUtilization.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
-            this.lblUtilization.Location = new System.Drawing.Point(10, 20);
+            this.lblUtilization.Location = new System.Drawing.Point(10, 10);
             this.lblUtilization.Name = "lblUtilization";
             this.lblUtilization.Size = new System.Drawing.Size(66, 15);
             this.lblUtilization.TabIndex = 0;
@@ -113,8 +123,8 @@ namespace TaskManagerPlus.Controls
             // lblUtilizationValue
             // 
             this.lblUtilizationValue.AutoSize = true;
-            this.lblUtilizationValue.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
-            this.lblUtilizationValue.Location = new System.Drawing.Point(130, 20);
+            this.lblUtilizationValue.Font = new System.Drawing.Font("Segoe UI", 20F, System.Drawing.FontStyle.Regular);
+            this.lblUtilizationValue.Location = new System.Drawing.Point(10, 30);
             this.lblUtilizationValue.Name = "lblUtilizationValue";
             this.lblUtilizationValue.Size = new System.Drawing.Size(26, 15);
             this.lblUtilizationValue.TabIndex = 1;
@@ -125,7 +135,7 @@ namespace TaskManagerPlus.Controls
             this.lblSpeed.AutoSize = true;
             this.lblSpeed.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblSpeed.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
-            this.lblSpeed.Location = new System.Drawing.Point(10, 50);
+            this.lblSpeed.Location = new System.Drawing.Point(100, 10);
             this.lblSpeed.Name = "lblSpeed";
             this.lblSpeed.Size = new System.Drawing.Size(42, 15);
             this.lblSpeed.TabIndex = 2;
@@ -134,8 +144,8 @@ namespace TaskManagerPlus.Controls
             // lblSpeedValue
             // 
             this.lblSpeedValue.AutoSize = true;
-            this.lblSpeedValue.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
-            this.lblSpeedValue.Location = new System.Drawing.Point(130, 50);
+            this.lblSpeedValue.Font = new System.Drawing.Font("Segoe UI", 20F, System.Drawing.FontStyle.Regular);
+            this.lblSpeedValue.Location = new System.Drawing.Point(100, 30);
             this.lblSpeedValue.Name = "lblSpeedValue";
             this.lblSpeedValue.Size = new System.Drawing.Size(28, 15);
             this.lblSpeedValue.TabIndex = 3;
@@ -146,7 +156,7 @@ namespace TaskManagerPlus.Controls
             this.lblDetail1.AutoSize = true;
             this.lblDetail1.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblDetail1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
-            this.lblDetail1.Location = new System.Drawing.Point(10, 90);
+            this.lblDetail1.Location = new System.Drawing.Point(280, 10);
             this.lblDetail1.Name = "lblDetail1";
             this.lblDetail1.Size = new System.Drawing.Size(48, 15);
             this.lblDetail1.TabIndex = 4;
@@ -155,8 +165,8 @@ namespace TaskManagerPlus.Controls
             // lblDetail1Value
             // 
             this.lblDetail1Value.AutoSize = true;
-            this.lblDetail1Value.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
-            this.lblDetail1Value.Location = new System.Drawing.Point(130, 90);
+            this.lblDetail1Value.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular);
+            this.lblDetail1Value.Location = new System.Drawing.Point(380, 10);
             this.lblDetail1Value.Name = "lblDetail1Value";
             this.lblDetail1Value.Size = new System.Drawing.Size(28, 15);
             this.lblDetail1Value.TabIndex = 5;
@@ -167,7 +177,7 @@ namespace TaskManagerPlus.Controls
             this.lblDetail2.AutoSize = true;
             this.lblDetail2.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblDetail2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
-            this.lblDetail2.Location = new System.Drawing.Point(10, 120);
+            this.lblDetail2.Location = new System.Drawing.Point(280, 30);
             this.lblDetail2.Name = "lblDetail2";
             this.lblDetail2.Size = new System.Drawing.Size(48, 15);
             this.lblDetail2.TabIndex = 6;
@@ -176,8 +186,8 @@ namespace TaskManagerPlus.Controls
             // lblDetail2Value
             // 
             this.lblDetail2Value.AutoSize = true;
-            this.lblDetail2Value.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
-            this.lblDetail2Value.Location = new System.Drawing.Point(130, 120);
+            this.lblDetail2Value.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular);
+            this.lblDetail2Value.Location = new System.Drawing.Point(380, 30);
             this.lblDetail2Value.Name = "lblDetail2Value";
             this.lblDetail2Value.Size = new System.Drawing.Size(28, 15);
             this.lblDetail2Value.TabIndex = 7;
@@ -188,7 +198,7 @@ namespace TaskManagerPlus.Controls
             this.lblDetail3.AutoSize = true;
             this.lblDetail3.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblDetail3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
-            this.lblDetail3.Location = new System.Drawing.Point(10, 150);
+            this.lblDetail3.Location = new System.Drawing.Point(280, 50);
             this.lblDetail3.Name = "lblDetail3";
             this.lblDetail3.Size = new System.Drawing.Size(48, 15);
             this.lblDetail3.TabIndex = 8;
@@ -197,8 +207,8 @@ namespace TaskManagerPlus.Controls
             // lblDetail3Value
             // 
             this.lblDetail3Value.AutoSize = true;
-            this.lblDetail3Value.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
-            this.lblDetail3Value.Location = new System.Drawing.Point(130, 150);
+            this.lblDetail3Value.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular);
+            this.lblDetail3Value.Location = new System.Drawing.Point(380, 50);
             this.lblDetail3Value.Name = "lblDetail3Value";
             this.lblDetail3Value.Size = new System.Drawing.Size(28, 15);
             this.lblDetail3Value.TabIndex = 9;
@@ -209,7 +219,7 @@ namespace TaskManagerPlus.Controls
             this.lblDetail4.AutoSize = true;
             this.lblDetail4.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblDetail4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
-            this.lblDetail4.Location = new System.Drawing.Point(10, 180);
+            this.lblDetail4.Location = new System.Drawing.Point(280, 70);
             this.lblDetail4.Name = "lblDetail4";
             this.lblDetail4.Size = new System.Drawing.Size(48, 15);
             this.lblDetail4.TabIndex = 10;
@@ -218,12 +228,75 @@ namespace TaskManagerPlus.Controls
             // lblDetail4Value
             // 
             this.lblDetail4Value.AutoSize = true;
-            this.lblDetail4Value.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
-            this.lblDetail4Value.Location = new System.Drawing.Point(130, 180);
+            this.lblDetail4Value.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular);
+            this.lblDetail4Value.Location = new System.Drawing.Point(380, 70);
             this.lblDetail4Value.Name = "lblDetail4Value";
             this.lblDetail4Value.Size = new System.Drawing.Size(28, 15);
             this.lblDetail4Value.TabIndex = 11;
             this.lblDetail4Value.Text = "N/A";
+            // 
+            // lblDetail5
+            // 
+            this.lblDetail5.AutoSize = true;
+            this.lblDetail5.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblDetail5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.lblDetail5.Location = new System.Drawing.Point(280, 90);
+            this.lblDetail5.Name = "lblDetail5";
+            this.lblDetail5.Size = new System.Drawing.Size(48, 15);
+            this.lblDetail5.TabIndex = 12;
+            this.lblDetail5.Text = "Detail 5:";
+            // 
+            // lblDetail5Value
+            // 
+            this.lblDetail5Value.AutoSize = true;
+            this.lblDetail5Value.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular);
+            this.lblDetail5Value.Location = new System.Drawing.Point(380, 90);
+            this.lblDetail5Value.Name = "lblDetail5Value";
+            this.lblDetail5Value.Size = new System.Drawing.Size(28, 15);
+            this.lblDetail5Value.TabIndex = 13;
+            this.lblDetail5Value.Text = "N/A";
+            // 
+            // lblDetail6
+            // 
+            this.lblDetail6.AutoSize = true;
+            this.lblDetail6.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblDetail6.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.lblDetail6.Location = new System.Drawing.Point(280, 110);
+            this.lblDetail6.Name = "lblDetail6";
+            this.lblDetail6.Size = new System.Drawing.Size(48, 15);
+            this.lblDetail6.TabIndex = 14;
+            this.lblDetail6.Text = "Detail 6:";
+            // 
+            // lblDetail6Value
+            // 
+            this.lblDetail6Value.AutoSize = true;
+            this.lblDetail6Value.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular);
+            this.lblDetail6Value.Location = new System.Drawing.Point(380, 110);
+            this.lblDetail6Value.Name = "lblDetail6Value";
+            this.lblDetail6Value.Size = new System.Drawing.Size(28, 15);
+            this.lblDetail6Value.TabIndex = 15;
+            this.lblDetail6Value.Text = "N/A";
+            // 
+            // lblDetail7
+            // 
+            this.lblDetail7.AutoSize = true;
+            this.lblDetail7.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblDetail7.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.lblDetail7.Location = new System.Drawing.Point(280, 130);
+            this.lblDetail7.Name = "lblDetail7";
+            this.lblDetail7.Size = new System.Drawing.Size(48, 15);
+            this.lblDetail7.TabIndex = 16;
+            this.lblDetail7.Text = "Detail 7:";
+            // 
+            // lblDetail7Value
+            // 
+            this.lblDetail7Value.AutoSize = true;
+            this.lblDetail7Value.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular);
+            this.lblDetail7Value.Location = new System.Drawing.Point(380, 130);
+            this.lblDetail7Value.Name = "lblDetail7Value";
+            this.lblDetail7Value.Size = new System.Drawing.Size(28, 15);
+            this.lblDetail7Value.TabIndex = 17;
+            this.lblDetail7Value.Text = "N/A";
             // 
             // lblTitle
             // 
@@ -265,6 +338,19 @@ namespace TaskManagerPlus.Controls
             this.ResumeLayout(false);
 
         }
+
+        // lblDetail5
+        private System.Windows.Forms.Label lblDetail5;
+        // lblDetail5Value
+        private System.Windows.Forms.Label lblDetail5Value;
+        // lblDetail6
+        private System.Windows.Forms.Label lblDetail6;
+        // lblDetail6Value
+        private System.Windows.Forms.Label lblDetail6Value;
+        // lblDetail7
+        private System.Windows.Forms.Label lblDetail7;
+        // lblDetail7Value
+        private System.Windows.Forms.Label lblDetail7Value;
 
         #endregion
 

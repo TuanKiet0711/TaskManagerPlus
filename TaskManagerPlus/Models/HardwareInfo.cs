@@ -22,6 +22,7 @@ namespace TaskManagerPlus.Models
         public int LogicalProcessors { get; set; }
         public double BaseSpeed { get; set; }
         public double CurrentSpeed { get; set; }
+        public int Sockets { get; set; }
         public string CacheL1 { get; set; }
         public string CacheL2 { get; set; }
         public string CacheL3 { get; set; }

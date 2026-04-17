@@ -47,7 +47,9 @@ namespace TaskManagerPlus.Services
                 IsCpuEnabled = true,
                 IsGpuEnabled = true,
                 IsStorageEnabled = true,
-                IsMotherboardEnabled = true
+                IsMotherboardEnabled = true,
+                IsMemoryEnabled = true,
+                IsNetworkEnabled = true
             };
             try
             {
@@ -92,6 +94,9 @@ namespace TaskManagerPlus.Services
                             LogicalProcessors = Convert.ToInt32(obj["NumberOfLogicalProcessors"] ?? 0),
                             BaseSpeed = Convert.ToDouble(obj["MaxClockSpeed"] ?? 0) / 1000.0,
                             CurrentSpeed = Convert.ToDouble(obj["CurrentClockSpeed"] ?? 0) / 1000.0,
+                            CacheL2 = obj["L2CacheSize"] != null ? $"{obj["L2CacheSize"]} KB" : "N/A",
+                            CacheL3 = obj["L3CacheSize"] != null ? $"{Convert.ToDouble(obj["L3CacheSize"])/1024.0:F1} MB" : "N/A",
+                            Sockets = 1,
                             Temperature = GetCpuTemperature(),
                             Usage = 0,
                             Type = "CPU"
@@ -281,16 +286,18 @@ namespace TaskManagerPlus.Services
 
             foreach (SensorReading sensor in sensors.Where(s => s.Value > 0 || (s.Min.HasValue && s.Min.Value > 0) || (s.Max.HasValue && s.Max.Value > 0)))
             {
+                // Thay đổi Key hoặc Name cho dễ nhìn, hoặc giữ nguyên
                 TemperatureEntry entry = new TemperatureEntry
                 {
                     Key = $"temp::{sensor.HardwareType}::{sensor.Identifier}",
-                    Name = $"{sensor.HardwareName} - {sensor.SensorName}",
+                    Name = $"{sensor.HardwareName} ({sensor.HardwareType}) - {sensor.SensorName}", // Giúp hiển thị có thêm HardwareType (CPU/GPU)
                     Reading = ToTemperatureReading(sensor)
                 };
                 result.Add(entry);
             }
 
             bool hasCpuTemps = sensors.Any(s => s.HardwareType == HardwareType.Cpu);
+            bool hasGpuTemps = sensors.Any(s => s.HardwareType == HardwareType.GpuNvidia || s.HardwareType == HardwareType.GpuAmd || s.HardwareType == HardwareType.GpuIntel);
             bool hasStorageTemps = sensors.Any(s => s.HardwareType == HardwareType.Storage);
 
             if (!hasCpuTemps)
@@ -312,9 +319,40 @@ namespace TaskManagerPlus.Services
                 result.AddRange(GetSmartTemperatureEntries());
             }
 
+            if (!hasGpuTemps)
+            {
+                double wmiGpuTemp = GetWmiGpuTemperature();
+                if (wmiGpuTemp > 0)
+                {
+                    result.Add(new TemperatureEntry
+                    {
+                        Key = "temp::fallback::gpu",
+                        Name = "GPU (WMI)",
+                        Reading = new TemperatureReading { Current = wmiGpuTemp }
+                    });
+                }
+            }
+
             return result
                 .OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        }
+
+        private double GetWmiGpuTemperature()
+        {
+            try
+            {
+                using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM MSAcpi_ThermalZoneTemperature WHERE InstanceName LIKE '%GFX%' OR InstanceName LIKE '%GPU%'"))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        double temp = Convert.ToDouble(obj["CurrentTemperature"]);
+                        return (temp - 2732) / 10.0;
+                    }
+                }
+            }
+            catch { }
+            return 0;
         }
 
         private List<SensorReading> GetTemperatureSensors()
@@ -461,6 +499,37 @@ namespace TaskManagerPlus.Services
 
         private double GetCpuTemperature()
         {
+            if (computer != null)
+            {
+                try
+                {
+                    computer.Accept(new UpdateVisitor());
+                    double packageTemp = 0;
+                    double fallbackTemp = 0;
+
+                    foreach (var hw in computer.Hardware)
+                    {
+                        if (hw.HardwareType == HardwareType.Cpu)
+                        {
+                            foreach (var sensor in hw.Sensors)
+                            {
+                                if (sensor.SensorType == SensorType.Temperature && sensor.Value.HasValue)
+                                {
+                                    if (sensor.Name.IndexOf("Package", StringComparison.OrdinalIgnoreCase) >= 0)
+                                        packageTemp = sensor.Value.Value;
+                                    else
+                                        fallbackTemp = sensor.Value.Value;
+                                }
+                            }
+                        }
+                    }
+
+                    if (packageTemp > 0) return packageTemp;
+                    if (fallbackTemp > 0) return fallbackTemp;
+                }
+                catch { }
+            }
+
             try
             {
                 using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM MSAcpi_ThermalZoneTemperature"))
@@ -478,13 +547,55 @@ namespace TaskManagerPlus.Services
 
         private double GetGpuTemperature(int gpuIndex)
         {
-            // GPU temperature requires specific drivers/software
-            // This is a placeholder - would need OpenHardwareMonitor or similar
-            return 0;
+            if (computer != null)
+            {
+                try
+                {
+                    computer.Accept(new UpdateVisitor());
+                    int index = 0;
+                    foreach (var hw in computer.Hardware)
+                    {
+                        if (hw.HardwareType == HardwareType.GpuNvidia || hw.HardwareType == HardwareType.GpuAmd || hw.HardwareType == HardwareType.GpuIntel)
+                        {
+                            if (index == gpuIndex)
+                            {
+                                foreach (var sensor in hw.Sensors)
+                                {
+                                    if (sensor.SensorType == SensorType.Temperature && sensor.Value.HasValue)
+                                        return sensor.Value.Value;
+                                }
+                            }
+                            index++;
+                        }
+                    }
+                }
+                catch { }
+            }
+            return GetWmiGpuTemperature();
         }
 
         private double GetDiskTemperature(char driveLetter)
         {
+            if (computer != null)
+            {
+                try
+                {
+                    computer.Accept(new UpdateVisitor());
+                    foreach (var hw in computer.Hardware)
+                    {
+                        if (hw.HardwareType == HardwareType.Storage)
+                        {
+                            foreach (var sensor in hw.Sensors)
+                            {
+                                if (sensor.SensorType == SensorType.Temperature && sensor.Value.HasValue && sensor.Value.Value > 0)
+                                    return sensor.Value.Value;
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+
             try
             {
                 using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM MSStorageDriver_ATAPISmartData"))
@@ -494,15 +605,14 @@ namespace TaskManagerPlus.Services
                         byte[] smartData = (byte[])obj["VendorSpecific"];
                         if (smartData != null && smartData.Length > 0)
                         {
-                            // Parse SMART data for temperature (attribute 194)
-                            // This is simplified - real implementation needs proper SMART parsing
-                            return 0;
+                            int temp = ExtractSmartTemperature(smartData);
+                            if (temp > 0) return temp;
                         }
                     }
                 }
             }
             catch { }
-            return 0;
+            return 0; // Giữ lại như cũ nếu không lấy được
         }
 
         private double GetGpuUsage(int gpuIndex)

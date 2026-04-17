@@ -190,5 +190,22 @@
   "battery_condition_replace_soon": "Replace Soon",
   "battery_condition_unknown": "Unknown",
   "battery_charge_status_charging": "Charging",
-  "battery_charge_status_discharging": "Discharging"
+  "battery_charge_status_discharging": "Discharging",
+
+  "tray_open": "Open",
+  "tray_exit": "Exit",
+
+  "processes_explorer_protected": "Windows Explorer is required for the desktop and taskbar and cannot be ended here.",
+  "processes_tooltip_pid": "PID",
+  "processes_tooltip_desc": "Description",
+  "processes_tooltip_path": "Path",
+
+  "app_detail_sessions": "Session History",
+  "app_detail_session_start": "Start Time",
+  "app_detail_session_duration": "Duration",
+  "app_detail_open_location": "Open Location",
+  "app_detail_end_task": "End Task",
+  "app_detail_close": "Close",
+  "app_detail_not_running": "This application is not currently running.",
+  "app_detail_location_not_found": "Could not locate the application file."
 }

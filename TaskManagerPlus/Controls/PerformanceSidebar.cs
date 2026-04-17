@@ -21,7 +21,8 @@ namespace TaskManagerPlus.Controls
             hardwareItems = new List<HardwareItem>();
             this.DoubleBuffered = true;
             this.BackColor = Color.FromArgb(240, 240, 240);
-            
+            this.SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+
             // Create scrollable panel
             scrollPanel = new Panel
             {
@@ -29,6 +30,9 @@ namespace TaskManagerPlus.Controls
                 AutoScroll = true,
                 BackColor = Color.FromArgb(240, 240, 240)
             };
+            // Use double buffering for scroll panel to prevent flickering
+            typeof(Panel).InvokeMember("DoubleBuffered", System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, scrollPanel, new object[] { true });
+
             scrollPanel.Paint += ScrollPanel_Paint;
             scrollPanel.MouseClick += ScrollPanel_MouseClick;
             this.Controls.Add(scrollPanel);
@@ -41,19 +45,22 @@ namespace TaskManagerPlus.Controls
                 Name = name,
                 Usage = usage,
                 History = new Queue<double>(history),
-                Color = color
+                Color = color,
+                ExtraInfo = ""
             };
             hardwareItems.Add(item);
             UpdateScrollPanelHeight();
             scrollPanel.Invalidate();
         }
 
-        public void UpdateItem(int index, string usage, Queue<double> history)
+        public void UpdateItem(int index, string usage, Queue<double> history, string extraInfo = "")
         {
             if (index >= 0 && index < hardwareItems.Count)
             {
                 hardwareItems[index].Usage = usage;
                 hardwareItems[index].History = new Queue<double>(history);
+                if (extraInfo != "")
+                    hardwareItems[index].ExtraInfo = extraInfo;
                 scrollPanel.Invalidate();
             }
         }
@@ -85,8 +92,8 @@ namespace TaskManagerPlus.Controls
 
         private void UpdateScrollPanelHeight()
         {
-            int itemHeight = 65; // Reduced from 80
-            int spacing = 3; // Reduced from 5
+            int itemHeight = 70;
+            int spacing = 5;
             int totalHeight = 5 + (hardwareItems.Count * (itemHeight + spacing));
             scrollPanel.AutoScrollMinSize = new Size(0, totalHeight);
         }
@@ -98,8 +105,8 @@ namespace TaskManagerPlus.Controls
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
             // Adjust for scroll position
-            int yPos = 5 - scrollPanel.AutoScrollPosition.Y;
-            int itemHeight = 65; // Reduced
+            int yPos = 5 + scrollPanel.AutoScrollPosition.Y;
+            int itemHeight = 70;
             int itemWidth = scrollPanel.Width - 10 - (scrollPanel.VerticalScroll.Visible ? SystemInformation.VerticalScrollBarWidth : 0);
 
             for (int i = 0; i < hardwareItems.Count; i++)
@@ -109,21 +116,24 @@ namespace TaskManagerPlus.Controls
                 {
                     DrawHardwareItem(g, hardwareItems[i], 5, yPos, itemWidth, itemHeight, i == selectedIndex);
                 }
-                yPos += itemHeight + 3;
+                yPos += itemHeight + 5;
             }
         }
 
         private void ScrollPanel_MouseClick(object sender, MouseEventArgs e)
         {
-            int itemHeight = 68; // Item height + spacing
+            int itemHeight = 75; // Item height + spacing
             int yPosAdjusted = e.Y - scrollPanel.AutoScrollPosition.Y;
             int index = (yPosAdjusted - 5) / itemHeight;
 
             if (index >= 0 && index < hardwareItems.Count)
             {
-                selectedIndex = index;
-                scrollPanel.Invalidate();
-                ItemSelected?.Invoke(this, index);
+                if (selectedIndex != index)
+                {
+                    selectedIndex = index;
+                    scrollPanel.Invalidate();
+                    ItemSelected?.Invoke(this, index);
+                }
             }
         }
 
@@ -138,42 +148,42 @@ namespace TaskManagerPlus.Controls
             // Background
             Color bgColor = isSelected ? Color.FromArgb(0, 120, 212) : Color.White;
             Color textColor = isSelected ? Color.White : Color.FromArgb(52, 58, 64);
-            
+
             using (SolidBrush bgBrush = new SolidBrush(bgColor))
             {
                 g.FillRectangle(bgBrush, x, y, width, height);
             }
 
-            // Border (only if not selected)
+            // Border
             if (!isSelected)
             {
-                using (Pen borderPen = new Pen(Color.FromArgb(200, 200, 200)))
+                using (Pen borderPen = new Pen(Color.FromArgb(220, 220, 220)))
                 {
-                    g.DrawRectangle(borderPen, x, y, width, height);
+                    g.DrawRectangle(borderPen, x, y, width - 1, height - 1);
                 }
             }
 
             // Mini chart - smaller and compact
             int chartX = x + 8;
-            int chartY = y + 22;
-            int chartWidth = 50; // Reduced from 60
-            int chartHeight = 35; // Reduced from 40
+            int chartY = y + 15;
+            int chartWidth = 50; 
+            int chartHeight = 35;
             DrawMiniChart(g, item.History, isSelected ? Color.White : item.Color, chartX, chartY, chartWidth, chartHeight);
 
             // Text - more compact
-            using (Font nameFont = new Font("Segoe UI", 8.5F, FontStyle.Regular))
-            using (Font usageFont = new Font("Segoe UI", 8.5F, FontStyle.Bold))
+            using (Font nameFont = new Font("Segoe UI", 9F, FontStyle.Regular))
+            using (Font usageFont = new Font("Segoe UI", 10F, FontStyle.Bold))
             using (SolidBrush textBrush = new SolidBrush(textColor))
             {
-                g.DrawString(item.Name, nameFont, textBrush, chartX + chartWidth + 8, y + 8);
-                g.DrawString(item.Usage, usageFont, textBrush, chartX + chartWidth + 8, y + 25);
-                
+                g.DrawString(item.Name, nameFont, textBrush, chartX + chartWidth + 12, y + 10);
+                g.DrawString(item.Usage, usageFont, textBrush, chartX + chartWidth + 12, y + 30);
+
                 // Draw additional info on third line if available
                 if (!string.IsNullOrEmpty(item.ExtraInfo))
                 {
-                    using (Font extraFont = new Font("Segoe UI", 7.5F))
+                    using (Font extraFont = new Font("Segoe UI", 8F))
                     {
-                        g.DrawString(item.ExtraInfo, extraFont, textBrush, chartX + chartWidth + 8, y + 42);
+                        g.DrawString(item.ExtraInfo, extraFont, textBrush, chartX + chartWidth + 12, y + 48);
                     }
                 }
             }
@@ -259,5 +269,14 @@ namespace TaskManagerPlus.Controls
             this.Size = new System.Drawing.Size(200, 600);
             this.ResumeLayout(false);
         }
+    }
+
+    public class HardwareItem
+    {
+        public string Name { get; set; }
+        public string Usage { get; set; }
+        public Queue<double> History { get; set; }
+        public Color Color { get; set; }
+        public string ExtraInfo { get; set; }
     }
 }

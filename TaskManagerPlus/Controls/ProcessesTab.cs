@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -29,6 +29,7 @@ namespace TaskManagerPlus.Controls
         private ManagementEventWatcher processStartWatcher;
         private ManagementEventWatcher processStopWatcher;
         private Timer processRefreshTimer;
+        private ToolTip processTooltip;
         private const int ProcessPollIntervalMs = 500;
         private const int RefreshDebounceMs = 50;
 
@@ -54,6 +55,7 @@ namespace TaskManagerPlus.Controls
         public void Initialize()
         {
             SetupDataGridView();
+            SetupTooltip();
             ApplyLocalization();
             StartProcessWatchers();
         }
@@ -63,21 +65,47 @@ namespace TaskManagerPlus.Controls
             dataGridViewProcesses.AutoGenerateColumns = false;
             dataGridViewProcesses.Columns.Clear();
             dataGridViewProcesses.DoubleBuffered(true);
-            dataGridViewProcesses.RowTemplate.Height = 28;
+            dataGridViewProcesses.RowTemplate.Height = 32;
             dataGridViewProcesses.AllowUserToResizeRows = false;
             dataGridViewProcesses.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridViewProcesses.MultiSelect = false;
 
+            // Make it occupy full width properly and style similarly to Win11 task manager
+            dataGridViewProcesses.BackgroundColor = Color.White;
+            dataGridViewProcesses.BorderStyle = BorderStyle.None;
             dataGridViewProcesses.EnableHeadersVisualStyles = false;
             dataGridViewProcesses.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            dataGridViewProcesses.GridColor = Color.FromArgb(230, 230, 230);
+            dataGridViewProcesses.GridColor = Color.FromArgb(240, 240, 240);
+            dataGridViewProcesses.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+            // Custom header styling
+            DataGridViewCellStyle headerStyle = new DataGridViewCellStyle();
+            headerStyle.BackColor = Color.White;
+            headerStyle.ForeColor = Color.FromArgb(60, 60, 60);
+            headerStyle.Font = new Font("Segoe UI Semibold", 9.5f, FontStyle.Bold);
+            headerStyle.SelectionBackColor = Color.White;
+            headerStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            headerStyle.Padding = new Padding(5, 5, 5, 5);
+            dataGridViewProcesses.ColumnHeadersDefaultCellStyle = headerStyle;
+            dataGridViewProcesses.ColumnHeadersHeight = 35;
+            dataGridViewProcesses.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+
+            // Default cell styling
+            DataGridViewCellStyle cellStyle = new DataGridViewCellStyle();
+            cellStyle.BackColor = Color.White;
+            cellStyle.ForeColor = Color.FromArgb(30, 30, 30);
+            cellStyle.SelectionBackColor = Color.FromArgb(230, 242, 255);
+            cellStyle.SelectionForeColor = Color.Black;
+            cellStyle.Font = new Font("Segoe UI", 9f, FontStyle.Regular);
+            cellStyle.Padding = new Padding(2);
+            dataGridViewProcesses.DefaultCellStyle = cellStyle;
 
             // Name column (icon + text will be painted manually)
             DataGridViewTextBoxColumn nameColumn = new DataGridViewTextBoxColumn();
             nameColumn.Name = "NameColumn";
             nameColumn.Tag = "processes_col_name";
             nameColumn.HeaderText = LocalizationService.T("processes_col_name");
-            nameColumn.Width = 300;
+            nameColumn.FillWeight = 35;
             dataGridViewProcesses.Columns.Add(nameColumn);
 
             dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
@@ -85,7 +113,7 @@ namespace TaskManagerPlus.Controls
                 Name = "StatusColumn",
                 Tag = "processes_col_status",
                 HeaderText = LocalizationService.T("processes_col_status"),
-                Width = 100
+                FillWeight = 10
             });
 
             dataGridViewProcesses.Columns.Add(new DataGridViewTextBoxColumn
@@ -93,7 +121,7 @@ namespace TaskManagerPlus.Controls
                 Name = "CpuColumn",
                 Tag = "processes_col_cpu",
                 HeaderText = LocalizationService.T("processes_col_cpu"),
-                Width = 80,
+                FillWeight = 10,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
 
@@ -102,7 +130,7 @@ namespace TaskManagerPlus.Controls
                 Name = "MemoryColumn",
                 Tag = "processes_col_memory",
                 HeaderText = LocalizationService.T("processes_col_memory"),
-                Width = 120,
+                FillWeight = 15,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
 
@@ -111,7 +139,7 @@ namespace TaskManagerPlus.Controls
                 Name = "DiskColumn",
                 Tag = "processes_col_disk",
                 HeaderText = LocalizationService.T("processes_col_disk"),
-                Width = 100,
+                FillWeight = 15,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
 
@@ -120,7 +148,7 @@ namespace TaskManagerPlus.Controls
                 Name = "NetworkColumn",
                 Tag = "processes_col_network",
                 HeaderText = LocalizationService.T("processes_col_network"),
-                Width = 100,
+                FillWeight = 15,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
 
@@ -129,9 +157,45 @@ namespace TaskManagerPlus.Controls
             dataGridViewProcesses.ColumnHeaderMouseClick += DataGridViewProcesses_ColumnHeaderMouseClick;
             dataGridViewProcesses.CellFormatting += DataGridViewProcesses_CellFormatting;
             dataGridViewProcesses.CellPainting += DataGridViewProcesses_CellPainting;
+            dataGridViewProcesses.CellMouseEnter += DataGridViewProcesses_CellMouseEnter;
+            dataGridViewProcesses.CellMouseLeave += DataGridViewProcesses_CellMouseLeave;
 
             // Click header row to expand/collapse
             dataGridViewProcesses.CellClick += DataGridViewProcesses_CellClick;
+        }
+
+        private void SetupTooltip()
+        {
+            processTooltip = new ToolTip
+            {
+                AutoPopDelay = 8000,
+                InitialDelay = 600,
+                ReshowDelay = 300,
+                UseAnimation = true
+            };
+        }
+
+        private void DataGridViewProcesses_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.RowIndex >= displayedRows.Count) return;
+            object row = displayedRows[e.RowIndex];
+            if (row is ProcessInfo process && !process.IsGroup)
+            {
+                var lines = new System.Text.StringBuilder();
+                lines.AppendLine($"{LocalizationService.T("processes_tooltip_pid")}: {process.ProcessId}");
+                if (!string.IsNullOrWhiteSpace(process.Description) && process.Description != process.ProcessName)
+                    lines.AppendLine($"{LocalizationService.T("processes_tooltip_desc")}: {process.Description}");
+                if (!string.IsNullOrWhiteSpace(process.FilePath))
+                    lines.Append($"{LocalizationService.T("processes_tooltip_path")}: {process.FilePath}");
+                string tip = lines.ToString().TrimEnd();
+                if (!string.IsNullOrEmpty(tip))
+                    processTooltip.SetToolTip(dataGridViewProcesses, tip);
+            }
+        }
+
+        private void DataGridViewProcesses_CellMouseLeave(object sender, DataGridViewCellEventArgs e)
+        {
+            processTooltip?.SetToolTip(dataGridViewProcesses, "");
         }
 
         private void DataGridViewProcesses_CellClick(object sender, DataGridViewCellEventArgs e)
@@ -357,11 +421,15 @@ namespace TaskManagerPlus.Controls
         {
             if (groupedProcesses == null) return;
 
-            // Keep selection
+            // Keep selection & scroll position
             int currentRow = (dataGridViewProcesses.CurrentCell != null) ? dataGridViewProcesses.CurrentCell.RowIndex : -1;
             object selectedItem = null;
             if (currentRow >= 0 && currentRow < displayedRows.Count)
                 selectedItem = displayedRows[currentRow];
+
+            int scrollPosition = 0;
+            if (dataGridViewProcesses.FirstDisplayedScrollingRowIndex >= 0)
+                scrollPosition = dataGridViewProcesses.FirstDisplayedScrollingRowIndex;
 
             displayedRows.RaiseListChangedEvents = false;
             displayedRows.Clear();
@@ -416,6 +484,13 @@ namespace TaskManagerPlus.Controls
 
             displayedRows.RaiseListChangedEvents = true;
             displayedRows.ResetBindings();
+
+            // Restore scroll position first
+            if (scrollPosition >= 0 && scrollPosition < displayedRows.Count)
+            {
+                try { dataGridViewProcesses.FirstDisplayedScrollingRowIndex = scrollPosition; }
+                catch { }
+            }
 
             // Restore selection
             if (selectedItem != null)
@@ -484,7 +559,7 @@ namespace TaskManagerPlus.Controls
             string processName = (selectedProcess.ProcessName ?? "").ToLowerInvariant();
             if (processName == "explorer")
             {
-                MessageBox.Show("Windows Explorer is required for the desktop and taskbar and cannot be ended here.",
+                MessageBox.Show(LocalizationService.T("processes_explorer_protected"),
                     LocalizationService.T("common_info_title"),
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
