@@ -12,6 +12,7 @@ namespace TaskManagerPlus
         private ProcessMonitor processMonitor;
         private ProcessesTab processesTab;
         private PerformanceTab performanceTab;
+        private OverviewTab overviewTab;
         private StartupTab startupTab;
         private TemperatureTab temperatureTab;
         private BatteryTab batteryTab;
@@ -37,7 +38,7 @@ namespace TaskManagerPlus
             ApplyLanguageAll();
 
             processMonitor = new ProcessMonitor();
-            usageTracker = new AppUsageTracker(processMonitor);
+            usageTracker = new AppUsageTracker();
 
             InitializeTabs();
             SetupIcon();
@@ -60,6 +61,7 @@ namespace TaskManagerPlus
             // Tabs
             tabProcesses.Tag = "tab_processes";
             tabPerformance.Tag = "tab_performance";
+            tabOverview.Tag = "tab_overview";
             tabTemperature.Tag = "tab_temperature";
             tabBattery.Tag = "tab_battery";
             tabStartup.Tag = "tab_startup";
@@ -105,6 +107,7 @@ namespace TaskManagerPlus
         {
             if (processesTab != null) processesTab.ApplyLocalization();
             if (performanceTab != null) performanceTab.ApplyLocalization();
+            if (overviewTab != null) overviewTab.ApplyLocalization();
             if (startupTab != null) startupTab.ApplyLocalization();
             if (temperatureTab != null) temperatureTab.ApplyLocalization();
             if (batteryTab != null) batteryTab.ApplyLocalization();
@@ -228,6 +231,9 @@ namespace TaskManagerPlus
             performanceTab.ProcessMonitor = processMonitor;
             performanceTab.Dock = DockStyle.Fill;
 
+            overviewTab = new OverviewTab();
+            overviewTab.Dock = DockStyle.Fill;
+
             startupTab = new StartupTab();
             startupTab.Dock = DockStyle.Fill;
 
@@ -242,6 +248,7 @@ namespace TaskManagerPlus
 
             tabProcesses.Controls.Add(processesTab);
             tabPerformance.Controls.Add(performanceTab);
+            tabOverview.Controls.Add(overviewTab);
             tabStartup.Controls.Add(startupTab);
             tabTemperature.Controls.Add(temperatureTab);
             tabBattery.Controls.Add(batteryTab);
@@ -255,6 +262,7 @@ namespace TaskManagerPlus
         {
             processesTab.Initialize();
             performanceTab.Initialize();
+            overviewTab.Initialize();
             startupTab.Initialize();
             temperatureTab.Initialize();
             batteryTab.Initialize();

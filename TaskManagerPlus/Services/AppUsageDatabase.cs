@@ -277,6 +277,27 @@ ORDER BY total_duration DESC;", conn))
             }
         }
 
+        public int DeleteTodaySessions()
+        {
+            DateTime startOfDay = DateTime.Today;
+
+            using (MySqlConnection conn = OpenConnection())
+            using (MySqlTransaction tx = conn.BeginTransaction())
+            {
+                using (MySqlCommand cmd = new MySqlCommand(@"
+DELETE FROM sessions
+WHERE user_id = @userId
+  AND start_time >= @startOfDay;", conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("@userId", userId);
+                    cmd.Parameters.AddWithValue("@startOfDay", startOfDay);
+                    int affected = cmd.ExecuteNonQuery();
+                    tx.Commit();
+                    return affected;
+                }
+            }
+        }
+
         private string GetConnectionString()
         {
             string cs = ConfigurationManager.ConnectionStrings[ConnectionName]?.ConnectionString;

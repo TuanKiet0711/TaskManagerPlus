@@ -1,27 +1,23 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
-using TaskManagerPlus.Models;
 
 namespace TaskManagerPlus.Services
 {
     public class AppUsageTracker
     {
+        // Ignore short pauses so the summary still reflects real usage, not every tiny break.
+        private const ulong IdleThresholdMilliseconds = 5UL * 60UL * 1000UL;
+
         private AppUsageDatabase database;
-        private ProcessMonitor processMonitor;
-        private Dictionary<int, ProcessTrackingInfo> trackedProcesses;
         private Timer trackingTimer;
         private bool isTracking;
-        private static readonly TimeSpan EndSessionGrace = TimeSpan.FromSeconds(30);
+        private int? currentForegroundProcessId;
 
-        public AppUsageTracker(ProcessMonitor monitor)
+        public AppUsageTracker()
         {
             database = new AppUsageDatabase();
-            processMonitor = monitor;
-            trackedProcesses = new Dictionary<int, ProcessTrackingInfo>();
         }
 
         public void StartTracking()
@@ -36,13 +32,8 @@ namespace TaskManagerPlus.Services
         {
             isTracking = false;
             trackingTimer?.Dispose();
-            
-            // End all active sessions
-            foreach (var proc in trackedProcesses.Values.Where(p => p.IsTracking))
-            {
-                database.EndAppSession(proc.ProcessId);
-            }
-            trackedProcesses.Clear();
+
+            EndCurrentForegroundSession();
         }
 
         private void TrackingCallback(object state)
@@ -51,77 +42,124 @@ namespace TaskManagerPlus.Services
 
             try
             {
-                var currentProcesses = processMonitor
-                    .GetAllProcesses(true)
-                    .Where(p => p.HasWindow)
-                    .ToList();
-                var currentProcessIds = new HashSet<int>();
-
-                foreach (var process in currentProcesses)
+                if (IsUserIdle())
                 {
-                    int pid = process.ProcessId;
-                    string processName = process.ProcessName;
-                    currentProcessIds.Add(pid);
-
-                    if (!trackedProcesses.ContainsKey(pid))
-                    {
-                        // New process detected
-                        trackedProcesses[pid] = new ProcessTrackingInfo
-                        {
-                            ProcessId = pid,
-                            ProcessName = processName,
-                            ExecutablePath = process.FilePath,
-                            IsTracking = true,
-                            LastSeen = DateTime.Now
-                        };
-
-                        database.StartAppSession(pid, processName, process.FilePath);
-                    }
-                    else
-                    {
-                        trackedProcesses[pid].LastSeen = DateTime.Now;
-                    }
-
-                    // Record stats
-                    database.RecordAppStats(
-                        pid,
-                        processName,
-                        process.CpuUsage,
-                        process.MemoryBytes,
-                        process.DiskUsage,
-                        process.NetworkUsage
-                    );
+                    EndCurrentForegroundSession();
+                    return;
                 }
 
-                // End sessions for processes that are no longer running
-                var endedProcesses = trackedProcesses.Keys
-                    .Where(id => !currentProcessIds.Contains(id))
-                    .ToList();
-
-                foreach (var processId in endedProcesses)
+                var foreground = GetForegroundProcessInfo();
+                if (foreground == null)
                 {
-                    if (trackedProcesses[processId].IsTracking)
-                    {
-                        // Avoid ending sessions on transient misses (window detection can be flaky)
-                        trackedProcesses[processId].IsTracking = false;
-                    }
+                    EndCurrentForegroundSession();
+                    return;
                 }
 
-                // Clean up old entries
-                var toRemove = trackedProcesses
-                    .Where(kvp => !kvp.Value.IsTracking && (DateTime.Now - kvp.Value.LastSeen) > EndSessionGrace)
-                    .Select(kvp => kvp.Key)
-                    .ToList();
-
-                foreach (var key in toRemove)
+                if (!currentForegroundProcessId.HasValue || currentForegroundProcessId.Value != foreground.ProcessId)
                 {
-                    database.EndAppSession(key);
-                    trackedProcesses.Remove(key);
+                    EndCurrentForegroundSession();
+
+                    currentForegroundProcessId = foreground.ProcessId;
+
+                    database.StartAppSession(
+                        foreground.ProcessId,
+                        foreground.ProcessName,
+                        foreground.ExecutablePath);
                 }
+
+                database.RecordAppStats(
+                    foreground.ProcessId,
+                    foreground.ProcessName,
+                    foreground.CpuUsage,
+                    foreground.MemoryBytes,
+                    foreground.DiskUsage,
+                    foreground.NetworkUsage);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Tracking error: {ex.Message}");
+            }
+        }
+
+        private void EndCurrentForegroundSession()
+        {
+            if (!currentForegroundProcessId.HasValue)
+                return;
+
+            database.EndAppSession(currentForegroundProcessId.Value);
+            currentForegroundProcessId = null;
+        }
+
+        private ForegroundProcessInfo GetForegroundProcessInfo()
+        {
+            IntPtr hWnd = GetForegroundWindow();
+            if (hWnd == IntPtr.Zero)
+                return null;
+
+            uint pid;
+            GetWindowThreadProcessId(hWnd, out pid);
+            if (pid == 0)
+                return null;
+
+            try
+            {
+                using (var proc = Process.GetProcessById((int)pid))
+                {
+                    string processName = proc.ProcessName ?? "Unknown";
+                    string executablePath = string.Empty;
+
+                    try
+                    {
+                        executablePath = proc.MainModule != null ? proc.MainModule.FileName : string.Empty;
+                    }
+                    catch
+                    {
+                        executablePath = string.Empty;
+                    }
+
+                    return new ForegroundProcessInfo
+                    {
+                        ProcessId = (int)pid,
+                        ProcessName = processName,
+                        ExecutablePath = executablePath,
+                        CpuUsage = 0,
+                        MemoryBytes = SafeGetLong(() => proc.WorkingSet64, 0L),
+                        DiskUsage = 0,
+                        NetworkUsage = 0
+                    };
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static long SafeGetLong(Func<long> getter, long fallback)
+        {
+            try { return getter(); } catch { return fallback; }
+        }
+
+        private static bool IsUserIdle()
+        {
+            try
+            {
+                var lastInputInfo = new LASTINPUTINFO
+                {
+                    cbSize = (uint)Marshal.SizeOf(typeof(LASTINPUTINFO))
+                };
+
+                if (!GetLastInputInfo(ref lastInputInfo))
+                    return false;
+
+                ulong tickCount = GetTickCount64();
+                ulong lastInputTick = lastInputInfo.dwTime;
+                ulong idleMilliseconds = tickCount >= lastInputTick ? tickCount - lastInputTick : 0;
+                return idleMilliseconds >= IdleThresholdMilliseconds;
+            }
+            catch
+            {
+                return false;
             }
         }
 
@@ -135,13 +173,34 @@ namespace TaskManagerPlus.Services
             database.CleanOldData(daysToKeep);
         }
 
-        private class ProcessTrackingInfo
+        private sealed class ForegroundProcessInfo
         {
             public int ProcessId { get; set; }
             public string ProcessName { get; set; }
             public string ExecutablePath { get; set; }
-            public bool IsTracking { get; set; }
-            public DateTime LastSeen { get; set; }
+            public double CpuUsage { get; set; }
+            public long MemoryBytes { get; set; }
+            public double DiskUsage { get; set; }
+            public double NetworkUsage { get; set; }
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+
+        [DllImport("kernel32.dll")]
+        private static extern ulong GetTickCount64();
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct LASTINPUTINFO
+        {
+            public uint cbSize;
+            public uint dwTime;
         }
     }
 }
