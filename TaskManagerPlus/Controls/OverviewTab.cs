@@ -139,7 +139,7 @@ namespace TaskManagerPlus.Controls
 
             _statsGrid.Controls.Add(CreateMachineTimeCard(out _awakeTimeValueLabel), 0, 0);
             _statsGrid.Controls.Add(CreateStatCard("Ứng dụng nổi bật", "App dùng nhiều nhất", "N/A", SecondaryColor, out _mostUsedValueLabel), 1, 0);
-            _statsGrid.Controls.Add(CreateStatCard("Giờ cao điểm", "Khung giờ hoạt động mạnh", "N/A", WarningColor, out _peakHourValueLabel), 2, 0);
+            _statsGrid.Controls.Add(CreateStatCard("Giờ cao điểm", "Khung giờ hoạt động mạnh nhất", "N/A", WarningColor, out _peakHourValueLabel), 2, 0);
             _statsGrid.Controls.Add(CreateStatCard("CPU trung bình", "Mức CPU trung bình", "0.0%", DangerColor, out _avgCpuValueLabel), 3, 0);
             _statsGrid.Controls.Add(CreateStatCard("RAM trung bình", "Mức RAM trung bình", "0.0%", SuccessColor, out _avgRamValueLabel), 4, 0);
             _statsPanel.Controls.Add(_statsGrid);
