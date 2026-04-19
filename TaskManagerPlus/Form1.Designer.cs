@@ -30,6 +30,7 @@
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabProcesses = new System.Windows.Forms.TabPage();
             this.tabPerformance = new System.Windows.Forms.TabPage();
+            this.tabOverview = new System.Windows.Forms.TabPage();
             this.tabTemperature = new System.Windows.Forms.TabPage();
             this.tabBattery = new System.Windows.Forms.TabPage();
             this.tabStartup = new System.Windows.Forms.TabPage();
@@ -105,6 +106,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tabControl.Controls.Add(this.tabProcesses);
             this.tabControl.Controls.Add(this.tabPerformance);
+            this.tabControl.Controls.Add(this.tabOverview);
             this.tabControl.Controls.Add(this.tabTemperature);
             this.tabControl.Controls.Add(this.tabBattery);
             this.tabControl.Controls.Add(this.tabStartup);
@@ -142,13 +144,24 @@
             this.tabPerformance.Text = "Performance";
 
             // 
+            // tabOverview
+            // 
+            this.tabOverview.BackColor = System.Drawing.Color.White;
+            this.tabOverview.Location = new System.Drawing.Point(4, 36);
+            this.tabOverview.Name = "tabOverview";
+            this.tabOverview.Padding = new System.Windows.Forms.Padding(3);
+            this.tabOverview.Size = new System.Drawing.Size(1276, 598);
+            this.tabOverview.TabIndex = 2;
+            this.tabOverview.Text = "Overview";
+
+            // 
             // tabTemperature
             // 
             this.tabTemperature.BackColor = System.Drawing.Color.White;
             this.tabTemperature.Location = new System.Drawing.Point(4, 36);
             this.tabTemperature.Name = "tabTemperature";
             this.tabTemperature.Size = new System.Drawing.Size(1276, 598);
-            this.tabTemperature.TabIndex = 2;
+            this.tabTemperature.TabIndex = 3;
             this.tabTemperature.Text = "Temperature";
 
             // 
@@ -158,7 +171,7 @@
             this.tabBattery.Location = new System.Drawing.Point(4, 36);
             this.tabBattery.Name = "tabBattery";
             this.tabBattery.Size = new System.Drawing.Size(1276, 598);
-            this.tabBattery.TabIndex = 3;
+            this.tabBattery.TabIndex = 4;
             this.tabBattery.Text = "Battery";
 
             // 
@@ -168,7 +181,7 @@
             this.tabStartup.Location = new System.Drawing.Point(4, 36);
             this.tabStartup.Name = "tabStartup";
             this.tabStartup.Size = new System.Drawing.Size(1276, 598);
-            this.tabStartup.TabIndex = 4;
+            this.tabStartup.TabIndex = 5;
             this.tabStartup.Text = "Startup";
 
             // 
@@ -178,7 +191,7 @@
             this.tabAppHistory.Location = new System.Drawing.Point(4, 36);
             this.tabAppHistory.Name = "tabAppHistory";
             this.tabAppHistory.Size = new System.Drawing.Size(1276, 598);
-            this.tabAppHistory.TabIndex = 5;
+            this.tabAppHistory.TabIndex = 6;
             this.tabAppHistory.Text = "App history";
 
             // 
@@ -366,6 +379,7 @@
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.TabPage tabProcesses;
         private System.Windows.Forms.TabPage tabPerformance;
+        private System.Windows.Forms.TabPage tabOverview;
         private System.Windows.Forms.TabPage tabTemperature;
         private System.Windows.Forms.TabPage tabBattery;
         private System.Windows.Forms.TabPage tabStartup;
