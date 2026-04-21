@@ -68,8 +68,8 @@ namespace TaskManagerPlus.Controls
         public void ApplyLocalization()
         {
             UILocalizer.Apply(this);
-            if (_heroTitleLabel != null) _heroTitleLabel.Text = LocalizationService.T("overview_title");
-            if (_heroSubtitleLabel != null) _heroSubtitleLabel.Text = LocalizationService.T("overview_subtitle");
+
+            SetupUI();
             RefreshSummaryUI();
         }
 
