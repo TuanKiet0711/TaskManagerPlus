@@ -1,0 +1,10 @@
+.vs/
+.CopilotSnapshots/
+/packages/
+/bin/
+/obj/
+/node_modules/
+/dist/
+/out/
+/TaskManagerPlus/bin/
+TaskManagerPlus/obj/

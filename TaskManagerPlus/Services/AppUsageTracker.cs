@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -13,7 +15,8 @@ namespace TaskManagerPlus.Services
         private AppUsageDatabase database;
         private Timer trackingTimer;
         private bool isTracking;
-        private int? currentForegroundProcessId;
+        
+        private HashSet<int> trackedProcessIds = new HashSet<int>();
 
         public AppUsageTracker()
         {
@@ -33,7 +36,7 @@ namespace TaskManagerPlus.Services
             isTracking = false;
             trackingTimer?.Dispose();
 
-            EndCurrentForegroundSession();
+            EndAllSessions();
         }
 
         private void TrackingCallback(object state)
@@ -44,36 +47,44 @@ namespace TaskManagerPlus.Services
             {
                 if (IsUserIdle())
                 {
-                    EndCurrentForegroundSession();
+                    EndAllSessions();
                     return;
                 }
 
-                var foreground = GetForegroundProcessInfo();
-                if (foreground == null)
+                var processes = Process.GetProcesses()
+                    .Where(p => p.MainWindowHandle != IntPtr.Zero && !string.IsNullOrWhiteSpace(p.MainWindowTitle))
+                    .ToList();
+
+                var currentProcesses = processes.ToDictionary(p => p.Id);
+
+                var pidsToEnd = trackedProcessIds.Where(pid => !currentProcesses.ContainsKey(pid)).ToList();
+                foreach (var pid in pidsToEnd)
                 {
-                    EndCurrentForegroundSession();
-                    return;
+                    database.EndAppSession(pid);
+                    trackedProcessIds.Remove(pid);
                 }
 
-                if (!currentForegroundProcessId.HasValue || currentForegroundProcessId.Value != foreground.ProcessId)
+                foreach (var kvp in currentProcesses)
                 {
-                    EndCurrentForegroundSession();
+                    var proc = kvp.Value;
+                    int pid = proc.Id;
 
-                    currentForegroundProcessId = foreground.ProcessId;
+                    if (!trackedProcessIds.Contains(pid))
+                    {
+                        trackedProcessIds.Add(pid);
+                        string pName = proc.ProcessName ?? "Unknown";
+                        string exe = string.Empty;
+                        DateTime procStartTime = DateTime.Now;
+                        try { exe = proc.MainModule?.FileName ?? string.Empty; } catch { }
+                        try { procStartTime = proc.StartTime; } catch { }
+                        database.StartAppSession(pid, pName, exe, procStartTime);
+                    }
 
-                    database.StartAppSession(
-                        foreground.ProcessId,
-                        foreground.ProcessName,
-                        foreground.ExecutablePath);
+                    long mem = SafeGetLong(() => proc.WorkingSet64, 0L);
+                    database.RecordAppStats(pid, proc.ProcessName, 0, mem, 0, 0);
+
+                    proc.Dispose();
                 }
-
-                database.RecordAppStats(
-                    foreground.ProcessId,
-                    foreground.ProcessName,
-                    foreground.CpuUsage,
-                    foreground.MemoryBytes,
-                    foreground.DiskUsage,
-                    foreground.NetworkUsage);
             }
             catch (Exception ex)
             {
@@ -81,13 +92,13 @@ namespace TaskManagerPlus.Services
             }
         }
 
-        private void EndCurrentForegroundSession()
+        private void EndAllSessions()
         {
-            if (!currentForegroundProcessId.HasValue)
-                return;
-
-            database.EndAppSession(currentForegroundProcessId.Value);
-            currentForegroundProcessId = null;
+            foreach (var pid in trackedProcessIds)
+            {
+                database.EndAppSession(pid);
+            }
+            trackedProcessIds.Clear();
         }
 
         private ForegroundProcessInfo GetForegroundProcessInfo()

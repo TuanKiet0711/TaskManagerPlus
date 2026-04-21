@@ -29,6 +29,90 @@ namespace TaskManagerPlus.Controls
             dateChangeTimer = new Timer { Interval = 250 };
             dateChangeTimer.Tick += DateChangeTimer_Tick;
             SetupLocalizationTags();
+            ApplyModernStyling();
+        }
+
+        private void ApplyModernStyling()
+        {
+            this.BackColor = ThemeService.Background;
+            this.Padding = new Padding(24);
+
+            panelTop.BackColor = ThemeService.Surface;
+            ThemeService.ApplyRounding(panelTop, 16);
+            ThemeService.AttachBorder(panelTop);
+            panelTop.Margin = new Padding(0, 0, 0, 16);
+            panelTop.Dock = DockStyle.Top;
+
+            panelStats.BackColor = ThemeService.Surface;
+            ThemeService.ApplyRounding(panelStats, 16);
+            ThemeService.AttachBorder(panelStats);
+            panelStats.Margin = new Padding(0, 16, 0, 0);
+
+            // Button styling
+            var buttons = new[] { btnRefresh, btnLast7Days, btnLast30Days };
+            foreach (var btn in buttons)
+            {
+                btn.FlatStyle = FlatStyle.Flat;
+                btn.FlatAppearance.BorderSize = 0;
+                btn.BackColor = ThemeService.Primary;
+                btn.ForeColor = Color.White;
+                btn.Font = ThemeService.BoldFont;
+                ThemeService.ApplyRounding(btn, 8);
+            }
+
+            btnClearData.FlatStyle = FlatStyle.Flat;
+            btnClearData.FlatAppearance.BorderSize = 0;
+            btnClearData.BackColor = ThemeService.Danger;
+            btnClearData.ForeColor = Color.White;
+            btnClearData.Font = ThemeService.BoldFont;
+            ThemeService.ApplyRounding(btnClearData, 8);
+
+            // Labels
+            lblFrom.Font = ThemeService.MainFont;
+            lblFrom.ForeColor = ThemeService.TextMuted;
+            lblTo.Font = ThemeService.MainFont;
+            lblTo.ForeColor = ThemeService.TextMuted;
+            
+            lblTotalApps.Font = ThemeService.MainFont;
+            lblTotalTime.Font = ThemeService.MainFont;
+            lblMostUsed.Font = ThemeService.MainFont;
+            lblTopCpu.Font = ThemeService.MainFont;
+            lblTopRam.Font = ThemeService.MainFont;
+
+            var statsLabels = new[] { lblTotalApps, lblTotalTime, lblMostUsed, lblTopCpu, lblTopRam };
+            foreach (var lbl in statsLabels)
+            {
+                lbl.ForeColor = ThemeService.Text;
+            }
+
+            // Create a wrapper panel for DataGridView to get rounded corners
+            var gridWrapperOuter = new Panel();
+            gridWrapperOuter.Dock = DockStyle.Fill;
+            gridWrapperOuter.BackColor = Color.Transparent;
+            gridWrapperOuter.Padding = new Padding(0, 16, 0, 16);
+
+            var gridWrapper = new Panel();
+            gridWrapper.BackColor = ThemeService.Surface;
+            gridWrapper.Dock = DockStyle.Fill;
+            ThemeService.ApplyRounding(gridWrapper, 16);
+            ThemeService.AttachBorder(gridWrapper);
+            
+            this.Controls.Remove(dataGridViewHistory);
+            gridWrapper.Controls.Add(dataGridViewHistory);
+            dataGridViewHistory.Dock = DockStyle.Fill;
+            
+            gridWrapperOuter.Controls.Add(gridWrapper);
+            this.Controls.Add(gridWrapperOuter);
+            panelStats.SendToBack();
+            panelTop.SendToBack();
+            gridWrapperOuter.BringToFront();
+
+            dataGridViewHistory.BackgroundColor = ThemeService.Surface;
+            dataGridViewHistory.BorderStyle = BorderStyle.None;
+            dataGridViewHistory.GridColor = ThemeService.Border;
+            
+            // Re-anchor to respect padding
+            // It's covered by wrapper docking
         }
 
         public void Initialize()
@@ -54,36 +138,41 @@ namespace TaskManagerPlus.Controls
             dataGridViewHistory.AutoGenerateColumns = false;
             dataGridViewHistory.Columns.Clear();
             dataGridViewHistory.DoubleBuffered(true);
-            dataGridViewHistory.RowTemplate.Height = 32;
+            dataGridViewHistory.RowTemplate.Height = 40;
 
-            // Make it match Processes tab UI style (Win 11)
-            dataGridViewHistory.BackgroundColor = Color.White;
+            // Make it match modern UI style
+            dataGridViewHistory.BackgroundColor = ThemeService.Surface;
             dataGridViewHistory.BorderStyle = BorderStyle.None;
             dataGridViewHistory.EnableHeadersVisualStyles = false;
             dataGridViewHistory.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            dataGridViewHistory.GridColor = Color.FromArgb(240, 240, 240);
+            dataGridViewHistory.GridColor = ThemeService.Border;
             dataGridViewHistory.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             dataGridViewHistory.AllowUserToResizeRows = false;
+            dataGridViewHistory.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
             DataGridViewCellStyle headerStyle = new DataGridViewCellStyle();
-            headerStyle.BackColor = Color.White;
-            headerStyle.ForeColor = Color.FromArgb(60, 60, 60);
-            headerStyle.Font = new Font("Segoe UI Semibold", 9.5f, FontStyle.Bold);
-            headerStyle.SelectionBackColor = Color.White;
+            headerStyle.BackColor = ThemeService.SurfaceAlt;
+            headerStyle.ForeColor = ThemeService.TextMuted;
+            headerStyle.Font = ThemeService.MainFont;
+            headerStyle.SelectionBackColor = ThemeService.SurfaceAlt;
             headerStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            headerStyle.Padding = new Padding(5, 5, 5, 5);
+            headerStyle.Padding = new Padding(12, 8, 12, 8);
             dataGridViewHistory.ColumnHeadersDefaultCellStyle = headerStyle;
-            dataGridViewHistory.ColumnHeadersHeight = 35;
+            dataGridViewHistory.ColumnHeadersHeight = 40;
             dataGridViewHistory.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            dataGridViewHistory.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
 
             DataGridViewCellStyle cellStyle = new DataGridViewCellStyle();
-            cellStyle.BackColor = Color.White;
-            cellStyle.ForeColor = Color.FromArgb(30, 30, 30);
-            cellStyle.SelectionBackColor = Color.FromArgb(230, 242, 255);
-            cellStyle.SelectionForeColor = Color.Black;
-            cellStyle.Font = new Font("Segoe UI", 9f, FontStyle.Regular);
-            cellStyle.Padding = new Padding(2);
+            cellStyle.BackColor = ThemeService.Surface;
+            cellStyle.ForeColor = ThemeService.Text;
+            cellStyle.SelectionBackColor = ThemeService.Primary;
+            cellStyle.SelectionForeColor = Color.White;
+            cellStyle.Font = ThemeService.MainFont;
+            cellStyle.Padding = new Padding(12, 4, 12, 4);
             dataGridViewHistory.DefaultCellStyle = cellStyle;
+            
+            // Apply double buffering
+            ThemeService.SetDoubleBuffered(dataGridViewHistory);
 
             dataGridViewHistory.Columns.Add(new DataGridViewImageColumn
             {
@@ -238,9 +327,9 @@ namespace TaskManagerPlus.Controls
                 if (e.Value != null && double.TryParse(e.Value.ToString(), out double cpuValue))
                 {
                     if (cpuValue > 50)
-                        e.CellStyle.ForeColor = Color.FromArgb(220, 53, 69);
+                        e.CellStyle.ForeColor = ThemeService.Danger;
                     else if (cpuValue > 25)
-                        e.CellStyle.ForeColor = Color.FromArgb(255, 193, 7);
+                        e.CellStyle.ForeColor = ThemeService.Warning;
                 }
             }
 

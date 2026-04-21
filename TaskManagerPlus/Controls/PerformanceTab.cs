@@ -42,6 +42,76 @@ namespace TaskManagerPlus.Controls
             diskHistories = new List<Queue<double>>();
             networkHistories = new List<Queue<double>>();
             SetupLocalizationTags();
+            ApplyModernStyling();
+        }
+
+        private void ApplyModernStyling()
+        {
+            this.BackColor = ThemeService.Background;
+            this.Padding = new Padding(24);
+
+            // Container for Sidebar to act as a card
+            sidebar.BackColor = ThemeService.Surface;
+            sidebar.Dock = DockStyle.Fill;
+            var sidebarCard = new Panel();
+            sidebarCard.BackColor = ThemeService.Surface;
+            sidebarCard.Dock = DockStyle.Left;
+            sidebarCard.Width = 240;
+            sidebarCard.Margin = new Padding(0, 0, 16, 0); // Need space between sidebar and main
+            ThemeService.ApplyCardStyle(sidebarCard);
+            ThemeService.ApplyRounding(sidebarCard, 16);
+            
+            this.Controls.Remove(sidebar);
+            sidebarCard.Controls.Add(sidebar);
+            this.Controls.Add(sidebarCard);
+            
+            // For padding between sidebar and main, we need an empty spacer because Dock doesn't respect Margins.
+            var spacer = new Panel();
+            spacer.Dock = DockStyle.Left;
+            spacer.Width = 16;
+            spacer.BackColor = Color.Transparent;
+            this.Controls.Add(spacer);
+            
+            // Re-order controls
+            // sidebarCard, spacer, panelMain (Fill)
+            spacer.SendToBack();
+            sidebarCard.SendToBack();
+            panelMain.BringToFront();
+
+            // Main Panel
+            panelMain.BackColor = ThemeService.Surface;
+            panelMain.BorderStyle = BorderStyle.None;
+            ThemeService.ApplyCardStyle(panelMain);
+            ThemeService.ApplyRounding(panelMain, 16);
+            panelDetails.BackColor = ThemeService.Surface;
+            
+            // Typography
+            lblTitle.Font = new Font(ThemeService.HeaderFont.FontFamily, 24F, FontStyle.Bold); // Use bigger font for main title
+            lblTitle.ForeColor = ThemeService.Text;
+            lblSubtitle.Font = ThemeService.MainFont;
+            lblSubtitle.ForeColor = ThemeService.TextMuted;
+
+            var labels = new[] {
+                lblUtilization, lblSpeed,
+                lblDetail1, lblDetail2, lblDetail3, lblDetail4,
+                lblDetail5, lblDetail6, lblDetail7
+            };
+            foreach (var lbl in labels)
+            {
+                lbl.Font = ThemeService.MainFont;
+                lbl.ForeColor = ThemeService.TextMuted;
+            }
+
+            var values = new[] {
+                lblUtilizationValue, lblSpeedValue,
+                lblDetail1Value, lblDetail2Value, lblDetail3Value, lblDetail4Value,
+                lblDetail5Value, lblDetail6Value, lblDetail7Value
+            };
+            foreach (var val in values)
+            {
+                val.Font = ThemeService.BoldFont;
+                val.ForeColor = ThemeService.Text;
+            }
         }
 
         public void Initialize()
@@ -61,28 +131,28 @@ namespace TaskManagerPlus.Controls
         private void LoadHardwareItems()
         {
             sidebar.ClearItems();
-            sidebar.AddItem(LocalizationService.T("perf_sidebar_cpu"), "0%", cpuHistory, Color.FromArgb(13, 110, 253));
-            sidebar.AddItem(LocalizationService.T("perf_sidebar_memory"), "0%", ramHistory, Color.FromArgb(25, 135, 84));
+            sidebar.AddItem(LocalizationService.T("perf_sidebar_cpu"), "0%", cpuHistory, ThemeService.Primary);
+            sidebar.AddItem(LocalizationService.T("perf_sidebar_memory"), "0%", ramHistory, ThemeService.Success);
 
             var gpus = hardwareMonitor.GetGpuInfo();
             for (int i = 0; i < gpus.Count; i++)
             {
                 gpuHistories.Add(new Queue<double>());
-                sidebar.AddItem(string.Format(LocalizationService.T("perf_sidebar_gpu"), i), "0%", gpuHistories[i], Color.FromArgb(108, 117, 125));
+                sidebar.AddItem(string.Format(LocalizationService.T("perf_sidebar_gpu"), i), "0%", gpuHistories[i], ThemeService.TextMuted);
             }
 
             var disks = hardwareMonitor.GetDiskInfo();
             for (int i = 0; i < disks.Count; i++)
             {
                 diskHistories.Add(new Queue<double>());
-                sidebar.AddItem(disks[i].Name, "0%", diskHistories[i], Color.FromArgb(32, 201, 151));
+                sidebar.AddItem(disks[i].Name, "0%", diskHistories[i], ThemeService.Secondary);
             }
 
             var networks = hardwareMonitor.GetNetworkInfo();
             for (int i = 0; i < networks.Count; i++)
             {
                 networkHistories.Add(new Queue<double>());
-                sidebar.AddItem(networks[i].Name, "0 KB/s", networkHistories[i], Color.FromArgb(255, 193, 7));
+                sidebar.AddItem(networks[i].Name, "0 KB/s", networkHistories[i], ThemeService.Warning);
             }
         }
 
@@ -94,12 +164,12 @@ namespace TaskManagerPlus.Controls
             if (selectedHardwareIndex == 0)
             {
                 dataToDisplay = cpuHistory;
-                lineColor = Color.FromArgb(13, 110, 253);
+                lineColor = ThemeService.Primary;
             }
             else if (selectedHardwareIndex == 1)
             {
                 dataToDisplay = ramHistory;
-                lineColor = Color.FromArgb(25, 135, 84);
+                lineColor = ThemeService.Success;
             }
             else
             {
@@ -109,12 +179,12 @@ namespace TaskManagerPlus.Controls
                 if (selectedHardwareIndex - 2 < gpuCount)
                 {
                     dataToDisplay = gpuHistories[selectedHardwareIndex - 2];
-                    lineColor = Color.FromArgb(108, 117, 125);
+                    lineColor = ThemeService.TextMuted;
                 }
                 else if (selectedHardwareIndex - 2 - gpuCount < diskCount)
                 {
                     dataToDisplay = diskHistories[selectedHardwareIndex - 2 - gpuCount];
-                    lineColor = Color.FromArgb(32, 201, 151);
+                    lineColor = ThemeService.Secondary;
                 }
                 else
                 {
@@ -122,7 +192,7 @@ namespace TaskManagerPlus.Controls
                     if (networkIndex < networkHistories.Count)
                     {
                         dataToDisplay = networkHistories[networkIndex];
-                        lineColor = Color.FromArgb(255, 193, 7);
+                        lineColor = ThemeService.Warning;
                     }
                 }
             }
@@ -135,13 +205,13 @@ namespace TaskManagerPlus.Controls
 
         private void DrawChart(Graphics g, Queue<double> data, Color lineColor, int width, int height)
         {
-            g.Clear(Color.White);
+            g.Clear(ThemeService.Surface);
 
             if (data.Count < 2)
                 return;
 
             // Draw grid
-            using (Pen gridPen = new Pen(Color.FromArgb(230, 230, 230)))
+            using (Pen gridPen = new Pen(ThemeService.Border))
             {
                 for (int i = 0; i <= 4; i++)
                 {

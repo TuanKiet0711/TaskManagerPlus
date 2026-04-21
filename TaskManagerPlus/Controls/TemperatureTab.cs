@@ -34,6 +34,39 @@ namespace TaskManagerPlus.Controls
             updateTimer.Tick += UpdateTimer_Tick;
 
             SetupLocalizationTags();
+            ApplyModernStyling();
+        }
+
+        private void ApplyModernStyling()
+        {
+            this.BackColor = ThemeService.Background;
+            this.Padding = new Padding(24);
+
+            // Container panel
+            panelHeader.BackColor = ThemeService.Surface;
+            ThemeService.ApplyCardStyle(panelHeader);
+            ThemeService.ApplyRounding(panelHeader, 16);
+            panelHeader.Margin = new Padding(0, 0, 0, 16);
+
+            lblTitle.Font = ThemeService.HeaderFont;
+            lblTitle.ForeColor = ThemeService.Text;
+            lblInfo.Font = ThemeService.MainFont;
+            lblInfo.ForeColor = ThemeService.TextMuted;
+            lblLastUpdate.Font = ThemeService.SmallFont;
+            lblLastUpdate.ForeColor = ThemeService.TextMuted;
+
+            panelScroll.BackColor = ThemeService.Background;
+            
+            // Adjust scroll panel layout properly by docking and spacers
+            var spacer = new Panel { Dock = DockStyle.Top, Height = 16, BackColor = Color.Transparent };
+            this.Controls.Add(spacer);
+            
+            panelScroll.Anchor = AnchorStyles.None;
+            panelScroll.Dock = DockStyle.Fill;
+            
+            spacer.SendToBack();
+            panelHeader.SendToBack();
+            panelScroll.BringToFront();
         }
 
         public void Initialize()
@@ -226,11 +259,11 @@ namespace TaskManagerPlus.Controls
 
         private static Color GetTemperatureColor(double temperature)
         {
-            if (temperature >= 85) return Color.FromArgb(220, 53, 69);
-            if (temperature >= 75) return Color.FromArgb(255, 140, 0);
-            if (temperature >= 60) return Color.FromArgb(255, 193, 7);
-            if (temperature >= 40) return Color.FromArgb(0, 120, 212);
-            return Color.FromArgb(25, 135, 84);
+            if (temperature >= 85) return ThemeService.Danger;
+            if (temperature >= 75) return ThemeService.Warning;
+            if (temperature >= 60) return ThemeService.Warning;
+            if (temperature >= 40) return ThemeService.Primary;
+            return ThemeService.Success;
         }
 
         private static string GetTemperatureStatus(double temperature)
@@ -274,7 +307,7 @@ namespace TaskManagerPlus.Controls
             public SummaryCardPanel()
             {
                 this.Height = 64;
-                this.BackColor = Color.FromArgb(13, 110, 253);
+                this.BackColor = ThemeService.Primary;
                 this.Padding = new Padding(15, 0, 15, 0);
 
                 var table = new TableLayoutPanel
@@ -329,10 +362,10 @@ namespace TaskManagerPlus.Controls
                 lblStatus.Text = $"Status\n{statusText}";
                 
                 // Dim the panel background based on status
-                if (peakAll >= 85) this.BackColor = Color.FromArgb(180, 40, 55);
-                else if (peakAll >= 75) this.BackColor = Color.FromArgb(200, 100, 0);
-                else if (peakAll >= 60) this.BackColor = Color.FromArgb(180, 140, 0);
-                else this.BackColor = Color.FromArgb(13, 110, 253);
+                if (peakAll >= 85) this.BackColor = ThemeService.Danger;
+                else if (peakAll >= 75) this.BackColor = ThemeService.Warning;
+                else if (peakAll >= 60) this.BackColor = ThemeService.Warning;
+                else this.BackColor = ThemeService.Primary;
             }
 
             public void SetLoading()
@@ -360,7 +393,7 @@ namespace TaskManagerPlus.Controls
             private readonly PictureBox pbChart;
 
             private double _currentTemp;
-            private Color  _tempColor = Color.FromArgb(25, 135, 84);
+            private Color  _tempColor = ThemeService.Success;
             private Queue<double> _history = new Queue<double>();
             private readonly Color _headerColor;
 
@@ -410,7 +443,7 @@ namespace TaskManagerPlus.Controls
                 {
                     Text = "—",
                     Font = new Font("Segoe UI", 22f, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(52, 58, 64),
+                    ForeColor = ThemeService.Text,
                     Location = new Point(12, 40),
                     Size = new Size(130, 42),
                     TextAlign = ContentAlignment.MiddleLeft
@@ -421,7 +454,7 @@ namespace TaskManagerPlus.Controls
                 {
                     Text = "—",
                     Font = new Font("Segoe UI Semibold", 9f, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(108, 117, 125),
+                    ForeColor = ThemeService.TextMuted,
                     Location = new Point(12, 86),
                     Size = new Size(130, 20),
                     TextAlign = ContentAlignment.MiddleLeft
@@ -432,7 +465,7 @@ namespace TaskManagerPlus.Controls
                 {
                     Text = "",
                     Font = new Font("Segoe UI", 8f),
-                    ForeColor = Color.FromArgb(108, 117, 125),
+                    ForeColor = ThemeService.TextMuted,
                     Location = new Point(12, 112),
                     Size = new Size(130, 18),
                     TextAlign = ContentAlignment.MiddleLeft
@@ -456,7 +489,7 @@ namespace TaskManagerPlus.Controls
                     Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top,
                     SizeMode = PictureBoxSizeMode.StretchImage,
                     BorderStyle = BorderStyle.None,
-                    BackColor = Color.FromArgb(248, 249, 250)
+                    BackColor = ThemeService.SurfaceAlt
                 };
 
                 this.Controls.Add(pnlHeader);
@@ -469,7 +502,7 @@ namespace TaskManagerPlus.Controls
                 // Card border
                 this.Paint += (s, e) =>
                 {
-                    using (Pen p = new Pen(Color.FromArgb(218, 222, 226), 1))
+                    using (Pen p = new Pen(ThemeService.Border, 1))
                         e.Graphics.DrawRectangle(p, 0, 0, Width - 1, Height - 1);
                     // Left accent strip
                     using (SolidBrush b = new SolidBrush(_headerColor))
@@ -492,9 +525,9 @@ namespace TaskManagerPlus.Controls
                 _tempColor = GetTemperatureColor(temp);
 
                 lblTemp.Text   = temp > 0 ? $"{temp:F1}°C" : "—";
-                lblTemp.ForeColor = temp > 0 ? _tempColor : Color.FromArgb(108, 117, 125);
+                lblTemp.ForeColor = temp > 0 ? _tempColor : ThemeService.TextMuted;
                 lblStatus.Text = GetTemperatureStatus(temp);
-                lblStatus.ForeColor = temp > 0 ? _tempColor : Color.FromArgb(108, 117, 125);
+                lblStatus.ForeColor = temp > 0 ? _tempColor : ThemeService.TextMuted;
 
                 double min = entry.Reading?.Min ?? 0;
                 double max = entry.Reading?.Max ?? 0;
@@ -520,7 +553,7 @@ namespace TaskManagerPlus.Controls
                 var rect = new Rectangle(0, 0, pnlGauge.Width, pnlGauge.Height);
 
                 // Background track
-                using (SolidBrush bg = new SolidBrush(Color.FromArgb(230, 230, 230)))
+                using (SolidBrush bg = new SolidBrush(ThemeService.Border))
                 using (GraphicsPath bgPath = RoundedRect(rect, 5))
                     g.FillPath(bg, bgPath);
 
@@ -561,7 +594,7 @@ namespace TaskManagerPlus.Controls
 
                 using (Graphics g = Graphics.FromImage(bmp))
                 {
-                    g.Clear(Color.FromArgb(248, 249, 250));
+                    g.Clear(ThemeService.SurfaceAlt);
                     g.SmoothingMode = SmoothingMode.AntiAlias;
 
                     double maxT = valid.Max() * 1.08;
@@ -626,10 +659,10 @@ namespace TaskManagerPlus.Controls
 
             private static Color GetTypeColor(string type)
             {
-                if (type == "CPU")  return Color.FromArgb(13, 110, 253);
-                if (type == "GPU")  return Color.FromArgb(25, 135, 84);
-                if (type == "Disk") return Color.FromArgb(255, 140, 0);
-                return Color.FromArgb(108, 117, 125);
+                if (type == "CPU")  return ThemeService.Primary;
+                if (type == "GPU")  return ThemeService.Success;
+                if (type == "Disk") return ThemeService.Warning;
+                return ThemeService.TextMuted;
             }
 
             private static string TruncateName(string name, int max = 70)

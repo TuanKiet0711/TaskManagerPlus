@@ -624,7 +624,8 @@ namespace TaskManagerPlus.Controls
             foreach (var s in _sessions.OrderByDescending(x => x.StartTime))
             {
                 DateTime start = s.StartTime;
-                DateTime end = s.EndTime ?? DateTime.Now;
+                bool isRunning = s.EndTime == null && (!s.LastSeen.HasValue || (DateTime.Now - s.LastSeen.Value).TotalSeconds <= 20);
+                DateTime end = s.EndTime ?? (isRunning ? DateTime.Now : (s.LastSeen ?? s.StartTime));
                 TimeSpan dur = end - start;
                 string durStr = dur.TotalHours >= 1
                     ? $"{(int)dur.TotalHours}h {dur.Minutes}m"

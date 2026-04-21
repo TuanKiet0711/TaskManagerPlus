@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
+using TaskManagerPlus.Services;
 
 namespace TaskManagerPlus.Controls
 {
@@ -20,7 +21,7 @@ namespace TaskManagerPlus.Controls
             InitializeComponent();
             hardwareItems = new List<HardwareItem>();
             this.DoubleBuffered = true;
-            this.BackColor = Color.FromArgb(240, 240, 240);
+            this.BackColor = ThemeService.Surface;
             this.SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
 
             // Create scrollable panel
@@ -28,7 +29,7 @@ namespace TaskManagerPlus.Controls
             {
                 Dock = DockStyle.Fill,
                 AutoScroll = true,
-                BackColor = Color.FromArgb(240, 240, 240)
+                BackColor = ThemeService.Surface
             };
             // Use double buffering for scroll panel to prevent flickering
             typeof(Panel).InvokeMember("DoubleBuffered", System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, scrollPanel, new object[] { true });
@@ -146,8 +147,8 @@ namespace TaskManagerPlus.Controls
         private void DrawHardwareItem(Graphics g, HardwareItem item, int x, int y, int width, int height, bool isSelected)
         {
             // Background
-            Color bgColor = isSelected ? Color.FromArgb(0, 120, 212) : Color.White;
-            Color textColor = isSelected ? Color.White : Color.FromArgb(52, 58, 64);
+            Color bgColor = isSelected ? ThemeService.Primary : ThemeService.Surface;
+            Color textColor = isSelected ? Color.White : ThemeService.Text;
 
             using (SolidBrush bgBrush = new SolidBrush(bgColor))
             {
@@ -157,7 +158,7 @@ namespace TaskManagerPlus.Controls
             // Border
             if (!isSelected)
             {
-                using (Pen borderPen = new Pen(Color.FromArgb(220, 220, 220)))
+                using (Pen borderPen = new Pen(ThemeService.Border))
                 {
                     g.DrawRectangle(borderPen, x, y, width - 1, height - 1);
                 }
@@ -280,3 +281,4 @@ namespace TaskManagerPlus.Controls
         public string ExtraInfo { get; set; }
     }
 }
+

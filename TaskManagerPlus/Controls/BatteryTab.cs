@@ -30,6 +30,43 @@ namespace TaskManagerPlus.Controls
             updateTimer = new Timer();
             updateTimer.Interval = 2000; // Update every 2 seconds
             updateTimer.Tick += async (s, e) => await UpdateBatteryInfoAsync();
+            ApplyModernStyling();
+        }
+
+        private void ApplyModernStyling()
+        {
+            this.BackColor = ThemeService.Background;
+            this.Padding = new Padding(24);
+            
+            panelScroll.BackColor = ThemeService.Background;
+            
+            // Move title into a header area or just style it
+            lblTitle.Font = ThemeService.HeaderFont;
+            lblTitle.ForeColor = ThemeService.Text;
+            
+            lblInfo.Font = ThemeService.MainFont;
+            lblInfo.ForeColor = ThemeService.TextMuted;
+
+            // Make the picture box a card
+            // pictureBoxBattery is inside panelScroll, wait! Actually panelScroll fills the whole tab and pictureBoxBattery is anchored top-left. Let's make pictureBoxBattery look like a card or put it inside a panel.
+            // Oh, we can just apply styling to pictureBoxBattery directly ? No, panel can have border.
+            var cardPanel = new Panel();
+            cardPanel.BackColor = ThemeService.Surface;
+            ThemeService.ApplyCardStyle(cardPanel);
+            ThemeService.ApplyRounding(cardPanel, 16);
+            
+            // Adjust card layout
+            cardPanel.Location = pictureBoxBattery.Location;
+            cardPanel.Size = pictureBoxBattery.Size;
+            cardPanel.Anchor = pictureBoxBattery.Anchor;
+            
+            panelScroll.Controls.Remove(pictureBoxBattery);
+            cardPanel.Controls.Add(pictureBoxBattery);
+            pictureBoxBattery.Dock = DockStyle.Fill;
+            pictureBoxBattery.BackColor = Color.Transparent;
+            
+            panelScroll.Controls.Add(cardPanel);
+            cardPanel.BringToFront();
         }
 
         public void Initialize()
@@ -117,14 +154,14 @@ namespace TaskManagerPlus.Controls
         {
             tipsContainer = new Panel
             {
-                BackColor = Color.FromArgb(248, 249, 250)
+                BackColor = ThemeService.SurfaceAlt
             };
 
             tipsTitle = new Label
             {
                 AutoSize = true,
-                Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(0, 120, 212),
+                Font = ThemeService.HeaderFont,
+                ForeColor = ThemeService.Primary,
                 Location = new Point(0, 0)
             };
 
@@ -394,7 +431,7 @@ namespace TaskManagerPlus.Controls
         private void PictureBoxBattery_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
-            g.Clear(Color.White);
+            g.Clear(ThemeService.Surface);
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
@@ -426,7 +463,7 @@ namespace TaskManagerPlus.Controls
                 ? LocalizationService.T("battery_status_charging")
                 : LocalizationService.T("battery_status_on_battery");
             using (Font statusFont = new Font("Segoe UI", 16F, FontStyle.Bold))
-            using (SolidBrush statusBrush = new SolidBrush(currentBatteryInfo.IsCharging ? Color.FromArgb(25, 135, 84) : Color.FromArgb(52, 58, 64)))
+            using (SolidBrush statusBrush = new SolidBrush(currentBatteryInfo.IsCharging ? ThemeService.Success : ThemeService.Text))
             {
                 SizeF statusSize = g.MeasureString(status, statusFont);
                 g.DrawString(status, statusFont, statusBrush, centerX - statusSize.Width / 2, yPos);
@@ -440,9 +477,9 @@ namespace TaskManagerPlus.Controls
                     currentBatteryInfo.BatteryHealth,
                     currentBatteryInfo.WearLevel,
                     LocalizationService.T(currentBatteryInfo.BatteryCondition));
-                Color healthColor = currentBatteryInfo.BatteryHealth >= 80 ? Color.FromArgb(25, 135, 84) :
-                                   currentBatteryInfo.BatteryHealth >= 60 ? Color.FromArgb(255, 193, 7) :
-                                   Color.FromArgb(220, 53, 69);
+                Color healthColor = currentBatteryInfo.BatteryHealth >= 80 ? ThemeService.Success :
+                                   currentBatteryInfo.BatteryHealth >= 60 ? ThemeService.Warning :
+                                   ThemeService.Danger;
 
                 using (Font healthFont = new Font("Segoe UI Semibold", 14F, FontStyle.Bold))
                 using (SolidBrush healthBrush = new SolidBrush(healthColor))
@@ -460,7 +497,7 @@ namespace TaskManagerPlus.Controls
                 string timeText = string.Format(LocalizationService.T("battery_time_remaining_format"),
                     time.Hours, time.Minutes);
                 using (Font timeFont = new Font("Segoe UI", 12F))
-                using (SolidBrush timeBrush = new SolidBrush(Color.FromArgb(108, 117, 125)))
+                using (SolidBrush timeBrush = new SolidBrush(ThemeService.TextMuted))
                 {
                     SizeF timeSize = g.MeasureString(timeText, timeFont);
                     g.DrawString(timeText, timeFont, timeBrush, centerX - timeSize.Width / 2, yPos);
@@ -517,8 +554,8 @@ namespace TaskManagerPlus.Controls
 
         private void DrawDetailsPanel(Graphics g, int x, int y, int width, int height)
         {
-            using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(248, 249, 250)))
-            using (Pen borderPen = new Pen(Color.FromArgb(200, 200, 200)))
+            using (SolidBrush bgBrush = new SolidBrush(ThemeService.SurfaceAlt))
+            using (Pen borderPen = new Pen(ThemeService.Border))
             {
                 g.FillRectangle(bgBrush, x, y, width, height);
                 g.DrawRectangle(borderPen, x, y, width, height);
@@ -529,7 +566,7 @@ namespace TaskManagerPlus.Controls
             int rightCol = x + width / 2 + 30;
 
             using (Font titleFont = new Font("Segoe UI Semibold", 14F, FontStyle.Bold))
-            using (SolidBrush titleBrush = new SolidBrush(Color.FromArgb(0, 120, 212)))
+            using (SolidBrush titleBrush = new SolidBrush(ThemeService.Primary))
             {
                 g.DrawString(LocalizationService.T("battery_details_title"), titleFont, titleBrush, leftCol, yPos);
             }
@@ -606,8 +643,8 @@ namespace TaskManagerPlus.Controls
         {
             using (Font labelFont = new Font("Segoe UI", 9F))
             using (Font valueFont = new Font("Segoe UI Semibold", 10F, FontStyle.Bold))
-            using (SolidBrush labelBrush = new SolidBrush(Color.FromArgb(108, 117, 125)))
-            using (SolidBrush valueBrush = new SolidBrush(Color.FromArgb(52, 58, 64)))
+            using (SolidBrush labelBrush = new SolidBrush(ThemeService.TextMuted))
+            using (SolidBrush valueBrush = new SolidBrush(ThemeService.Text))
             {
                 g.DrawString(label, labelFont, labelBrush, x, y);
                 g.DrawString(value, valueFont, valueBrush, x, y + 15);
@@ -617,7 +654,7 @@ namespace TaskManagerPlus.Controls
         private void DrawHealthBar(Graphics g, int x, int y, int width, int health)
         {
             using (Font labelFont = new Font("Segoe UI", 9F))
-            using (SolidBrush labelBrush = new SolidBrush(Color.FromArgb(108, 117, 125)))
+            using (SolidBrush labelBrush = new SolidBrush(ThemeService.TextMuted))
             {
                 g.DrawString(LocalizationService.T("battery_health_bar_label"), labelFont, labelBrush, x, y);
             }
@@ -625,15 +662,15 @@ namespace TaskManagerPlus.Controls
             int barY = y + 25;
             int barHeight = 25;
 
-            using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(220, 220, 220)))
+            using (SolidBrush bgBrush = new SolidBrush(ThemeService.Border))
                 g.FillRectangle(bgBrush, x, barY, width, barHeight);
 
             int h = Math.Max(0, Math.Min(100, health));
             int healthWidth = (int)(width * h / 100.0);
 
-            Color healthColor = h >= 80 ? Color.FromArgb(25, 135, 84) :
-                              h >= 50 ? Color.FromArgb(255, 193, 7) :
-                              Color.FromArgb(220, 53, 69);
+            Color healthColor = h >= 80 ? ThemeService.Success :
+                              h >= 50 ? ThemeService.Warning :
+                              ThemeService.Danger;
 
             using (SolidBrush healthBrush = new SolidBrush(healthColor))
                 g.FillRectangle(healthBrush, x, barY, healthWidth, barHeight);
@@ -651,7 +688,7 @@ namespace TaskManagerPlus.Controls
         private void DrawWearBar(Graphics g, int x, int y, int width, int wear)
         {
             using (Font labelFont = new Font("Segoe UI", 9F))
-            using (SolidBrush labelBrush = new SolidBrush(Color.FromArgb(108, 117, 125)))
+            using (SolidBrush labelBrush = new SolidBrush(ThemeService.TextMuted))
             {
                 g.DrawString(LocalizationService.T("battery_wear_bar_label"), labelFont, labelBrush, x, y);
             }
@@ -659,16 +696,16 @@ namespace TaskManagerPlus.Controls
             int barY = y + 25;
             int barHeight = 25;
 
-            using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(220, 220, 220)))
+            using (SolidBrush bgBrush = new SolidBrush(ThemeService.Border))
                 g.FillRectangle(bgBrush, x, barY, width, barHeight);
 
             int w = Math.Max(0, Math.Min(100, wear));
             int wearWidth = (int)(width * w / 100.0);
 
             // Wear càng cao càng xấu: xanh -> vàng -> đỏ
-            Color wearColor = w <= 20 ? Color.FromArgb(25, 135, 84) :
-                             w <= 40 ? Color.FromArgb(255, 193, 7) :
-                             Color.FromArgb(220, 53, 69);
+            Color wearColor = w <= 20 ? ThemeService.Success :
+                             w <= 40 ? ThemeService.Warning :
+                             ThemeService.Danger;
 
             using (SolidBrush wearBrush = new SolidBrush(wearColor))
                 g.FillRectangle(wearBrush, x, barY, wearWidth, barHeight);
@@ -704,7 +741,7 @@ namespace TaskManagerPlus.Controls
                     AutoSize = true,
                     Text = "- " + tip.Text,
                     Font = new Font("Segoe UI", 9F),
-                    ForeColor = Color.FromArgb(52, 58, 64),
+                    ForeColor = ThemeService.Text,
                     Location = new Point(0, 4)
                 };
 
@@ -879,7 +916,7 @@ namespace TaskManagerPlus.Controls
         private void DrawNoBatteryMessage(Graphics g)
         {
             using (Font font = new Font("Segoe UI", 14F))
-            using (SolidBrush brush = new SolidBrush(Color.FromArgb(108, 117, 125)))
+            using (SolidBrush brush = new SolidBrush(ThemeService.TextMuted))
             {
                 StringFormat sf = new StringFormat
                 {
@@ -895,11 +932,11 @@ namespace TaskManagerPlus.Controls
         private Color GetBatteryColor(int percent)
         {
             if (percent >= 50)
-                return Color.FromArgb(25, 135, 84); // Green
+                return ThemeService.Success; // Green
             else if (percent >= 20)
-                return Color.FromArgb(255, 193, 7); // Yellow
+                return ThemeService.Warning; // Yellow
             else
-                return Color.FromArgb(220, 53, 69); // Red
+                return ThemeService.Danger; // Red
         }
 
         public void ApplyLocalization()

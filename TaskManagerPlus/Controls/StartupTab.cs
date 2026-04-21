@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Drawing;
 using TaskManagerPlus.Models;
 using TaskManagerPlus.Services;
 
@@ -28,6 +29,66 @@ namespace TaskManagerPlus.Controls
             InitializeComponent();
             startupApps = new BindingList<StartupApp>();
             SetupLocalizationTags();
+            ApplyModernStyling();
+        }
+
+        private void ApplyModernStyling()
+        {
+            this.BackColor = ThemeService.Background;
+            this.Padding = new Padding(24);
+
+            panelTop.BackColor = ThemeService.Surface;
+            ThemeService.ApplyCardStyle(panelTop);
+            ThemeService.ApplyRounding(panelTop, 16);
+            panelTop.Margin = new Padding(0, 0, 0, 16);
+            
+            // Put it down slightly so the spacing looks nice, also lower the height because 100 might be too big if it has margin
+            panelTop.Height = 80;
+            // Reposition buttons
+            btnEnable.Location = new System.Drawing.Point(panelTop.Width - btnEnable.Width - 16, 24);
+            btnDisable.Location = new System.Drawing.Point(btnEnable.Location.X - btnDisable.Width - 12, 24);
+            lblInfo.Location = new System.Drawing.Point(16, 30);
+
+            // Re-order layout by wrapping DataGridView in a card
+            var gridWrapperOuter = new Panel();
+            gridWrapperOuter.Dock = DockStyle.Fill;
+            gridWrapperOuter.BackColor = Color.Transparent;
+            gridWrapperOuter.Padding = new Padding(0, 16, 0, 0);
+
+            var gridWrapperInner = new Panel();
+            gridWrapperInner.BackColor = ThemeService.Surface;
+            gridWrapperInner.Dock = DockStyle.Fill;
+            ThemeService.ApplyCardStyle(gridWrapperInner);
+            ThemeService.ApplyRounding(gridWrapperInner, 16);
+
+            this.Controls.Remove(dataGridViewStartup);
+            gridWrapperInner.Controls.Add(dataGridViewStartup);
+            dataGridViewStartup.Dock = DockStyle.Fill;
+
+            gridWrapperOuter.Controls.Add(gridWrapperInner);
+            this.Controls.Add(gridWrapperOuter);
+            
+            panelTop.SendToBack();
+            gridWrapperOuter.BringToFront();
+
+            // Button styling
+            btnDisable.FlatStyle = FlatStyle.Flat;
+            btnDisable.FlatAppearance.BorderSize = 0;
+            btnDisable.BackColor = ThemeService.Secondary;
+            btnDisable.ForeColor = Color.White;
+            btnDisable.Font = ThemeService.BoldFont;
+            ThemeService.ApplyRounding(btnDisable, 8);
+
+            btnEnable.FlatStyle = FlatStyle.Flat;
+            btnEnable.FlatAppearance.BorderSize = 0;
+            btnEnable.BackColor = ThemeService.Primary;
+            btnEnable.ForeColor = Color.White;
+            btnEnable.Font = ThemeService.BoldFont;
+            ThemeService.ApplyRounding(btnEnable, 8);
+
+            // Labels
+            lblInfo.Font = ThemeService.MainFont;
+            lblInfo.ForeColor = ThemeService.TextMuted;
         }
 
         public void Initialize()
@@ -43,6 +104,36 @@ namespace TaskManagerPlus.Controls
 
             // FIX ambiguous DoubleBuffered: no extension method
             SetDoubleBuffered(dataGridViewStartup, true);
+
+            // Modern UI style
+            dataGridViewStartup.BackgroundColor = ThemeService.Surface;
+            dataGridViewStartup.BorderStyle = BorderStyle.None;
+            dataGridViewStartup.EnableHeadersVisualStyles = false;
+            dataGridViewStartup.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dataGridViewStartup.GridColor = ThemeService.Border;
+            dataGridViewStartup.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+            DataGridViewCellStyle headerStyle = new DataGridViewCellStyle();
+            headerStyle.BackColor = ThemeService.SurfaceAlt;
+            headerStyle.ForeColor = ThemeService.TextMuted;
+            headerStyle.Font = ThemeService.MainFont;
+            headerStyle.SelectionBackColor = ThemeService.SurfaceAlt;
+            headerStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            headerStyle.Padding = new Padding(12, 8, 12, 8);
+            dataGridViewStartup.ColumnHeadersDefaultCellStyle = headerStyle;
+            dataGridViewStartup.ColumnHeadersHeight = 40;
+            dataGridViewStartup.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            dataGridViewStartup.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+
+            DataGridViewCellStyle cellStyle = new DataGridViewCellStyle();
+            cellStyle.BackColor = ThemeService.Surface;
+            cellStyle.ForeColor = ThemeService.Text;
+            cellStyle.SelectionBackColor = ThemeService.Primary;
+            cellStyle.SelectionForeColor = Color.White;
+            cellStyle.Font = ThemeService.MainFont;
+            cellStyle.Padding = new Padding(12, 4, 12, 4);
+            dataGridViewStartup.DefaultCellStyle = cellStyle;
+            dataGridViewStartup.RowTemplate.Height = 40;
 
             dataGridViewStartup.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridViewStartup.MultiSelect = false;
@@ -551,3 +642,4 @@ namespace TaskManagerPlus.Controls
         }
     }
 }
+

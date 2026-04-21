@@ -66,7 +66,7 @@ namespace TaskManagerPlus.Services
             catch { }
         }
 
-        public void StartAppSession(int processId, string processName, string executablePath)
+        public void StartAppSession(int processId, string processName, string executablePath, DateTime? processStartTime = null)
         {
             if (string.IsNullOrWhiteSpace(processName))
                 return;
@@ -75,7 +75,7 @@ namespace TaskManagerPlus.Services
             {
                 AppName = processName,
                 ExePath = executablePath,
-                StartTime = DateTime.Now
+                StartTime = processStartTime ?? DateTime.Now
             };
 
             sessions.Add(session);
@@ -101,7 +101,7 @@ namespace TaskManagerPlus.Services
             }
             else
             {
-                StartAppSession(processId, processName, "");
+                StartAppSession(processId, processName, "", null);
                 activeSessions.TryGetValue(processId, out session);
             }
 
@@ -119,7 +119,7 @@ namespace TaskManagerPlus.Services
             DateTime today = DateTime.Today;
             DateTime tomorrow = today.AddDays(1);
             return sessions.Where(s => 
-                s.StartTime < tomorrow && (s.EndTime ?? DateTime.Now) >= today
+                s.StartTime < tomorrow && (s.EndTime ?? s.LastSeen ?? s.StartTime) >= today
             ).ToList();
         }
 
@@ -131,7 +131,7 @@ namespace TaskManagerPlus.Services
             DateTime? endExclusive = endDate?.Date.AddDays(1);
 
             var filtered = sessions.Where(s => 
-                (!start.HasValue || (s.EndTime ?? DateTime.Now) >= start.Value) &&
+                (!start.HasValue || (s.EndTime ?? s.LastSeen ?? s.StartTime) >= start.Value) &&
                 (!endExclusive.HasValue || s.StartTime < endExclusive.Value)
             ).ToList();
 
@@ -149,17 +149,21 @@ namespace TaskManagerPlus.Services
                 DateTime maxLastSeen = DateTime.MinValue;
                 bool hasRunning = false;
 
+                var intervals = new List<(DateTime Start, DateTime End)>();
+
                 foreach (var s in g)
                 {
                     DateTime sStart = s.StartTime;
-                    DateTime sEnd = s.EndTime ?? DateTime.Now;
+                    
+                    bool isActuallyRunning = s.EndTime == null && (!s.LastSeen.HasValue || (DateTime.Now - s.LastSeen.Value).TotalSeconds <= 20);
+                    DateTime sEnd = s.EndTime ?? (isActuallyRunning ? DateTime.Now : (s.LastSeen ?? s.StartTime));
 
                     if (start.HasValue && sStart < start.Value) sStart = start.Value;
                     if (endExclusive.HasValue && sEnd > endExclusive.Value) sEnd = endExclusive.Value;
 
                     if (sEnd > sStart)
                     {
-                        totalDuration += (sEnd - sStart).TotalSeconds;
+                        intervals.Add((sStart, sEnd));
                     }
 
                     totalCpuSum += s.CpuSum;
@@ -175,6 +179,29 @@ namespace TaskManagerPlus.Services
                     bool isSessionRunning = s.EndTime == null || (s.LastSeen.HasValue && (DateTime.Now - s.LastSeen.Value).TotalSeconds <= 15);
                     if (isSessionRunning)
                         hasRunning = true;
+                }
+
+                if (intervals.Count > 0)
+                {
+                    var sortedIntervals = intervals.OrderBy(i => i.Start).ToList();
+                    DateTime currentStart = sortedIntervals[0].Start;
+                    DateTime currentEnd = sortedIntervals[0].End;
+
+                    for (int i = 1; i < sortedIntervals.Count; i++)
+                    {
+                        if (sortedIntervals[i].Start <= currentEnd)
+                        {
+                            if (sortedIntervals[i].End > currentEnd)
+                                currentEnd = sortedIntervals[i].End;
+                        }
+                        else
+                        {
+                            totalDuration += (currentEnd - currentStart).TotalSeconds;
+                            currentStart = sortedIntervals[i].Start;
+                            currentEnd = sortedIntervals[i].End;
+                        }
+                    }
+                    totalDuration += (currentEnd - currentStart).TotalSeconds;
                 }
 
                 double avgCpu = totalStatCount > 0 ? totalCpuSum / totalStatCount : 0;
@@ -212,7 +239,7 @@ namespace TaskManagerPlus.Services
             return sessions
                 .Where(s =>
                     s.AppName.Equals(appName, StringComparison.OrdinalIgnoreCase) &&
-                    (!start.HasValue || (s.EndTime ?? DateTime.Now) >= start.Value) &&
+                    (!start.HasValue || (s.EndTime ?? s.LastSeen ?? s.StartTime) >= start.Value) &&
                     (!endExclusive.HasValue || s.StartTime < endExclusive.Value))
                 .OrderByDescending(s => s.StartTime)
                 .ToList();

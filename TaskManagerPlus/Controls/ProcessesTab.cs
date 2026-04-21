@@ -50,6 +50,59 @@ namespace TaskManagerPlus.Controls
             InitializeComponent();
             displayedRows = new BindingList<object>();
             SetupLocalizationTags();
+            ApplyModernStyling();
+        }
+
+        private void ApplyModernStyling()
+        {
+            this.BackColor = ThemeService.Background;
+            this.Padding = new Padding(24);
+
+            panelTop.BackColor = ThemeService.Surface;
+            ThemeService.ApplyCardStyle(panelTop);
+            ThemeService.ApplyRounding(panelTop, 16);
+            panelTop.Margin = new Padding(0, 0, 0, 16);
+            
+            // Re-order layout by wrapping DataGridView in a card
+            var gridWrapperOuter = new Panel();
+            gridWrapperOuter.Dock = DockStyle.Fill;
+            gridWrapperOuter.BackColor = Color.Transparent;
+            gridWrapperOuter.Padding = new Padding(0, 16, 0, 0);
+
+            var gridWrapperInner = new Panel();
+            gridWrapperInner.BackColor = ThemeService.Surface;
+            gridWrapperInner.Dock = DockStyle.Fill;
+            ThemeService.ApplyCardStyle(gridWrapperInner);
+            ThemeService.ApplyRounding(gridWrapperInner, 16);
+
+            this.Controls.Remove(dataGridViewProcesses);
+            gridWrapperInner.Controls.Add(dataGridViewProcesses);
+            dataGridViewProcesses.Dock = DockStyle.Fill;
+
+            gridWrapperOuter.Controls.Add(gridWrapperInner);
+            this.Controls.Add(gridWrapperOuter);
+            
+            panelTop.SendToBack();
+            gridWrapperOuter.BringToFront();
+
+            // Button styling
+            btnKillProcess.FlatStyle = FlatStyle.Flat;
+            btnKillProcess.FlatAppearance.BorderSize = 0;
+            btnKillProcess.BackColor = ThemeService.Danger;
+            btnKillProcess.ForeColor = Color.White;
+            btnKillProcess.Font = ThemeService.BoldFont;
+            ThemeService.ApplyRounding(btnKillProcess, 8);
+
+            // Labels
+            lblSearch.Font = ThemeService.MainFont;
+            lblSearch.ForeColor = ThemeService.TextMuted;
+
+            // Search box
+            txtSearch.Font = ThemeService.MainFont;
+            txtSearch.BackColor = ThemeService.Background;
+            txtSearch.ForeColor = ThemeService.Text;
+            txtSearch.BorderStyle = BorderStyle.FixedSingle;
+            // Rounded corners on textboxes in WinForms is tricky without custom drawing, we'll just apply basic colors.
         }
 
         public void Initialize()
@@ -65,39 +118,40 @@ namespace TaskManagerPlus.Controls
             dataGridViewProcesses.AutoGenerateColumns = false;
             dataGridViewProcesses.Columns.Clear();
             dataGridViewProcesses.DoubleBuffered(true);
-            dataGridViewProcesses.RowTemplate.Height = 32;
+            dataGridViewProcesses.RowTemplate.Height = 40;
             dataGridViewProcesses.AllowUserToResizeRows = false;
             dataGridViewProcesses.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridViewProcesses.MultiSelect = false;
 
-            // Make it occupy full width properly and style similarly to Win11 task manager
-            dataGridViewProcesses.BackgroundColor = Color.White;
+            // Make it match modern UI style
+            dataGridViewProcesses.BackgroundColor = ThemeService.Surface;
             dataGridViewProcesses.BorderStyle = BorderStyle.None;
             dataGridViewProcesses.EnableHeadersVisualStyles = false;
             dataGridViewProcesses.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            dataGridViewProcesses.GridColor = Color.FromArgb(240, 240, 240);
+            dataGridViewProcesses.GridColor = ThemeService.Border;
             dataGridViewProcesses.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
             // Custom header styling
             DataGridViewCellStyle headerStyle = new DataGridViewCellStyle();
-            headerStyle.BackColor = Color.White;
-            headerStyle.ForeColor = Color.FromArgb(60, 60, 60);
-            headerStyle.Font = new Font("Segoe UI Semibold", 9.5f, FontStyle.Bold);
-            headerStyle.SelectionBackColor = Color.White;
+            headerStyle.BackColor = ThemeService.SurfaceAlt;
+            headerStyle.ForeColor = ThemeService.TextMuted;
+            headerStyle.Font = ThemeService.MainFont;
+            headerStyle.SelectionBackColor = ThemeService.SurfaceAlt;
             headerStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            headerStyle.Padding = new Padding(5, 5, 5, 5);
+            headerStyle.Padding = new Padding(12, 8, 12, 8);
             dataGridViewProcesses.ColumnHeadersDefaultCellStyle = headerStyle;
-            dataGridViewProcesses.ColumnHeadersHeight = 35;
+            dataGridViewProcesses.ColumnHeadersHeight = 40;
             dataGridViewProcesses.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            dataGridViewProcesses.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
 
             // Default cell styling
             DataGridViewCellStyle cellStyle = new DataGridViewCellStyle();
-            cellStyle.BackColor = Color.White;
-            cellStyle.ForeColor = Color.FromArgb(30, 30, 30);
-            cellStyle.SelectionBackColor = Color.FromArgb(230, 242, 255);
-            cellStyle.SelectionForeColor = Color.Black;
-            cellStyle.Font = new Font("Segoe UI", 9f, FontStyle.Regular);
-            cellStyle.Padding = new Padding(2);
+            cellStyle.BackColor = ThemeService.Surface;
+            cellStyle.ForeColor = ThemeService.Text;
+            cellStyle.SelectionBackColor = ThemeService.Primary;
+            cellStyle.SelectionForeColor = Color.White;
+            cellStyle.Font = ThemeService.MainFont;
+            cellStyle.Padding = new Padding(12, 4, 12, 4);
             dataGridViewProcesses.DefaultCellStyle = cellStyle;
 
             // Name column (icon + text will be painted manually)
@@ -227,7 +281,7 @@ namespace TaskManagerPlus.Controls
             {
                 e.Paint(e.CellBounds, DataGridViewPaintParts.All);
 
-                using (SolidBrush bg = new SolidBrush(Color.FromArgb(248, 249, 250)))
+                using (SolidBrush bg = new SolidBrush(ThemeService.SurfaceAlt))
                     e.Graphics.FillRectangle(bg, e.CellBounds);
 
                 string headerText = header.DisplayText;
@@ -254,11 +308,11 @@ namespace TaskManagerPlus.Controls
                     };
                 }
 
-                using (SolidBrush arrowBrush = new SolidBrush(Color.FromArgb(100, 100, 100)))
+                using (SolidBrush arrowBrush = new SolidBrush(ThemeService.TextMuted))
                     e.Graphics.FillPolygon(arrowBrush, arrow);
 
                 using (Font font = new Font(dataGridViewProcesses.Font, FontStyle.Bold))
-                using (SolidBrush textBrush = new SolidBrush(Color.FromArgb(0, 120, 212)))
+                using (SolidBrush textBrush = new SolidBrush(ThemeService.Primary))
                 {
                     e.Graphics.DrawString(headerText, font, textBrush,
                         e.CellBounds.X + 25, e.CellBounds.Y + 5);
@@ -316,10 +370,10 @@ namespace TaskManagerPlus.Controls
 
             if (row is GroupHeader header)
             {
-                e.CellStyle.BackColor = Color.FromArgb(248, 249, 250);
+                e.CellStyle.BackColor = ThemeService.SurfaceAlt;
                 e.CellStyle.Font = new Font(dataGridViewProcesses.Font, FontStyle.Bold);
-                e.CellStyle.SelectionBackColor = Color.FromArgb(248, 249, 250);
-                e.CellStyle.SelectionForeColor = Color.FromArgb(0, 120, 212);
+                e.CellStyle.SelectionBackColor = ThemeService.SurfaceAlt;
+                e.CellStyle.SelectionForeColor = ThemeService.Primary;
                 e.Value = (e.ColumnIndex == 0) ? header.DisplayText : "";
                 return;
             }
@@ -339,11 +393,11 @@ namespace TaskManagerPlus.Controls
 
                 if (process.CpuUsage > 50)
                 {
-                    e.CellStyle.ForeColor = Color.FromArgb(220, 53, 69);
+                    e.CellStyle.ForeColor = ThemeService.Danger;
                 }
                 else if (process.CpuUsage > 25)
                 {
-                    e.CellStyle.ForeColor = Color.FromArgb(255, 193, 7);
+                    e.CellStyle.ForeColor = ThemeService.Warning;
                 }
                 else
                 {

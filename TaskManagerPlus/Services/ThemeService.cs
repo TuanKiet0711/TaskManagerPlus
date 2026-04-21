@@ -33,22 +33,33 @@ namespace TaskManagerPlus.Services
         // --- Styling Helpers ---
         public static void ApplyRounding(Control control, int radius = 16)
         {
-            if (control == null || control.Width <= 0 || control.Height <= 0)
+            if (control == null)
                 return;
 
-            int d = Math.Max(1, radius * 2);
-            using (var path = new GraphicsPath())
+            void UpdateRegion()
             {
-                var rect = new Rectangle(0, 0, control.Width, control.Height);
+                if (control.Width <= 0 || control.Height <= 0)
+                    return;
 
-                path.AddArc(rect.X, rect.Y, d, d, 180, 90);
-                path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
-                path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
-                path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
-                path.CloseFigure();
+                int d = Math.Max(1, radius * 2);
+                using (var path = new GraphicsPath())
+                {
+                    var rect = new Rectangle(0, 0, control.Width, control.Height);
 
-                control.Region = new Region(path);
+                    path.AddArc(rect.X, rect.Y, d, d, 180, 90);
+                    path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
+                    path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
+                    path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
+                    path.CloseFigure();
+
+                    var oldRegion = control.Region;
+                    control.Region = new Region(path);
+                    if (oldRegion != null) oldRegion.Dispose();
+                }
             }
+
+            control.Resize += (s, e) => UpdateRegion();
+            UpdateRegion();
         }
 
         public static void ApplyCardStyle(Panel panel)
