@@ -303,7 +303,7 @@ namespace TaskManagerPlus
                 Task tStartup = startupTab.LoadStartupAppsAsync();
                 Task tTemp = temperatureTab.UpdateTemperaturesAsync();
                 Task tBattery = batteryTab.UpdateBatteryInfoAsync();
-                Task tHistory = appHistoryTab.LoadAppHistoryAsync();
+                Task tHistory = appHistoryTab.LoadHistoryAsync();
 
                 await Task.WhenAll(tProc, tPerf, tStartup, tTemp, tBattery, tHistory);
 
@@ -349,7 +349,7 @@ namespace TaskManagerPlus
                 else if (tabControl.SelectedTab == tabBattery)
                     await batteryTab.UpdateBatteryInfoAsync();
                 else if (tabControl.SelectedTab == tabAppHistory)
-                    await appHistoryTab.LoadAppHistoryAsync();
+                    await appHistoryTab.LoadHistoryAsync();
 
                 // Do NOT query history in background loop if we are not on the history tab - it causes WMI/JSON lag!
                 // if (chkAutoRefresh.Checked && tabControl.SelectedTab != tabAppHistory)
@@ -421,7 +421,7 @@ namespace TaskManagerPlus
             else if (tabControl.SelectedTab == tabBattery)
                 await batteryTab.UpdateBatteryInfoAsync();
             else if (tabControl.SelectedTab == tabAppHistory)
-                await appHistoryTab.LoadAppHistoryAsync();
+                await appHistoryTab.LoadHistoryAsync();
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)

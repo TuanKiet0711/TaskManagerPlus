@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Diagnostics;
 using TaskManagerPlus.Models;
 using TaskManagerPlus.Services;
 
@@ -45,21 +46,6 @@ namespace TaskManagerPlus.Controls
 
         private bool _liveUpdateInProgress;
 
-        private readonly Color PrimaryColor = Color.FromArgb(37, 99, 235);
-        private readonly Color SecondaryColor = Color.FromArgb(139, 92, 246);
-        private readonly Color SuccessColor = Color.FromArgb(16, 185, 129);
-        private readonly Color WarningColor = Color.FromArgb(245, 158, 11);
-        private readonly Color DangerColor = Color.FromArgb(239, 68, 68);
-        private readonly Color AccentColor = Color.FromArgb(6, 182, 212);
-        private readonly Color BackgroundColor = Color.FromArgb(243, 246, 251);
-        private readonly Color SurfaceColor = Color.FromArgb(255, 255, 255);
-        private readonly Color SurfaceAltColor = Color.FromArgb(249, 250, 252);
-        private readonly Color BorderColor = Color.FromArgb(218, 226, 236);
-        private readonly Color TextColor = Color.FromArgb(15, 23, 42);
-        private readonly Color MutedTextColor = Color.FromArgb(100, 116, 139);
-        private readonly Color HeroStartColor = Color.FromArgb(255, 255, 255);
-        private readonly Color HeroEndColor = Color.FromArgb(243, 247, 255);
-
         public OverviewTab()
         {
             InitializeComponent();
@@ -79,18 +65,26 @@ namespace TaskManagerPlus.Controls
             _liveRefreshTimer.Start();
         }
 
+        public void ApplyLocalization()
+        {
+            UILocalizer.Apply(this);
+            if (_heroTitleLabel != null) _heroTitleLabel.Text = LocalizationService.T("overview_title");
+            if (_heroSubtitleLabel != null) _heroSubtitleLabel.Text = LocalizationService.T("overview_subtitle");
+            RefreshSummaryUI();
+        }
+
         private void SetupUI()
         {
             SuspendLayout();
             AutoScroll = true;
-            BackColor = BackgroundColor;
+            BackColor = ThemeService.Background;
             Padding = new Padding(24);
             Controls.Clear();
 
             _rootPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = BackgroundColor,
+                BackColor = ThemeService.Background,
                 AutoScroll = true
             };
             _rootPanel.Resize += (s, e) => UpdateResponsiveWidths();
@@ -102,7 +96,7 @@ namespace TaskManagerPlus.Controls
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
-                BackColor = BackgroundColor,
+                BackColor = ThemeService.Background,
                 Margin = new Padding(0),
                 Padding = new Padding(0, 0, 0, 24)
             };
@@ -117,7 +111,7 @@ namespace TaskManagerPlus.Controls
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                BackColor = BackgroundColor,
+                BackColor = ThemeService.Background,
                 Margin = new Padding(0, 0, 0, 24),
                 Padding = new Padding(0)
             };
@@ -138,10 +132,10 @@ namespace TaskManagerPlus.Controls
             _statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20f));
 
             _statsGrid.Controls.Add(CreateMachineTimeCard(out _awakeTimeValueLabel), 0, 0);
-            _statsGrid.Controls.Add(CreateStatCard("Ứng dụng nổi bật", "App dùng nhiều nhất", "N/A", SecondaryColor, out _mostUsedValueLabel), 1, 0);
-            _statsGrid.Controls.Add(CreateStatCard("Giờ cao điểm", "Khung giờ hoạt động mạnh nhất", "N/A", WarningColor, out _peakHourValueLabel), 2, 0);
-            _statsGrid.Controls.Add(CreateStatCard("CPU trung bình", "Mức CPU trung bình", "0.0%", DangerColor, out _avgCpuValueLabel), 3, 0);
-            _statsGrid.Controls.Add(CreateStatCard("RAM trung bình", "Mức RAM trung bình", "0.0%", SuccessColor, out _avgRamValueLabel), 4, 0);
+            _statsGrid.Controls.Add(CreateStatCard(LocalizationService.T("overview_stat_most_used"), LocalizationService.T("overview_stat_most_used_hint"), "N/A", ThemeService.Secondary, out _mostUsedValueLabel), 1, 0);
+            _statsGrid.Controls.Add(CreateStatCard(LocalizationService.T("overview_stat_peak"), LocalizationService.T("overview_stat_peak_hint"), "N/A", ThemeService.Warning, out _peakHourValueLabel), 2, 0);
+            _statsGrid.Controls.Add(CreateStatCard(LocalizationService.T("overview_stat_cpu"), LocalizationService.T("overview_stat_cpu_hint"), "0.0%", ThemeService.Danger, out _avgCpuValueLabel), 3, 0);
+            _statsGrid.Controls.Add(CreateStatCard(LocalizationService.T("overview_stat_ram"), LocalizationService.T("overview_stat_ram_hint"), "0.0%", ThemeService.Success, out _avgRamValueLabel), 4, 0);
             _statsPanel.Controls.Add(_statsGrid);
             stack.Controls.Add(_statsPanel);
 
@@ -181,21 +175,21 @@ namespace TaskManagerPlus.Controls
                 Width = 1060,
                 Margin = new Padding(0, 0, 0, 24),
                 Padding = new Padding(20, 18, 20, 18),
-                BackColor = HeroEndColor
+                BackColor = Color.FromArgb(243, 247, 255)
             };
             hero.Paint += HeroPanel_Paint;
-            hero.Resize += (s, e) => ApplyRoundRegion(hero, 20);
-            ApplyRoundRegion(hero, 20);
+            hero.Resize += (s, e) => ThemeService.ApplyRounding(hero, 20);
+            ThemeService.ApplyRounding(hero, 20);
 
-            var chip = CreateStatusChip("Tự động làm mới mỗi 5 phút");
+            var chip = CreateStatusChip(LocalizationService.T("overview_auto_refresh"));
             chip.Dock = DockStyle.Top;
             chip.Margin = new Padding(0, 0, 0, 12);
 
             _heroTitleLabel = new Label
             {
-                Text = "Tổng quan hôm nay",
-                Font = new Font("Segoe UI", 18, FontStyle.Bold),
-                ForeColor = TextColor,
+                Text = LocalizationService.T("overview_title"),
+                Font = ThemeService.HeaderFont,
+                ForeColor = ThemeService.Text,
                 Dock = DockStyle.Top,
                 Height = 40,
                 AutoEllipsis = true
@@ -203,9 +197,9 @@ namespace TaskManagerPlus.Controls
 
             _heroSubtitleLabel = new Label
             {
-                Text = "Một cái nhìn gọn, rõ và hiện đại về thói quen sử dụng máy của bạn.",
-                Font = new Font("Segoe UI", 9.75f),
-                ForeColor = MutedTextColor,
+                Text = LocalizationService.T("overview_subtitle"),
+                Font = ThemeService.MainFont,
+                ForeColor = ThemeService.TextMuted,
                 Dock = DockStyle.Top,
                 Height = 34,
                 AutoEllipsis = true
@@ -213,9 +207,9 @@ namespace TaskManagerPlus.Controls
 
             _heroStatusLabel = new Label
             {
-                Text = "Đang chờ dữ liệu...",
-                Font = new Font("Segoe UI", 9.25f, FontStyle.Bold),
-                ForeColor = PrimaryColor,
+                Text = LocalizationService.T("overview_waiting_data"),
+                Font = ThemeService.BoldFont,
+                ForeColor = ThemeService.Primary,
                 Dock = DockStyle.Top,
                 Height = 22,
                 AutoEllipsis = true
@@ -235,17 +229,17 @@ namespace TaskManagerPlus.Controls
             var rightPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = SurfaceColor,
+                BackColor = ThemeService.Surface,
                 Padding = new Padding(14, 12, 14, 12)
             };
-            rightPanel.Resize += (s, e) => ApplyRoundRegion(rightPanel, 14);
-            ApplyRoundRegion(rightPanel, 14);
-            AttachBorderPaint(rightPanel);
+            rightPanel.Resize += (s, e) => ThemeService.ApplyRounding(rightPanel, 14);
+            ThemeService.ApplyRounding(rightPanel, 14);
+            ThemeService.AttachBorder(rightPanel);
 
             var dateLabel = new Label
             {
                 Text = DateTime.Now.ToString("dddd, dd/MM/yyyy"),
-                ForeColor = TextColor,
+                ForeColor = ThemeService.Text,
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
                 Dock = DockStyle.Top,
                 Height = 24,
@@ -255,8 +249,8 @@ namespace TaskManagerPlus.Controls
             var machineLabel = new Label
             {
                 Text = Environment.MachineName,
-                ForeColor = MutedTextColor,
-                Font = new Font("Segoe UI", 8.75f),
+                ForeColor = ThemeService.TextMuted,
+                Font = ThemeService.SmallFont,
                 Dock = DockStyle.Top,
                 Height = 24,
                 AutoEllipsis = true
@@ -264,8 +258,8 @@ namespace TaskManagerPlus.Controls
 
             var sessionLabel = new Label
             {
-                Text = "Tổng hợp hôm nay",
-                ForeColor = MutedTextColor,
+                Text = LocalizationService.T("overview_today_summary"),
+                ForeColor = ThemeService.TextMuted,
                 Font = new Font("Segoe UI", 8.25f, FontStyle.Italic),
                 Dock = DockStyle.Top,
                 Height = 22,
@@ -302,25 +296,24 @@ namespace TaskManagerPlus.Controls
                 AutoSize = true,
                 Padding = new Padding(12, 6, 12, 6),
                 BackColor = Color.FromArgb(225, 235, 255),
-                ForeColor = PrimaryColor,
+                ForeColor = ThemeService.Primary,
                 Font = new Font("Segoe UI", 8.75f, FontStyle.Bold)
             };
         }
 
         private Panel CreateStatCard(string title, string hint, string footer, Color accent, out Label valueLabel)
         {
-            var isMostUsedCard = title.IndexOf("Ứng dụng nổi bật", StringComparison.OrdinalIgnoreCase) >= 0;
             var card = new Panel
             {
                 Dock = DockStyle.Fill,
                 Height = 144,
-                BackColor = SurfaceColor,
+                BackColor = ThemeService.Surface,
                 Margin = new Padding(0, 0, 12, 0),
                 Padding = new Padding(0),
             };
-            AttachBorderPaint(card);
-            ApplyRoundRegion(card, 16);
-            card.Resize += (s, e) => ApplyRoundRegion(card, 16);
+            ThemeService.AttachBorder(card);
+            ThemeService.ApplyRounding(card, 16);
+            card.Resize += (s, e) => ThemeService.ApplyRounding(card, 16);
 
             var accentBar = new Panel { Dock = DockStyle.Top, Height = 5, BackColor = accent };
             var body = new TableLayoutPanel
@@ -329,7 +322,7 @@ namespace TaskManagerPlus.Controls
                 RowCount = 3,
                 ColumnCount = 1,
                 Padding = new Padding(16, 14, 16, 14),
-                BackColor = SurfaceColor
+                BackColor = ThemeService.Surface
             };
             body.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
             body.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
@@ -339,8 +332,8 @@ namespace TaskManagerPlus.Controls
             {
                 Text = title.ToUpperInvariant(),
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 8.75f, FontStyle.Bold),
-                ForeColor = MutedTextColor,
+                Font = ThemeService.SmallFont,
+                ForeColor = ThemeService.TextMuted,
                 AutoEllipsis = true
             };
 
@@ -348,7 +341,7 @@ namespace TaskManagerPlus.Controls
             {
                 Text = footer,
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", isMostUsedCard ? 15f : 22f, FontStyle.Bold),
+                Font = new Font("Segoe UI", title.Length > 12 ? 15f : 22f, FontStyle.Bold),
                 ForeColor = accent,
                 TextAlign = ContentAlignment.MiddleCenter,
                 AutoEllipsis = true
@@ -358,8 +351,8 @@ namespace TaskManagerPlus.Controls
             {
                 Text = hint,
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 8.5f),
-                ForeColor = MutedTextColor,
+                Font = ThemeService.SmallFont,
+                ForeColor = ThemeService.TextMuted,
                 TextAlign = ContentAlignment.MiddleCenter,
                 AutoEllipsis = true
             };
@@ -378,22 +371,22 @@ namespace TaskManagerPlus.Controls
             {
                 Dock = DockStyle.Fill,
                 Height = 144,
-                BackColor = SurfaceColor,
+                BackColor = ThemeService.Surface,
                 Margin = new Padding(0, 0, 12, 0),
                 Padding = new Padding(0),
             };
-            AttachBorderPaint(card);
-            ApplyRoundRegion(card, 16);
-            card.Resize += (s, e) => ApplyRoundRegion(card, 16);
+            ThemeService.AttachBorder(card);
+            ThemeService.ApplyRounding(card, 16);
+            card.Resize += (s, e) => ThemeService.ApplyRounding(card, 16);
 
-            var accentBar = new Panel { Dock = DockStyle.Top, Height = 5, BackColor = PrimaryColor };
+            var accentBar = new Panel { Dock = DockStyle.Top, Height = 5, BackColor = ThemeService.Primary };
             var body = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 RowCount = 3,
                 ColumnCount = 1,
                 Padding = new Padding(16, 14, 16, 14),
-                BackColor = SurfaceColor
+                BackColor = ThemeService.Surface
             };
             body.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
             body.RowStyles.Add(new RowStyle(SizeType.Absolute, 12));
@@ -401,10 +394,10 @@ namespace TaskManagerPlus.Controls
 
             var titleLabel = new Label
             {
-                Text = "THỜI GIAN THỨC",
+                Text = LocalizationService.T("overview_stat_awake"),
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 8.75f, FontStyle.Bold),
-                ForeColor = MutedTextColor,
+                Font = ThemeService.BoldFont,
+                ForeColor = ThemeService.TextMuted,
                 AutoEllipsis = true
             };
 
@@ -413,7 +406,7 @@ namespace TaskManagerPlus.Controls
                 Text = "0m",
                 Dock = DockStyle.Fill,
                 Font = new Font("Segoe UI", 16f, FontStyle.Bold),
-                ForeColor = AccentColor,
+                ForeColor = ThemeService.Accent,
                 TextAlign = ContentAlignment.MiddleCenter,
                 AutoEllipsis = true
             };
@@ -429,11 +422,11 @@ namespace TaskManagerPlus.Controls
         {
             var card = new Panel
             {
-                BackColor = SurfaceColor,
+                BackColor = ThemeService.Surface,
                 Margin = new Padding(0, 0, 12, 0),
                 Padding = new Padding(0)
             };
-            AttachBorderPaint(card);
+            ThemeService.AttachBorder(card);
 
             var accentBar = new Panel { Dock = DockStyle.Top, Height = 4, BackColor = accent };
             var header = new Panel
@@ -441,7 +434,7 @@ namespace TaskManagerPlus.Controls
                 Dock = DockStyle.Top,
                 Height = 70,
                 Padding = new Padding(18, 16, 18, 12),
-                BackColor = SurfaceColor
+                BackColor = ThemeService.Surface
             };
 
             var titleLabel = new Label
@@ -449,8 +442,8 @@ namespace TaskManagerPlus.Controls
                 Text = title,
                 Dock = DockStyle.Top,
                 Height = 24,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                ForeColor = TextColor
+                Font = ThemeService.CardTitleFont,
+                ForeColor = ThemeService.Text
             };
 
             var subtitleLabel = new Label
@@ -458,15 +451,15 @@ namespace TaskManagerPlus.Controls
                 Text = subtitle,
                 Dock = DockStyle.Bottom,
                 Height = 20,
-                Font = new Font("Segoe UI", 8.75f),
-                ForeColor = MutedTextColor
+                Font = ThemeService.SmallFont,
+                ForeColor = ThemeService.TextMuted
             };
 
             bodyPanel = new Panel
             {
                 Dock = DockStyle.Fill,
                 Padding = new Padding(18, 0, 18, 18),
-                BackColor = SurfaceColor
+                BackColor = ThemeService.Surface
             };
 
             header.Controls.Add(subtitleLabel);
@@ -481,26 +474,27 @@ namespace TaskManagerPlus.Controls
         {
             Panel bodyPanel;
             var card = CreateSectionCard(
-                "Top ứng dụng theo thời gian",
-                "Danh sách những ứng dụng bạn dùng nhiều nhất trong ngày.",
-                PrimaryColor,
+                LocalizationService.T("overview_top_apps_title"),
+                LocalizationService.T("overview_top_apps_subtitle"),
+                ThemeService.Primary,
                 out bodyPanel);
             card.Width = 640;
             card.Height = 408;
-            ApplyRoundRegion(card, 18);
-            card.Resize += (s, e) => ApplyRoundRegion(card, 18);
+            ThemeService.ApplyRounding(card, 18);
+            card.Resize += (s, e) => ThemeService.ApplyRounding(card, 18);
 
             _topAppsList = new ListBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = SurfaceAltColor,
-                ForeColor = TextColor,
+                BackColor = ThemeService.SurfaceAlt,
+                ForeColor = ThemeService.Text,
                 BorderStyle = BorderStyle.None,
-                Font = new Font("Segoe UI", 10),
+                Font = ThemeService.MainFont,
                 DrawMode = DrawMode.OwnerDrawFixed,
                 ItemHeight = 62,
                 IntegralHeight = false
             };
+            ThemeService.SetDoubleBuffered(_topAppsList);
             _topAppsList.DrawItem += TopAppsList_DrawItem;
             bodyPanel.Controls.Add(_topAppsList);
 
@@ -508,9 +502,9 @@ namespace TaskManagerPlus.Controls
             {
                 Dock = DockStyle.Bottom,
                 Height = 22,
-                Font = new Font("Segoe UI", 8.5f),
-                ForeColor = MutedTextColor,
-                Text = "Chưa có dữ liệu để hiển thị."
+                Font = ThemeService.SmallFont,
+                ForeColor = ThemeService.TextMuted,
+                Text = LocalizationService.T("overview_top_apps_subtitle")
             };
             bodyPanel.Controls.Add(_topAppsHintLabel);
             return card;
@@ -520,14 +514,14 @@ namespace TaskManagerPlus.Controls
         {
             Panel bodyPanel;
             var card = CreateSectionCard(
-                "Gợi ý nhanh",
-                "Tóm tắt những điều đáng chú ý từ dữ liệu hôm nay.",
-                SecondaryColor,
+                LocalizationService.T("overview_insights_title"),
+                LocalizationService.T("overview_insights_subtitle"),
+                ThemeService.Secondary,
                 out bodyPanel);
             card.Width = 380;
             card.Height = 408;
-            ApplyRoundRegion(card, 18);
-            card.Resize += (s, e) => ApplyRoundRegion(card, 18);
+            ThemeService.ApplyRounding(card, 18);
+            card.Resize += (s, e) => ThemeService.ApplyRounding(card, 18);
 
             _insightsPanel = new FlowLayoutPanel
             {
@@ -535,7 +529,7 @@ namespace TaskManagerPlus.Controls
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
                 AutoScroll = true,
-                BackColor = SurfaceColor,
+                BackColor = ThemeService.Surface,
                 Padding = new Padding(0)
             };
             bodyPanel.Controls.Add(_insightsPanel);
@@ -544,9 +538,9 @@ namespace TaskManagerPlus.Controls
             {
                 Dock = DockStyle.Bottom,
                 Height = 22,
-                Font = new Font("Segoe UI", 8.5f),
-                ForeColor = MutedTextColor,
-                Text = "Mẹo: phần này sẽ tự cập nhật khi có dữ liệu mới."
+                Font = ThemeService.SmallFont,
+                ForeColor = ThemeService.TextMuted,
+                Text = LocalizationService.T("overview_insights_hint")
             };
             bodyPanel.Controls.Add(_insightsHintLabel);
             return card;
@@ -556,21 +550,21 @@ namespace TaskManagerPlus.Controls
         {
             Panel bodyPanel;
             var card = CreateSectionCard(
-                "Ứng dụng dùng nhiều tài nguyên (live)",
-                "Quan sát CPU và RAM theo thời gian thực cho những tiến trình đang hoạt động.",
-                AccentColor,
+                LocalizationService.T("overview_live_title"),
+                LocalizationService.T("overview_live_subtitle"),
+                ThemeService.Accent,
                 out bodyPanel);
             card.Width = 1060;
             card.Height = 382;
-            ApplyRoundRegion(card, 18);
-            card.Resize += (s, e) => ApplyRoundRegion(card, 18);
+            ThemeService.ApplyRounding(card, 18);
+            card.Resize += (s, e) => ThemeService.ApplyRounding(card, 18);
 
             var table = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount = 1,
-                BackColor = SurfaceColor,
+                BackColor = ThemeService.Surface,
                 Padding = new Padding(0)
             };
             table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50f));
@@ -579,8 +573,8 @@ namespace TaskManagerPlus.Controls
             _topCpuList = CreateResourceListView();
             _topRamList = CreateResourceListView();
 
-            table.Controls.Add(CreateResourcePane("Top CPU", "Tiến trình đang tiêu thụ CPU nhiều nhất.", _topCpuList, DangerColor), 0, 0);
-            table.Controls.Add(CreateResourcePane("Top RAM", "Tiến trình đang chiếm nhiều bộ nhớ nhất.", _topRamList, SuccessColor), 1, 0);
+            table.Controls.Add(CreateResourcePane(LocalizationService.T("overview_live_cpu"), LocalizationService.T("overview_live_cpu_hint"), _topCpuList, ThemeService.Danger), 0, 0);
+            table.Controls.Add(CreateResourcePane(LocalizationService.T("overview_live_ram"), LocalizationService.T("overview_live_ram_hint"), _topRamList, ThemeService.Success), 1, 0);
             bodyPanel.Controls.Add(table);
             return card;
         }
@@ -590,19 +584,19 @@ namespace TaskManagerPlus.Controls
             var container = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = SurfaceAltColor,
+                BackColor = ThemeService.SurfaceAlt,
                 Padding = new Padding(14),
                 Margin = new Padding(0, 0, 10, 0)
             };
-            AttachBorderPaint(container);
-            ApplyRoundRegion(container, 14);
-            container.Resize += (s, e) => ApplyRoundRegion(container, 14);
+            ThemeService.AttachBorder(container);
+            ThemeService.ApplyRounding(container, 14);
+            container.Resize += (s, e) => ThemeService.ApplyRounding(container, 14);
 
             var head = new Panel
             {
                 Dock = DockStyle.Top,
                 Height = 42,
-                BackColor = SurfaceAltColor
+                BackColor = ThemeService.SurfaceAlt
             };
 
             var accentDot = new Panel
@@ -616,8 +610,8 @@ namespace TaskManagerPlus.Controls
             {
                 Text = title,
                 AutoSize = true,
-                Font = new Font("Segoe UI", 10.5f, FontStyle.Bold),
-                ForeColor = TextColor,
+                Font = ThemeService.BoldFont,
+                ForeColor = ThemeService.Text,
                 Location = new Point(18, 0)
             };
 
@@ -625,8 +619,8 @@ namespace TaskManagerPlus.Controls
             {
                 Text = subtitle,
                 AutoSize = true,
-                Font = new Font("Segoe UI", 8.5f),
-                ForeColor = MutedTextColor,
+                Font = ThemeService.SmallFont,
+                ForeColor = ThemeService.TextMuted,
                 Location = new Point(18, 20)
             };
 
@@ -643,7 +637,7 @@ namespace TaskManagerPlus.Controls
 
         private ListView CreateResourceListView()
         {
-            return new ListView
+            var lv = new ListView
             {
                 View = View.Details,
                 FullRowSelect = true,
@@ -651,19 +645,20 @@ namespace TaskManagerPlus.Controls
                 HideSelection = false,
                 BorderStyle = BorderStyle.None,
                 HeaderStyle = ColumnHeaderStyle.Nonclickable,
-                Font = new Font("Segoe UI", 9.5f),
-                BackColor = Color.White,
-                ForeColor = TextColor
+                Font = ThemeService.MainFont,
+                BackColor = ThemeService.Surface,
+                ForeColor = ThemeService.Text
             };
+            ThemeService.SetDoubleBuffered(lv);
+            return lv;
         }
 
         private void HeroPanel_Paint(object sender, PaintEventArgs e)
         {
             var panel = sender as Panel;
-            if (panel == null)
-                return;
+            if (panel == null) return;
 
-            using (var brush = new LinearGradientBrush(panel.ClientRectangle, HeroStartColor, HeroEndColor, LinearGradientMode.Horizontal))
+            using (var brush = new LinearGradientBrush(panel.ClientRectangle, Color.White, Color.FromArgb(243, 247, 255), LinearGradientMode.Horizontal))
                 e.Graphics.FillRectangle(brush, panel.ClientRectangle);
 
             var rect = panel.ClientRectangle;
@@ -683,24 +678,24 @@ namespace TaskManagerPlus.Controls
             try
             {
                 if (_heroStatusLabel != null)
-                    _heroStatusLabel.Text = "Đang tải dữ liệu...";
+                    _heroStatusLabel.Text = LocalizationService.T("overview_loading");
 
                 _data = await _summaryService.GetDailySummaryAsync();
                 RefreshSummaryUI();
             }
-            catch
+            catch (Exception ex)
             {
-                // Giữ lại dữ liệu tốt nhất đã có trước đó.
+                Debug.WriteLine($"Error loading summary: {ex.Message}");
             }
         }
 
         private void RefreshSummaryUI()
         {
-            if (_data == null)
-                return;
+            if (_data == null) return;
 
             if (_awakeTimeValueLabel != null)
                 _awakeTimeValueLabel.Text = FormatDuration(_data.SystemAwakeSeconds);
+            
             _mostUsedValueLabel.Text = string.IsNullOrWhiteSpace(_data.MostUsedApp) ? "N/A" : _data.MostUsedApp;
             _peakHourValueLabel.Text = _data.PeakHour < 0 ? "N/A" : string.Format("{0:00}:00", _data.PeakHour);
             _avgCpuValueLabel.Text = string.Format("{0:F1}%", _data.AverageCpu);
@@ -709,8 +704,8 @@ namespace TaskManagerPlus.Controls
             if (_heroStatusLabel != null)
             {
                 _heroStatusLabel.Text = _data.IsEmpty
-                    ? "Chưa có dữ liệu hôm nay"
-                    : string.Format("Đã cập nhật lúc {0:HH:mm}", DateTime.Now);
+                    ? LocalizationService.T("overview_no_data")
+                    : string.Format(LocalizationService.T("overview_updated_at"), DateTime.Now.ToString("HH:mm"));
             }
 
             if (_topAppsList != null)
@@ -723,10 +718,12 @@ namespace TaskManagerPlus.Controls
                     {
                         foreach (var app in _data.TopApps.Take(5))
                             _topAppsList.Items.Add(app);
+                        _topAppsHintLabel.Visible = false;
                     }
                     else
                     {
-                        _topAppsList.Items.Add("Chưa có dữ liệu sử dụng hôm nay.");
+                        _topAppsHintLabel.Text = LocalizationService.T("overview_no_apps");
+                        _topAppsHintLabel.Visible = true;
                     }
                 }
                 finally
@@ -741,8 +738,7 @@ namespace TaskManagerPlus.Controls
 
         private void PopulateInsights()
         {
-            if (_insightsPanel == null)
-                return;
+            if (_insightsPanel == null) return;
 
             _insightsPanel.SuspendLayout();
             try
@@ -752,12 +748,12 @@ namespace TaskManagerPlus.Controls
                 var insights = _data?.Insights ?? new List<string>();
                 if (insights.Count == 0)
                 {
-                    _insightsPanel.Controls.Add(CreateInsightRow("Chưa có thông tin để phân tích.", MutedTextColor));
+                    _insightsPanel.Controls.Add(CreateInsightRow(LocalizationService.T("overview_no_insights"), ThemeService.TextMuted));
                     return;
                 }
 
                 foreach (var insight in insights)
-                    _insightsPanel.Controls.Add(CreateInsightRow(insight, TextColor));
+                    _insightsPanel.Controls.Add(CreateInsightRow(insight, ThemeService.Text));
             }
             finally
             {
@@ -771,18 +767,18 @@ namespace TaskManagerPlus.Controls
             {
                 Width = 320,
                 Height = 52,
-                BackColor = SurfaceAltColor,
+                BackColor = ThemeService.SurfaceAlt,
                 Margin = new Padding(0, 0, 0, 10),
                 Padding = new Padding(14, 11, 14, 11)
             };
-            AttachBorderPaint(row);
-            ApplyRoundRegion(row, 12);
-            row.Resize += (s, e) => ApplyRoundRegion(row, 12);
+            ThemeService.AttachBorder(row);
+            ThemeService.ApplyRounding(row, 12);
+            row.Resize += (s, e) => ThemeService.ApplyRounding(row, 12);
 
             var bullet = new Panel
             {
                 Size = new Size(10, 10),
-                BackColor = SecondaryColor,
+                BackColor = ThemeService.Secondary,
                 Location = new Point(14, 19)
             };
 
@@ -792,7 +788,7 @@ namespace TaskManagerPlus.Controls
                 AutoSize = false,
                 Location = new Point(34, 10),
                 Size = new Size(260, 30),
-                Font = new Font("Segoe UI", 9.25f),
+                Font = ThemeService.MainFont,
                 ForeColor = textColor
             };
 
@@ -801,254 +797,138 @@ namespace TaskManagerPlus.Controls
             return row;
         }
 
-        private void UpdateEmptyStates()
-        {
-            if (_topAppsHintLabel != null)
-                _topAppsHintLabel.Visible = _data == null || !_data.TopApps.Any();
-
-            if (_insightsHintLabel != null)
-                _insightsHintLabel.Visible = _data == null || (_data.Insights == null || _data.Insights.Count == 0);
-        }
-
         private async Task RefreshLiveAsync()
         {
-            if (_liveUpdateInProgress)
-                return;
-
+            if (_liveUpdateInProgress) return;
             _liveUpdateInProgress = true;
-            IReadOnlyList<ProcessResourceUsage> snapshot = Array.Empty<ProcessResourceUsage>();
 
             try
             {
-                snapshot = await Task.Run(() => _liveMonitor.Sample());
+                var topCpu = await Task.Run(() => _liveMonitor.GetTopCpuProcesses(6));
+                var topRam = await Task.Run(() => _liveMonitor.GetTopRamProcesses(6));
+
+                await Task.Yield();
+                UpdateLiveList(_topCpuList, topCpu, "CPU");
+                UpdateLiveList(_topRamList, topRam, "RAM");
             }
-            catch
+            catch (Exception ex)
             {
-                return;
+                Debug.WriteLine($"Live refresh error: {ex.Message}");
             }
             finally
             {
                 _liveUpdateInProgress = false;
             }
-
-            if (IsDisposed)
-                return;
-
-            BeginInvoke((Action)(() =>
-            {
-                UpdateResourceList(_topCpuList, snapshot.OrderByDescending(x => x.CpuPercent).Take(10));
-                UpdateResourceList(_topRamList, snapshot.OrderByDescending(x => x.WorkingSetBytes).Take(10));
-            }));
         }
 
-        private void UpdateResourceList(ListView lv, IEnumerable<ProcessResourceUsage> items)
+        private void UpdateLiveList(ListView list, IEnumerable<ProcessResourceUsage> data, string type)
         {
-            if (lv == null)
-                return;
-
-            lv.BeginUpdate();
+            list.BeginUpdate();
             try
             {
-                lv.Columns.Clear();
-                lv.Items.Clear();
+                list.Items.Clear();
+                list.Columns.Clear();
+                list.Columns.Add(LocalizationService.T("overview_col_app"), 220);
+                list.Columns.Add(type, 80, HorizontalAlignment.Right);
 
-                lv.Columns.Add("Ứng dụng", 220);
-                lv.Columns.Add("CPU", 70, HorizontalAlignment.Right);
-                lv.Columns.Add("RAM", 80, HorizontalAlignment.Right);
-
-                foreach (var item in items)
+                if (data == null || !data.Any())
                 {
-                    var name = item.DisplayName;
-                    var cpu = string.Format("{0:F1}%", item.CpuPercent);
-                    var ram = FormatBytes(item.WorkingSetBytes);
-                    lv.Items.Add(new ListViewItem(new[] { name, cpu, ram }));
+                    list.Items.Add(new ListViewItem(LocalizationService.T("overview_no_live")));
+                    return;
                 }
 
-                if (lv.Items.Count == 0)
-                    lv.Items.Add(new ListViewItem(new[] { "Chưa có tiến trình phù hợp.", "-", "-" }));
+                foreach (var item in data)
+                {
+                    string value = type == "CPU" ? $"{item.CpuPercent:F1}%" : $"{(item.WorkingSetBytes / 1024.0 / 1024.0):F0} MB";
+                    var lvi = new ListViewItem(new[] { item.DisplayName, value });
+                    list.Items.Add(lvi);
+                }
             }
             finally
             {
-                lv.EndUpdate();
+                list.EndUpdate();
             }
-        }
-
-        private static string FormatDuration(long seconds)
-        {
-            var ts = TimeSpan.FromSeconds(Math.Max(0, seconds));
-            if (ts.TotalHours >= 1)
-                return string.Format("{0}h {1}m", (int)ts.TotalHours, ts.Minutes);
-            return string.Format("{0}m", ts.Minutes);
-        }
-
-        private static string FormatBytes(long bytes)
-        {
-            if (bytes < 1024)
-                return string.Format("{0} B", bytes);
-
-            if (bytes < 1024 * 1024)
-                return string.Format("{0:F1} KB", bytes / 1024.0);
-
-            if (bytes < 1024L * 1024L * 1024L)
-                return string.Format("{0:F0} MB", bytes / (1024.0 * 1024.0));
-
-            return string.Format("{0:F2} GB", bytes / (1024.0 * 1024.0 * 1024.0));
         }
 
         private void TopAppsList_DrawItem(object sender, DrawItemEventArgs e)
         {
+            if (e.Index < 0) return;
+            var list = sender as ListBox;
+            var app = list.Items[e.Index] as AppTimeUsage;
+
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             e.DrawBackground();
 
-            if (e.Index < 0 || e.Index >= _topAppsList.Items.Count)
-                return;
-
-            var bounds = e.Bounds;
-            var isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-            var item = _topAppsList.Items[e.Index];
-
-            using (var bgBrush = new SolidBrush(isSelected ? Color.FromArgb(229, 241, 255) : SurfaceAltColor))
-                e.Graphics.FillRectangle(bgBrush, bounds);
-
-            if (item is AppTimeUsage usage)
+            if (app != null)
             {
-                var cardRect = new Rectangle(bounds.X + 8, bounds.Y + 7, bounds.Width - 16, bounds.Height - 12);
-                using (var cardBrush = new SolidBrush(Color.White))
-                    e.Graphics.FillRectangle(cardBrush, cardRect);
-                using (var borderPen = new Pen(BorderColor))
-                    e.Graphics.DrawRectangle(borderPen, cardRect);
+                var rect = e.Bounds;
+                rect.Inflate(-10, -8);
 
-                var rank = (e.Index + 1).ToString("0");
-                using (var badgeBrush = new SolidBrush(PrimaryColor))
-                    e.Graphics.FillEllipse(badgeBrush, bounds.X + 18, bounds.Y + 17, 26, 26);
-                using (var rankFont = new Font("Segoe UI", 9, FontStyle.Bold))
-                using (var rankBrush = new SolidBrush(Color.White))
+                // App Name
+                using (var nameFont = new Font("Segoe UI Semibold", 10.5f, FontStyle.Bold))
+                    e.Graphics.DrawString(app.AppName, nameFont, new SolidBrush(ThemeService.Text), rect.X, rect.Y);
+
+                // Duration
+                string duration = FormatDuration(app.DurationSeconds);
+                using (var durFont = new Font("Segoe UI", 9.5f))
                 {
-                    var rankRect = new Rectangle(bounds.X + 18, bounds.Y + 17, 26, 26);
-                    var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-                    e.Graphics.DrawString(rank, rankFont, rankBrush, rankRect, format);
+                    var size = e.Graphics.MeasureString(duration, durFont);
+                    e.Graphics.DrawString(duration, durFont, new SolidBrush(ThemeService.TextMuted), rect.Right - size.Width, rect.Y + 2);
                 }
 
-                var nameRect = new Rectangle(bounds.X + 56, bounds.Y + 11, bounds.Width - 150, 22);
-                var subRect = new Rectangle(bounds.X + 56, bounds.Y + 32, bounds.Width - 150, 18);
-                using (var nameFont = new Font("Segoe UI", 10, FontStyle.Bold))
-                using (var subFont = new Font("Segoe UI", 8.75f))
-                using (var nameBrush = new SolidBrush(TextColor))
-                using (var subBrush = new SolidBrush(MutedTextColor))
+                // Progress bar
+                int barY = rect.Y + 28;
+                int barHeight = 8;
+                var trackRect = new Rectangle(rect.X, barY, rect.Width, barHeight);
+                
+                using (var trackBrush = new SolidBrush(Color.FromArgb(230, 235, 245)))
+                using (var path = ThemeService.GetRoundedPath(trackRect, 4))
+                    e.Graphics.FillPath(trackBrush, path);
+
+                int fillWidth = (int)(rect.Width * (app.PercentageOfTotal / 100.0));
+                if (fillWidth > 0)
                 {
-                    e.Graphics.DrawString(usage.AppName, nameFont, nameBrush, nameRect);
-                    e.Graphics.DrawString(usage.GetFormattedDuration(), subFont, subBrush, subRect);
+                    var fillRect = new Rectangle(rect.X, barY, Math.Max(fillWidth, 8), barHeight);
+                    using (var fillBrush = new LinearGradientBrush(fillRect, ThemeService.Primary, Color.FromArgb(96, 165, 250), 0f))
+                    using (var path = ThemeService.GetRoundedPath(fillRect, 4))
+                        e.Graphics.FillPath(fillBrush, path);
                 }
-
-                var barRect = new Rectangle(bounds.X + 56, bounds.Bottom - 17, bounds.Width - 100, 6);
-                using (var trackBrush = new SolidBrush(Color.FromArgb(230, 236, 245)))
-                    e.Graphics.FillRectangle(trackBrush, barRect);
-
-                var maxSeconds = 1;
-                if (_topAppsList != null)
-                {
-                    var maxItem = _topAppsList.Items.OfType<AppTimeUsage>().OrderByDescending(x => x.DurationSeconds).FirstOrDefault();
-                    if (maxItem != null)
-                        maxSeconds = (int)Math.Max(1L, maxItem.DurationSeconds);
-                }
-
-                var ratio = Math.Max(0, Math.Min(1, (double)usage.DurationSeconds / maxSeconds));
-                var fillWidth = (int)Math.Max(4, Math.Min(barRect.Width, barRect.Width * ratio));
-                var fillRect = new Rectangle(barRect.X, barRect.Y, fillWidth, barRect.Height);
-                using (var fillBrush = new SolidBrush(PrimaryColor))
-                    e.Graphics.FillRectangle(fillBrush, fillRect);
             }
             else
             {
-                var message = item?.ToString() ?? "Không có dữ liệu";
-                using (var font = new Font("Segoe UI", 9.5f, FontStyle.Italic))
-                using (var brush = new SolidBrush(MutedTextColor))
-                {
-                    var rect = new Rectangle(bounds.X + 14, bounds.Y + 18, bounds.Width - 28, bounds.Height - 20);
-                    var format = new StringFormat
-                    {
-                        Alignment = StringAlignment.Center,
-                        LineAlignment = StringAlignment.Center
-                    };
-                    e.Graphics.DrawString(message, font, brush, rect, format);
-                }
+                e.Graphics.DrawString(list.Items[e.Index].ToString(), ThemeService.MainFont, new SolidBrush(ThemeService.TextMuted), e.Bounds, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
             }
-
+            
             e.DrawFocusRectangle();
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _summaryRefreshTimer?.Stop();
-                _summaryRefreshTimer?.Dispose();
-                _summaryRefreshTimer = null;
-
-                _liveRefreshTimer?.Stop();
-                _liveRefreshTimer?.Dispose();
-                _liveRefreshTimer = null;
-
-                _liveMonitor?.Dispose();
-            }
-
-            base.Dispose(disposing);
-        }
-
-        public void ApplyLocalization()
-        {
-            UILocalizer.Apply(this);
-        }
-
-        private void AttachBorderPaint(Panel panel)
-        {
-            panel.Paint -= Panel_PaintBorder;
-            panel.Paint += Panel_PaintBorder;
-        }
-
-        private void Panel_PaintBorder(object sender, PaintEventArgs e)
-        {
-            var panel = sender as Panel;
-            if (panel == null)
-                return;
-
-            var rect = panel.ClientRectangle;
-            rect.Width -= 1;
-            rect.Height -= 1;
-            using (var pen = new Pen(BorderColor))
-                e.Graphics.DrawRectangle(pen, rect);
         }
 
         private void UpdateResponsiveWidths()
         {
-            if (_rootPanel == null)
-                return;
-
-            var width = Math.Max(900, ClientSize.Width - 24);
-            _heroPanel.Width = width;
-            _contentGrid.Width = width;
-            _liveCard.Width = width;
-            _statsPanel.Width = width;
-
-            if (_statsGrid != null)
-                _statsGrid.Width = width;
+            if (_rootPanel == null) return;
+            int availWidth = _rootPanel.ClientSize.Width - 48; // Padding
+            
+            if (_heroPanel != null) _heroPanel.Width = availWidth;
+            if (_statsPanel != null) _statsPanel.Width = availWidth;
+            if (_statsGrid != null) _statsGrid.Width = availWidth;
+            if (_contentGrid != null) _contentGrid.Width = availWidth;
+            if (_liveCard != null) _liveCard.Width = availWidth;
         }
 
-        private static void ApplyRoundRegion(Control control, int radius)
+        private void UpdateEmptyStates()
         {
-            if (control == null || control.Width <= 0 || control.Height <= 0)
-                return;
-
-            int d = Math.Max(1, radius * 2);
-            var path = new GraphicsPath();
-            var rect = new Rectangle(0, 0, control.Width, control.Height);
-
-            path.AddArc(rect.X, rect.Y, d, d, 180, 90);
-            path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
-            path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
-            path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
-            path.CloseFigure();
-
-            control.Region = new Region(path);
+            // Handled in RefreshSummaryUI
         }
+
+        private string FormatDuration(long seconds)
+        {
+            var ts = TimeSpan.FromSeconds(seconds);
+            if (ts.TotalHours >= 1) return $"{(int)ts.TotalHours}h {ts.Minutes}m";
+            if (ts.TotalMinutes >= 1) return $"{ts.Minutes}m {ts.Seconds}s";
+            return $"{ts.Seconds}s";
+        }
+
+        private void HeroPanel_Resize(object sender, EventArgs e) => ThemeService.ApplyRounding(_heroPanel, 20);
+        private void TopAppsCard_Resize(object sender, EventArgs e) => ThemeService.ApplyRounding(_topAppsCard, 18);
+        private void InsightsCard_Resize(object sender, EventArgs e) => ThemeService.ApplyRounding(_insightsCard, 18);
     }
 }

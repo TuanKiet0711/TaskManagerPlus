@@ -114,6 +114,15 @@ namespace TaskManagerPlus.Services
             }
         }
 
+        public List<AppSessionData> GetSessionsForToday()
+        {
+            DateTime today = DateTime.Today;
+            DateTime tomorrow = today.AddDays(1);
+            return sessions.Where(s => 
+                s.StartTime < tomorrow && (s.EndTime ?? DateTime.Now) >= today
+            ).ToList();
+        }
+
         public List<AppHistoryItem> GetAppHistory(DateTime? startDate = null, DateTime? endDate = null)
         {
             var items = new List<AppHistoryItem>();
@@ -221,6 +230,14 @@ namespace TaskManagerPlus.Services
                 sessions.RemoveAll(s => s.StartTime < cutoff);
             }
             SaveData();
+        }
+
+        public int DeleteTodaySessions()
+        {
+            DateTime today = DateTime.Today;
+            int count = sessions.RemoveAll(s => s.StartTime.Date == today);
+            SaveData();
+            return count;
         }
     }
 

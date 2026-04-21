@@ -113,6 +113,18 @@ namespace TaskManagerPlus.Services
         {
             _cpuSamplesByPid.Clear();
         }
+
+        public List<ProcessResourceUsage> GetTopCpuProcesses(int count)
+        {
+            var sample = Sample();
+            return sample.OrderByDescending(p => p.CpuPercent).Take(count).ToList();
+        }
+
+        public List<ProcessResourceUsage> GetTopRamProcesses(int count)
+        {
+            var sample = Sample();
+            return sample.OrderByDescending(p => p.WorkingSetBytes).Take(count).ToList();
+        }
     }
 }
 

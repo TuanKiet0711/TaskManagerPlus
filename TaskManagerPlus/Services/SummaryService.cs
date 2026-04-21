@@ -1,25 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
 using TaskManagerPlus.Models;
 
 namespace TaskManagerPlus.Services
 {
     public class SummaryService
     {
-        private readonly string _connectionString;
+        private readonly AppUsageDatabase _database;
 
         public SummaryService()
         {
-            _connectionString = ConfigurationManager.ConnectionStrings["TaskManagerPlus"]?.ConnectionString
-                ?? "Server=localhost;Database=app_usage_tracker;Uid=root;Pwd=;SslMode=None;AllowPublicKeyRetrieval=true;";
+            _database = new AppUsageDatabase();
         }
 
         public async Task<DailySummaryData> GetDailySummaryAsync()
@@ -32,32 +28,21 @@ namespace TaskManagerPlus.Services
                 {
                     summary.SystemAwakeSeconds = GetSystemAwakeSeconds();
 
-                    var userId = 0;
-                    try
-                    {
-                        userId = GetCurrentUserId();
-                    }
-                    catch
-                    {
-                        userId = 0;
-                    }
+                    var startOfDay = DateTime.Today;
+                    var endExclusive = startOfDay.AddDays(1);
+                    var now = DateTime.Now;
+                    var currentAppName = Process.GetCurrentProcess().ProcessName;
 
-                    if (userId > 0)
+                    // Get sessions from today
+                    var todayHistory = _database.GetAppHistory(startOfDay, startOfDay);
+                    var allTodaySessions = _database.GetSessionsForToday();
+
+                    if (allTodaySessions.Any())
                     {
-                        var startOfDay = DateTime.Today;
-                        var endExclusive = startOfDay.AddDays(1);
-                        var now = DateTime.Now;
-                        var currentAppName = Process.GetCurrentProcess().ProcessName;
-
-                        using (var conn = new MySqlConnection(_connectionString))
-                        {
-                            conn.Open();
-
-                            var slices = LoadTodaySessionSlices(conn, userId, startOfDay, endExclusive, now, currentAppName);
-                            BuildUsageSummary(summary, slices);
-                            LoadPeakHour(conn, summary, userId, startOfDay, endExclusive);
-                            LoadAverageResources(conn, summary, userId, startOfDay, endExclusive);
-                        }
+                        var slices = LoadTodaySessionSlices(allTodaySessions, startOfDay, endExclusive, now, currentAppName);
+                        BuildUsageSummary(summary, slices);
+                        LoadPeakHour(allTodaySessions, summary);
+                        LoadAverageResources(allTodaySessions, summary);
                     }
 
                     GenerateInsights(summary);
@@ -65,11 +50,10 @@ namespace TaskManagerPlus.Services
                         && summary.TotalUsageSeconds <= 0
                         && summary.TopApps.Count == 0;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    summary.IsEmpty = summary.SystemAwakeSeconds <= 0
-                        && summary.TotalUsageSeconds <= 0
-                        && summary.TopApps.Count == 0;
+                    Debug.WriteLine($"Error in GetDailySummaryAsync: {ex.Message}");
+                    summary.IsEmpty = true;
                 }
                 finally
                 {
@@ -81,8 +65,7 @@ namespace TaskManagerPlus.Services
         }
 
         private static List<SessionSlice> LoadTodaySessionSlices(
-            MySqlConnection conn,
-            int userId,
+            List<AppSessionData> sessions,
             DateTime startOfDay,
             DateTime endExclusive,
             DateTime now,
@@ -90,44 +73,25 @@ namespace TaskManagerPlus.Services
         {
             var result = new List<SessionSlice>();
 
-            using (var cmd = new MySqlCommand(@"
-SELECT a.app_name, s.start_time, IFNULL(s.end_time, @now) AS end_time
-FROM sessions s
-INNER JOIN applications a ON s.app_id = a.app_id
-WHERE s.user_id = @userId
-  AND s.start_time < @endExclusive
-  AND IFNULL(s.end_time, @now) > @startOfDay
-ORDER BY s.start_time ASC;", conn))
+            foreach (var s in sessions)
             {
-                cmd.Parameters.AddWithValue("@userId", userId);
-                cmd.Parameters.AddWithValue("@startOfDay", startOfDay);
-                cmd.Parameters.AddWithValue("@endExclusive", endExclusive);
-                cmd.Parameters.AddWithValue("@now", now);
+                var start = s.StartTime;
+                var end = s.EndTime ?? now;
 
-                using (var reader = cmd.ExecuteReader())
+                var clampedStart = start < startOfDay ? startOfDay : start;
+                var clampedEnd = end > endExclusive ? endExclusive : end;
+
+                if (clampedEnd <= clampedStart)
+                    continue;
+
+                result.Add(new SessionSlice
                 {
-                    while (reader.Read())
-                    {
-                        var appName = reader.IsDBNull(0) ? "Unknown" : reader.GetString(0);
-                        var start = reader.GetDateTime(1);
-                        var end = reader.GetDateTime(2);
-
-                        var clampedStart = start < startOfDay ? startOfDay : start;
-                        var clampedEnd = end > endExclusive ? endExclusive : end;
-
-                        if (clampedEnd <= clampedStart)
-                            continue;
-
-                        result.Add(new SessionSlice
-                        {
-                            AppName = appName,
-                            Start = clampedStart,
-                            End = clampedEnd,
-                            IsSelfApp = !string.IsNullOrWhiteSpace(currentAppName)
-                                && appName.Equals(currentAppName, StringComparison.OrdinalIgnoreCase)
-                        });
-                    }
-                }
+                    AppName = s.AppName,
+                    Start = clampedStart,
+                    End = clampedEnd,
+                    IsSelfApp = !string.IsNullOrWhiteSpace(currentAppName)
+                        && s.AppName.Equals(currentAppName, StringComparison.OrdinalIgnoreCase)
+                });
             }
 
             return result;
@@ -157,7 +121,6 @@ ORDER BY s.start_time ASC;", conn))
                 if (timeCmp != 0)
                     return timeCmp;
 
-                // End events first, then starts at the same timestamp.
                 if (a.IsStart == b.IsStart)
                     return 0;
                 return a.IsStart ? 1 : -1;
@@ -172,47 +135,37 @@ ORDER BY s.start_time ASC;", conn))
             {
                 if (lastTime.HasValue && ev.Time > lastTime.Value && active.Count > 0)
                 {
-                    var delta = (long)(ev.Time - lastTime.Value).TotalSeconds;
+                    var delta = (ev.Time - lastTime.Value).TotalSeconds;
                     if (delta > 0)
                     {
-                        totalSeconds += delta;
+                        totalSeconds += (long)delta;
 
                         if (active.Count == 1)
                         {
                             var only = active[0];
                             if (!only.IsSelfApp)
                             {
-                                double current;
-                                if (!appTotals.TryGetValue(only.AppName, out current))
-                                    current = 0;
+                                appTotals.TryGetValue(only.AppName, out double current);
                                 appTotals[only.AppName] = current + delta;
                             }
                         }
                         else
                         {
-                            var share = (double)delta / active.Count;
+                            var share = delta / active.Count;
                             foreach (var slice in active)
                             {
                                 if (slice.IsSelfApp)
                                     continue;
 
-                                double current;
-                                if (!appTotals.TryGetValue(slice.AppName, out current))
-                                    current = 0;
+                                appTotals.TryGetValue(slice.AppName, out double current);
                                 appTotals[slice.AppName] = current + share;
                             }
                         }
                     }
                 }
 
-                if (ev.IsStart)
-                {
-                    active.Add(ev.Slice);
-                }
-                else
-                {
-                    active.Remove(ev.Slice);
-                }
+                if (ev.IsStart) active.Add(ev.Slice);
+                else active.Remove(ev.Slice);
 
                 lastTime = ev.Time;
             }
@@ -248,81 +201,55 @@ ORDER BY s.start_time ASC;", conn))
                 app.PercentageOfTotal = Math.Max(0, (double)app.DurationSeconds / total * 100.0);
         }
 
-        private static SessionSlice ChoosePrimarySlice(List<SessionSlice> active)
+        private static void LoadPeakHour(List<AppSessionData> sessions, DailySummaryData summary)
         {
-            if (active == null || active.Count == 0)
-                return null;
-
-            return active
-                .OrderByDescending(x => x.Start)
-                .ThenByDescending(x => x.End)
-                .FirstOrDefault();
-        }
-
-        private static void LoadPeakHour(
-            MySqlConnection conn,
-            DailySummaryData summary,
-            int userId,
-            DateTime startOfDay,
-            DateTime endExclusive)
-        {
-            using (var cmd = new MySqlCommand(@"
-SELECT HOUR(s.start_time) AS peak_hour, COUNT(*) AS session_count
-FROM sessions s
-WHERE s.user_id = @userId
-  AND s.start_time >= @startOfDay
-  AND s.start_time < @endExclusive
-GROUP BY HOUR(s.start_time)
-ORDER BY session_count DESC, peak_hour ASC
-LIMIT 1;", conn))
+            var hourCounts = new int[24];
+            foreach (var s in sessions)
             {
-                cmd.Parameters.AddWithValue("@userId", userId);
-                cmd.Parameters.AddWithValue("@startOfDay", startOfDay);
-                cmd.Parameters.AddWithValue("@endExclusive", endExclusive);
+                int hour = s.StartTime.Hour;
+                hourCounts[hour]++;
+            }
 
-                using (var reader = cmd.ExecuteReader())
+            int maxHour = -1;
+            int maxCount = 0;
+            for (int i = 0; i < 24; i++)
+            {
+                if (hourCounts[i] > maxCount)
                 {
-                    summary.PeakHour = reader.Read() ? reader.GetInt32(0) : -1;
+                    maxCount = hourCounts[i];
+                    maxHour = i;
                 }
             }
+            summary.PeakHour = maxHour;
         }
 
-        private static void LoadAverageResources(
-            MySqlConnection conn,
-            DailySummaryData summary,
-            int userId,
-            DateTime startOfDay,
-            DateTime endExclusive)
+        private static void LoadAverageResources(List<AppSessionData> sessions, DailySummaryData summary)
         {
-            using (var cmd = new MySqlCommand(@"
-SELECT
-    COALESCE(AVG(r.cpu_usage), 0.0) AS avg_cpu,
-    COALESCE(AVG(r.ram_usage), 0.0) AS avg_ram_bytes
-FROM app_resource_usage r
-INNER JOIN sessions s ON s.session_id = r.session_id
-WHERE s.user_id = @userId
-  AND r.recorded_at >= @startOfDay
-  AND r.recorded_at < @endExclusive
-  AND s.start_time < @endExclusive
-  AND IFNULL(s.end_time, @endExclusive) > @startOfDay;", conn))
+            double totalCpuSum = 0;
+            long totalRamSum = 0;
+            int totalStatCount = 0;
+
+            foreach (var s in sessions)
             {
-                cmd.Parameters.AddWithValue("@userId", userId);
-                cmd.Parameters.AddWithValue("@startOfDay", startOfDay);
-                cmd.Parameters.AddWithValue("@endExclusive", endExclusive);
+                totalCpuSum += s.CpuSum;
+                totalRamSum += s.RamSum;
+                totalStatCount += s.StatCount;
+            }
 
-                using (var reader = cmd.ExecuteReader())
-                {
-                    if (reader.Read())
-                    {
-                        summary.AverageCpu = ClampPercent(reader.IsDBNull(0) ? 0 : reader.GetDouble(0));
-
-                        var avgRamBytes = reader.IsDBNull(1) ? 0 : Convert.ToInt64(reader.GetValue(1));
-                        var totalRamBytes = GetTotalPhysicalMemoryBytes();
-                        summary.AverageRam = totalRamBytes > 0
-                            ? ClampPercent((double)avgRamBytes / totalRamBytes * 100.0)
-                            : 0;
-                    }
-                }
+            if (totalStatCount > 0)
+            {
+                summary.AverageCpu = ClampPercent(totalCpuSum / totalStatCount);
+                
+                long avgRamBytes = totalRamSum / totalStatCount;
+                long totalRamBytes = GetTotalPhysicalMemoryBytes();
+                summary.AverageRam = totalRamBytes > 0
+                    ? ClampPercent((double)avgRamBytes / totalRamBytes * 100.0)
+                    : 0;
+            }
+            else
+            {
+                summary.AverageCpu = 0;
+                summary.AverageRam = 0;
             }
         }
 
@@ -332,96 +259,45 @@ WHERE s.user_id = @userId
 
             if (summary.TotalUsageSeconds <= 0)
             {
-                if (summary.Insights.Count == 0)
-                    summary.Insights.Add("Không có dữ liệu sử dụng hôm nay.");
+                summary.Insights.Add(LocalizationService.T("overview_no_apps"));
                 return;
             }
 
             if (!string.IsNullOrWhiteSpace(summary.MostUsedApp))
             {
-                summary.Insights.Add(string.Format("Ứng dụng dùng nhiều nhất: {0}", summary.MostUsedApp));
+                summary.Insights.Add(string.Format(LocalizationService.T("overview_insight_most_used"), summary.MostUsedApp));
             }
 
             if (summary.PeakHour >= 0)
             {
-                summary.Insights.Add(string.Format("Khung giờ hoạt động mạnh nhất: {0:00}:00 - {1:00}:00", summary.PeakHour, summary.PeakHour + 1));
+                summary.Insights.Add(string.Format(LocalizationService.T("overview_insight_peak"), summary.PeakHour, summary.PeakHour + 1));
             }
 
             var hours = summary.TotalUsageSeconds / 3600;
             var minutes = (summary.TotalUsageSeconds % 3600) / 60;
-            summary.Insights.Add(string.Format("Tổng thời gian dùng ứng dụng: {0}h {1}m", hours, minutes));
+            summary.Insights.Add(string.Format(LocalizationService.T("overview_insight_total_time"), hours, minutes));
 
             if (summary.AverageCpu > 0 || summary.AverageRam > 0)
             {
-                summary.Insights.Add(string.Format("CPU trung bình: {0:F1}% | RAM trung bình: {1:F1}%", summary.AverageCpu, summary.AverageRam));
-            }
-        }
-
-        private int GetCurrentUserId()
-        {
-            var userName = Environment.UserName ?? "unknown";
-            var computerName = Environment.MachineName ?? "unknown";
-
-            using (var conn = new MySqlConnection(_connectionString))
-            {
-                conn.Open();
-
-                using (var cmd = new MySqlCommand(@"
-SELECT user_id
-FROM users
-WHERE username = @username
-  AND computer_name = @computerName
-LIMIT 1;", conn))
-                {
-                    cmd.Parameters.AddWithValue("@username", userName);
-                    cmd.Parameters.AddWithValue("@computerName", computerName);
-
-                    object result = cmd.ExecuteScalar();
-                    if (result == null || result == DBNull.Value)
-                        return 0;
-
-                    return Convert.ToInt32(result);
-                }
+                summary.Insights.Add(string.Format(LocalizationService.T("overview_insight_resources"), summary.AverageCpu, summary.AverageRam));
             }
         }
 
         private static double ClampPercent(double value)
         {
-            if (double.IsNaN(value) || double.IsInfinity(value))
-                return 0;
-            if (value < 0)
-                return 0;
-            if (value > 100)
-                return 100;
-            return value;
+            if (double.IsNaN(value) || double.IsInfinity(value)) return 0;
+            return Math.Max(0, Math.Min(100, value));
         }
 
         private static long GetSystemAwakeSeconds()
         {
             try
             {
-                ulong unbiasedInterruptTime;
-                if (!QueryUnbiasedInterruptTime(out unbiasedInterruptTime))
-                    return 0;
-
-                return (long)(unbiasedInterruptTime / 10000000UL);
+                if (QueryUnbiasedInterruptTime(out ulong unbiasedInterruptTime))
+                    return (long)(unbiasedInterruptTime / 10000000UL);
             }
-            catch
-            {
-                return 0;
-            }
-        }
-
-        private static string FormatDuration(long seconds)
-        {
-            var safeSeconds = Math.Max(0, seconds);
-            var hours = safeSeconds / 3600;
-            var minutes = (safeSeconds % 3600) / 60;
-
-            if (hours > 0)
-                return string.Format("{0}h {1}m", hours, minutes);
-
-            return string.Format("{0}m", minutes);
+            catch { }
+            return 0;
         }
 
         private static long GetTotalPhysicalMemoryBytes()
@@ -429,22 +305,17 @@ LIMIT 1;", conn))
             try
             {
                 long totalBytes = 0;
-                var query = new ObjectQuery("SELECT Capacity FROM Win32_PhysicalMemory");
-                using (var searcher = new ManagementObjectSearcher(query))
+                using (var searcher = new ManagementObjectSearcher("SELECT Capacity FROM Win32_PhysicalMemory"))
                 {
                     foreach (ManagementObject obj in searcher.Get())
                     {
-                        object cap = obj["Capacity"];
-                        if (cap != null)
-                            totalBytes += Convert.ToInt64(cap);
+                        if (obj["Capacity"] != null)
+                            totalBytes += Convert.ToInt64(obj["Capacity"]);
                     }
                 }
                 return totalBytes;
             }
-            catch
-            {
-                return 0;
-            }
+            catch { return 16L * 1024 * 1024 * 1024; } // Fallback 16GB
         }
 
         [DllImport("kernel32.dll")]
@@ -467,10 +338,9 @@ LIMIT 1;", conn))
                 IsStart = isStart;
                 Slice = slice;
             }
-
-            public DateTime Time { get; private set; }
-            public bool IsStart { get; private set; }
-            public SessionSlice Slice { get; private set; }
+            public DateTime Time { get; }
+            public bool IsStart { get; }
+            public SessionSlice Slice { get; }
         }
     }
 }
