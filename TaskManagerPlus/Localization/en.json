@@ -6,6 +6,8 @@
   "menu_vi": "Vietnamese",
   "menu_en": "English",
   "btn_toggle_language": "Switch Language",
+  "menu_help": "Help (F1)",
+  "menu_turbo": "Turbo Boost (High Priority)",
 
   "tab_processes": "Processes",
   "tab_performance": "Performance",
@@ -18,6 +20,9 @@
   "btn_refresh": "Refresh",
   "chk_auto_refresh": "Automatic refresh",
   "lbl_refresh_interval": "Update every (sec):",
+  "btn_export_report": "⬇ Export Report",
+  "btn_toggle_hud": "🎮 Mini HUD",
+  "btn_optimize_ram": "🧹 Clean RAM",
 
   "status_updating": "Updating...",
   "status_loading": "Loading data...",

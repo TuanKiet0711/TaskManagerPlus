@@ -1,0 +1,10 @@
+[OPTIONS]
+Compatibility=1.1 or later
+Compiled file=TaskManagerPlusHelp_EN.chm
+Contents file=toc_en.hhc
+Default topic=help_en.html
+Display compile progress=No
+Language=0x409 English (United States)
+
+[FILES]
+help_en.html

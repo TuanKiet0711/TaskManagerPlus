@@ -1,4 +1,4 @@
-﻿namespace TaskManagerPlus
+namespace TaskManagerPlus
 {
     partial class Form1
     {
@@ -8,6 +8,7 @@
         private System.Windows.Forms.ToolStripMenuItem menuLanguage;
         private System.Windows.Forms.ToolStripMenuItem menuLangVI;
         private System.Windows.Forms.ToolStripMenuItem menuLangEN;
+        private System.Windows.Forms.ToolStripMenuItem menuHelp;
 
         protected override void Dispose(bool disposing)
         {
@@ -26,6 +27,7 @@
             this.menuLanguage = new System.Windows.Forms.ToolStripMenuItem();
             this.menuLangVI = new System.Windows.Forms.ToolStripMenuItem();
             this.menuLangEN = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuHelp = new System.Windows.Forms.ToolStripMenuItem();
 
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabProcesses = new System.Windows.Forms.TabPage();
@@ -40,6 +42,7 @@
             this.lblTitle = new System.Windows.Forms.Label();
             this.pictureBoxLogo = new System.Windows.Forms.PictureBox();
             this.btnToggleLanguage = new System.Windows.Forms.Button();
+            this.lblHealthScore = new System.Windows.Forms.Label();
 
             this.panelBottom = new System.Windows.Forms.Panel();
             this.lblStatus = new System.Windows.Forms.Label();
@@ -47,6 +50,9 @@
             this.lblRefreshInterval = new System.Windows.Forms.Label();
             this.chkAutoRefresh = new System.Windows.Forms.CheckBox();
             this.btnRefresh = new System.Windows.Forms.Button();
+            this.btnExportReport = new System.Windows.Forms.Button();
+            this.btnToggleHUD = new System.Windows.Forms.Button();
+            this.btnOptimizeRam = new System.Windows.Forms.Button();
 
             this.timerRefresh = new System.Windows.Forms.Timer(this.components);
 
@@ -64,7 +70,8 @@
             this.menuStrip.BackColor = System.Drawing.Color.White;
             this.menuStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.menuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.menuLanguage});
+            this.menuLanguage,
+            this.menuHelp});
             this.menuStrip.Location = new System.Drawing.Point(0, 0);
             this.menuStrip.Name = "menuStrip";
             this.menuStrip.Padding = new System.Windows.Forms.Padding(7, 2, 0, 2);
@@ -97,6 +104,14 @@
             this.menuLangEN.Size = new System.Drawing.Size(152, 26);
             this.menuLangEN.Text = "English";
             this.menuLangEN.Click += new System.EventHandler(this.menuLangEN_Click);
+
+            // 
+            // menuHelp
+            // 
+            this.menuHelp.Name = "menuHelp";
+            this.menuHelp.Size = new System.Drawing.Size(55, 24);
+            this.menuHelp.Text = "Help (F1)";
+            this.menuHelp.Click += new System.EventHandler(this.menuHelp_Click);
 
             // 
             // tabControl
@@ -202,6 +217,7 @@
             this.panelTop.Controls.Add(this.lblTitle);
             this.panelTop.Controls.Add(this.pictureBoxLogo);
             this.panelTop.Controls.Add(this.btnToggleLanguage);
+            this.panelTop.Controls.Add(this.lblHealthScore);
             this.panelTop.Dock = System.Windows.Forms.DockStyle.Top;
             this.panelTop.Location = new System.Drawing.Point(0, 28); // dưới menu
             this.panelTop.Name = "panelTop";
@@ -247,6 +263,18 @@
             this.btnToggleLanguage.Click += new System.EventHandler(this.btnToggleLanguage_Click);
 
             // 
+            // lblHealthScore
+            // 
+            this.lblHealthScore.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblHealthScore.AutoSize = true;
+            this.lblHealthScore.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.lblHealthScore.Location = new System.Drawing.Point(850, 18);
+            this.lblHealthScore.Name = "lblHealthScore";
+            this.lblHealthScore.Size = new System.Drawing.Size(120, 28);
+            this.lblHealthScore.TabIndex = 3;
+            this.lblHealthScore.Text = "Health: 100%";
+
+            // 
             // panelBottom
             // 
             this.panelBottom.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
@@ -256,6 +284,9 @@
             this.panelBottom.Controls.Add(this.lblRefreshInterval);
             this.panelBottom.Controls.Add(this.chkAutoRefresh);
             this.panelBottom.Controls.Add(this.btnRefresh);
+            this.panelBottom.Controls.Add(this.btnExportReport);
+            this.panelBottom.Controls.Add(this.btnToggleHUD);
+            this.panelBottom.Controls.Add(this.btnOptimizeRam);
             this.panelBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panelBottom.Location = new System.Drawing.Point(0, 731);
             this.panelBottom.Name = "panelBottom";
@@ -334,6 +365,54 @@
             this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
 
             // 
+            // btnExportReport
+            // 
+            this.btnExportReport.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(135)))), ((int)(((byte)(84)))));
+            this.btnExportReport.FlatAppearance.BorderSize = 0;
+            this.btnExportReport.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnExportReport.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.btnExportReport.ForeColor = System.Drawing.Color.White;
+            this.btnExportReport.Location = new System.Drawing.Point(500, 10);
+            this.btnExportReport.Name = "btnExportReport";
+            this.btnExportReport.Size = new System.Drawing.Size(120, 30);
+            this.btnExportReport.TabIndex = 6;
+            this.btnExportReport.Text = "⬇ Export";
+            this.btnExportReport.UseVisualStyleBackColor = false;
+            this.btnExportReport.Click += new System.EventHandler(this.btnExportReport_Click);
+
+            // 
+            // btnToggleHUD
+            // 
+            this.btnToggleHUD.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(53)))), ((int)(((byte)(69)))));
+            this.btnToggleHUD.FlatAppearance.BorderSize = 0;
+            this.btnToggleHUD.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnToggleHUD.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.btnToggleHUD.ForeColor = System.Drawing.Color.White;
+            this.btnToggleHUD.Location = new System.Drawing.Point(630, 10);
+            this.btnToggleHUD.Name = "btnToggleHUD";
+            this.btnToggleHUD.Size = new System.Drawing.Size(120, 30);
+            this.btnToggleHUD.TabIndex = 7;
+            this.btnToggleHUD.Text = "Mini HUD";
+            this.btnToggleHUD.UseVisualStyleBackColor = false;
+            this.btnToggleHUD.Click += new System.EventHandler(this.btnToggleHUD_Click);
+
+            // 
+            // btnOptimizeRam
+            // 
+            this.btnOptimizeRam.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(193)))), ((int)(((byte)(7)))));
+            this.btnOptimizeRam.FlatAppearance.BorderSize = 0;
+            this.btnOptimizeRam.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnOptimizeRam.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.btnOptimizeRam.ForeColor = System.Drawing.Color.Black;
+            this.btnOptimizeRam.Location = new System.Drawing.Point(760, 10);
+            this.btnOptimizeRam.Name = "btnOptimizeRam";
+            this.btnOptimizeRam.Size = new System.Drawing.Size(120, 30);
+            this.btnOptimizeRam.TabIndex = 8;
+            this.btnOptimizeRam.Text = "🧹 RAM Cleaner";
+            this.btnOptimizeRam.UseVisualStyleBackColor = false;
+            this.btnOptimizeRam.Click += new System.EventHandler(this.btnOptimizeRam_Click);
+
+            // 
             // timerRefresh
             // 
             this.timerRefresh.Interval = 3000;
@@ -359,6 +438,8 @@
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Task Manager Plus";
+            this.KeyPreview = true;
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Form1_KeyDown);
             this.Load += new System.EventHandler(this.Form1_Load);
 
             this.menuStrip.ResumeLayout(false);
@@ -395,5 +476,9 @@
         private System.Windows.Forms.NumericUpDown numRefreshInterval;
         private System.Windows.Forms.Timer timerRefresh;
         private System.Windows.Forms.Label lblStatus;
+        private System.Windows.Forms.Label lblHealthScore;
+        private System.Windows.Forms.Button btnExportReport;
+        private System.Windows.Forms.Button btnToggleHUD;
+        private System.Windows.Forms.Button btnOptimizeRam;
     }
 }

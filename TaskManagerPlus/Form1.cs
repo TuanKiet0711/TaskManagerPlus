@@ -18,6 +18,10 @@ namespace TaskManagerPlus
         private BatteryTab batteryTab;
         private AppHistoryTab appHistoryTab;
         private AppUsageTracker usageTracker;
+        private SmartAlertService smartAlertService;
+        private HealthScoreService healthScoreService;
+        
+        private Controls.MiniWidgetForm miniWidgetForm;
 
         private bool isUpdating = false;
         private bool _preloaded = false;
@@ -46,7 +50,99 @@ namespace TaskManagerPlus
             SetupIcon();
             InitializeTray();
 
+            HardwareMonitor hwMonitor = new HardwareMonitor();
+            smartAlertService = new SmartAlertService(processMonitor, hwMonitor);
+            smartAlertService.OnAlertGenerated += SmartAlertService_OnAlertGenerated;
+            smartAlertService.Start();
+
+            healthScoreService = new HealthScoreService(processMonitor, hwMonitor);
+
             usageTracker.StartTracking();
+        }
+
+        private void SmartAlertService_OnAlertGenerated(object sender, Models.AlertInfo e)
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(() => ShowAlertBanner(e)));
+                return;
+            }
+            ShowAlertBanner(e);
+        }
+
+        private Panel pnlAlert;
+        private void ShowAlertBanner(Models.AlertInfo alert)
+        {
+            if (pnlAlert != null)
+            {
+                this.Controls.Remove(pnlAlert);
+                pnlAlert.Dispose();
+            }
+
+            pnlAlert = new Panel
+            {
+                Height = 60,
+                Dock = DockStyle.Top,
+                BackColor = alert.Severity == Models.AlertSeverity.Critical ? Color.FromArgb(220, 53, 69) : Color.FromArgb(255, 193, 7), // Danger or Warning
+                ForeColor = alert.Severity == Models.AlertSeverity.Critical ? Color.White : Color.Black
+            };
+
+            Label lblMsg = new Label
+            {
+                Text = $"{alert.Title}\n{alert.Message}",
+                AutoSize = false,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(15, 0, 0, 0),
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+            };
+            pnlAlert.Controls.Add(lblMsg);
+
+            Button btnAction = new Button
+            {
+                Text = alert.Action == Models.SuggestedAction.SuspendProcess ? "Suspend App" :
+                       alert.Action == Models.SuggestedAction.KillProcess ? "End Task" :
+                       alert.Action == Models.SuggestedAction.SetEcoMode ? "Eco Mode" : "Dismiss",
+                Dock = DockStyle.Right,
+                Width = 120,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+            btnAction.FlatAppearance.BorderSize = 0;
+            switch(alert.Action)
+            {
+                case Models.SuggestedAction.SuspendProcess:
+                    btnAction.Click += (s, e) => { processMonitor.SuspendProcess(alert.RelatedProcessId); this.Controls.Remove(pnlAlert); }; break;
+                case Models.SuggestedAction.KillProcess:
+                    btnAction.Click += (s, e) => { processMonitor.KillProcess(alert.RelatedProcessId); this.Controls.Remove(pnlAlert); }; break;
+                case Models.SuggestedAction.SetEcoMode:
+                    btnAction.Click += (s, e) => { processMonitor.ChangePriority(alert.RelatedProcessId, System.Diagnostics.ProcessPriorityClass.Idle); this.Controls.Remove(pnlAlert); }; break;
+                default:
+                    btnAction.Click += (s, e) => { this.Controls.Remove(pnlAlert); }; break; // Dismiss
+            }
+            pnlAlert.Controls.Add(btnAction);
+
+            Button btnDismiss = new Button
+            {
+                Text = "X",
+                Dock = DockStyle.Right,
+                Width = 40,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnDismiss.FlatAppearance.BorderSize = 0;
+            btnDismiss.Click += (s, e) => this.Controls.Remove(pnlAlert);
+            pnlAlert.Controls.Add(btnDismiss);
+
+            this.Controls.Add(pnlAlert);
+            pnlAlert.BringToFront();
+
+            if (trayIcon != null && trayIcon.Visible)
+            {
+                trayIcon.ShowBalloonTip(5000, alert.Title, alert.Message, 
+                    alert.Severity == Models.AlertSeverity.Critical ? ToolTipIcon.Error : ToolTipIcon.Warning);
+            }
         }
 
         private void SetupLocalizationTags()
@@ -59,6 +155,7 @@ namespace TaskManagerPlus
             menuLanguage.Tag = "menu_language";
             menuLangVI.Tag = "menu_vi";
             menuLangEN.Tag = "menu_en";
+            menuHelp.Tag = "menu_help";
 
             // Tabs
             tabProcesses.Tag = "tab_processes";
@@ -73,6 +170,9 @@ namespace TaskManagerPlus
             btnRefresh.Tag = "btn_refresh";
             chkAutoRefresh.Tag = "chk_auto_refresh";
             lblRefreshInterval.Tag = "lbl_refresh_interval";
+            btnExportReport.Tag = "btn_export_report";
+            btnToggleHUD.Tag = "btn_toggle_hud";
+            btnOptimizeRam.Tag = "btn_optimize_ram";
 
             // Language toggle button
             btnToggleLanguage.Tag = "btn_toggle_language";
@@ -141,6 +241,35 @@ namespace TaskManagerPlus
             LocalizationService.LoadLanguage(next);
             ApplyLanguageAll();
             ApplyLanguageToAllTabs();
+        }
+
+        private void menuHelp_Click(object sender, EventArgs e)
+        {
+            ShowHelpForm();
+        }
+
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.F1)
+            {
+                ShowHelpForm();
+                e.Handled = true;
+            }
+        }
+
+        private void ShowHelpForm()
+        {
+            string langCode = LocalizationService.CurrentLanguage == AppLanguage.VI ? "VI" : "EN";
+            string filePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Help", $"TaskManagerPlusHelp_{langCode}.chm");
+
+            if (System.IO.File.Exists(filePath))
+            {
+                Help.ShowHelp(this, filePath);
+            }
+            else
+            {
+                MessageBox.Show($"CHM Help file not found at: {filePath}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void SetupIcon()
@@ -280,6 +409,7 @@ namespace TaskManagerPlus
             appHistoryTab.Initialize();
 
             timerRefresh.Start();
+            UpdateHealthScore();
 
             lblStatus.Text = LocalizationService.T("status_loading");
             lblStatus.ForeColor = Color.FromArgb(25, 135, 84);
@@ -357,6 +487,8 @@ namespace TaskManagerPlus
 
                 // Always update performance tab (lightweight)
                 await performanceTab.UpdatePerformanceAsync();
+                
+                UpdateHealthScore();
             }
             catch (Exception ex)
             {
@@ -375,6 +507,21 @@ namespace TaskManagerPlus
             if (chkAutoRefresh.Checked && !isUpdating)
             {
                 await UpdateAllDataAsync();
+            }
+        }
+
+        private void UpdateHealthScore()
+        {
+            if (healthScoreService == null) return;
+            
+            int score = healthScoreService.CalculateHealthScore();
+            Color c = healthScoreService.GetHealthColor(score);
+            string status = healthScoreService.GetHealthStatus(score);
+
+            if (lblHealthScore != null)
+            {
+                lblHealthScore.Text = $"Health: {score}% ({status})";
+                lblHealthScore.ForeColor = c;
             }
         }
 
@@ -398,6 +545,43 @@ namespace TaskManagerPlus
             btnRefresh.Enabled = false;
             await UpdateAllDataAsync();
             btnRefresh.Enabled = true;
+        }
+
+        private void btnExportReport_Click(object sender, EventArgs e)
+        {
+            // Pause updates while dialog is open
+            bool wasEnabled = timerRefresh.Enabled;
+            timerRefresh.Enabled = false;
+            
+            ReportExporter.ExportToCsv(processMonitor, new HardwareMonitor());
+            
+            timerRefresh.Enabled = wasEnabled;
+        }
+
+        private void btnToggleHUD_Click(object sender, EventArgs e)
+        {
+             if (miniWidgetForm == null || miniWidgetForm.IsDisposed)
+             {
+                 HardwareMonitor hw = new HardwareMonitor();
+                 miniWidgetForm = new Controls.MiniWidgetForm(processMonitor, hw);
+                 miniWidgetForm.Show();
+             }
+             else
+             {
+                 miniWidgetForm.Close();
+             }
+        }
+
+        private void btnOptimizeRam_Click(object sender, EventArgs e)
+        {
+            btnOptimizeRam.Enabled = false;
+            int freed = processMonitor.OptimizeMemory();
+            string msg = LocalizationService.CurrentLanguage == AppLanguage.VI 
+                ? $"Đã dọn dẹp {freed} MB RAM rác!" 
+                : $"Cleaned {freed} MB of unused RAM!";
+            MessageBox.Show(msg, "Memory Optimizer", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            btnOptimizeRam.Enabled = true;
+            UpdateAllDataAsync(); // Refresh info
         }
 
         private void numRefreshInterval_ValueChanged(object sender, EventArgs e)
@@ -437,8 +621,12 @@ namespace TaskManagerPlus
 
             timerRefresh.Stop();
 
+            timerRefresh.Stop();
+
             usageTracker?.StopTracking();
             usageTracker?.UpdateDailySummary();
+            
+            smartAlertService?.Stop();
 
             processMonitor?.Cleanup();
             trayIcon?.Dispose();

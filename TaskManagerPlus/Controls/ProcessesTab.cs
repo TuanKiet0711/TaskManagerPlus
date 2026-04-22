@@ -108,9 +108,67 @@ namespace TaskManagerPlus.Controls
         public void Initialize()
         {
             SetupDataGridView();
+            SetupContextMenu();
             SetupTooltip();
             ApplyLocalization();
             StartProcessWatchers();
+        }
+
+        private ContextMenuStrip processContextMenu;
+
+        private void SetupContextMenu()
+        {
+            processContextMenu = new ContextMenuStrip();
+            processContextMenu.Items.Add(LocalizationService.T("processes_end_task"), null, (s, e) => ExecuteContextMenuAction("kill"));
+            processContextMenu.Items.Add(new ToolStripSeparator());
+            processContextMenu.Items.Add(LocalizationService.T("menu_suspend"), null, (s, e) => ExecuteContextMenuAction("suspend"));
+            processContextMenu.Items.Add(LocalizationService.T("menu_resume"), null, (s, e) => ExecuteContextMenuAction("resume"));
+            processContextMenu.Items.Add(new ToolStripSeparator());
+            processContextMenu.Items.Add(LocalizationService.T("menu_eco_mode"), null, (s, e) => ExecuteContextMenuAction("eco"));
+            processContextMenu.Items.Add(LocalizationService.T("menu_turbo"), null, (s, e) => ExecuteContextMenuAction("turbo"));
+
+            // Style
+            processContextMenu.BackColor = ThemeService.SurfaceAlt;
+            processContextMenu.ForeColor = ThemeService.Text;
+            processContextMenu.Font = ThemeService.MainFont;
+
+            dataGridViewProcesses.CellMouseClick -= DataGridViewProcesses_CellMouseClick;
+            dataGridViewProcesses.CellMouseClick += DataGridViewProcesses_CellMouseClick;
+        }
+
+        private void DataGridViewProcesses_CellMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right && e.RowIndex >= 0)
+            {
+                dataGridViewProcesses.ClearSelection();
+                dataGridViewProcesses.Rows[e.RowIndex].Selected = true;
+                processContextMenu.Show(Cursor.Position);
+            }
+        }
+
+        private void ExecuteContextMenuAction(string action)
+        {
+            if (dataGridViewProcesses.SelectedRows.Count == 0) return;
+            var procRow = dataGridViewProcesses.SelectedRows[0].DataBoundItem as ProcessInfoRow;
+            if (procRow == null) return;
+
+            int pid = procRow.ProcessId;
+
+            try
+            {
+                switch (action)
+                {
+                    case "kill": _pm.KillProcess(pid); break;
+                    case "suspend": _pm.SuspendProcess(pid); break;
+                    case "resume": _pm.ResumeProcess(pid); break;
+                    case "eco": _pm.ChangePriority(pid, System.Diagnostics.ProcessPriorityClass.Idle); break;
+                    case "turbo": _pm.ChangePriority(pid, System.Diagnostics.ProcessPriorityClass.High); break;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error executing action", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void SetupDataGridView()
@@ -851,6 +909,20 @@ namespace TaskManagerPlus.Controls
         {
             UILocalizer.Apply(this);
             dataGridViewProcesses.Refresh();
+            
+            lblShowProcesses.Text = LocalizationService.T("processes_show_procs");
+            radAllProcesses.Text = LocalizationService.T("processes_all_procs");
+            radUserProcesses.Text = LocalizationService.T("processes_user_procs");
+            btnKillProcess.Text = LocalizationService.T("processes_end_task");
+
+            if (processContextMenu != null && processContextMenu.Items.Count >= 7)
+            {
+                processContextMenu.Items[0].Text = LocalizationService.T("menu_end_task");
+                processContextMenu.Items[2].Text = LocalizationService.T("menu_suspend");
+                processContextMenu.Items[3].Text = LocalizationService.T("menu_resume");
+                processContextMenu.Items[5].Text = LocalizationService.T("menu_eco_mode");
+                processContextMenu.Items[6].Text = LocalizationService.T("menu_turbo");
+            }
         }
 
         private void SetupLocalizationTags()

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -392,6 +392,48 @@ namespace TaskManagerPlus.Services
             }
         }
 
+        public void SuspendProcess(int processId)
+        {
+            try
+            {
+                Process proc = Process.GetProcessById(processId);
+                if (proc.ProcessName.ToLower() == "explorer" || proc.ProcessName.ToLower() == "taskmanagerplus") 
+                    return; // Safety guard
+                    
+                NativeMethods.NtSuspendProcess(proc.Handle);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Cannot suspend process: " + ex.Message);
+            }
+        }
+
+        public void ResumeProcess(int processId)
+        {
+            try
+            {
+                Process proc = Process.GetProcessById(processId);
+                NativeMethods.NtResumeProcess(proc.Handle);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Cannot resume process: " + ex.Message);
+            }
+        }
+
+        public void ChangePriority(int processId, ProcessPriorityClass priority)
+        {
+            try
+            {
+                Process proc = Process.GetProcessById(processId);
+                proc.PriorityClass = priority;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Cannot change process priority: " + ex.Message);
+            }
+        }
+
         // =========================
         // System info
         // =========================
@@ -459,6 +501,56 @@ namespace TaskManagerPlus.Services
             {
                 return 8192f;
             }
+        }
+
+        // ===========================
+        // ADVANCED WIN32 API SECTION
+        // ===========================
+
+        private class NativeMethods
+        {
+            [DllImport("ntdll.dll", PreserveSig = false)]
+            public static extern void NtSuspendProcess(IntPtr processHandle);
+
+            [DllImport("ntdll.dll", PreserveSig = false)]
+            public static extern void NtResumeProcess(IntPtr processHandle);
+
+            [DllImport("psapi.dll")]
+            public static extern bool EmptyWorkingSet(IntPtr hProcess);
+        }
+
+        public int OptimizeMemory()
+        {
+            int freedMB = 0;
+            try
+            {
+                var processes = Process.GetProcesses();
+                long before = GetTotalMemoryUsage();
+
+                foreach (var process in processes)
+                {
+                    try
+                    {
+                        if ((process.ProcessName != "Idle") && (process.ProcessName != "System"))
+                        {
+                            NativeMethods.EmptyWorkingSet(process.Handle);
+                        }
+                    }
+                    catch { } // Ignore access denied for protected procs
+                    finally
+                    {
+                        process.Dispose(); 
+                    }
+                }
+                
+                System.Threading.Thread.Sleep(500); // Allow OS GC/Paging to reflect
+                long after = GetTotalMemoryUsage();
+                
+                freedMB = (int)((before - after) / 1024 / 1024);
+                if (freedMB < 0) freedMB = 0;
+            }
+            catch { }
+            return freedMB;
         }
 
         // =========================
@@ -716,6 +808,15 @@ namespace TaskManagerPlus.Services
 
             [DllImport("user32.dll", CharSet = CharSet.Auto)]
             internal static extern int GetWindowTextLength(IntPtr hWnd);
+
+            [DllImport("ntdll.dll", PreserveSig = false)]
+            public static extern void NtSuspendProcess(IntPtr processHandle);
+
+            [DllImport("ntdll.dll", PreserveSig = false)]
+            public static extern void NtResumeProcess(IntPtr processHandle);
+
+            [DllImport("psapi.dll")]
+            public static extern bool EmptyWorkingSet(IntPtr hProcess);
 
             internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
         }
