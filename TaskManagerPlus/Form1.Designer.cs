@@ -527,6 +527,5 @@ namespace TaskManagerPlus
         private System.Windows.Forms.Button btnExportReport;
         private System.Windows.Forms.Button btnToggleHUD;
         private System.Windows.Forms.Button btnOptimizeRam;
-        private System.Windows.Forms.Button btnHealthHelp;
     }
 }

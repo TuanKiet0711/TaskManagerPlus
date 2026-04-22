@@ -136,9 +136,9 @@ namespace TaskManagerPlus.Controls
 
             bool isVi = LocalizationService.CurrentLanguage == AppLanguage.VI;
 
-            string details = isVi 
-                ? $"CPU: {dataLine.CpuFactor:F1}% phạt | RAM: {dataLine.MemoryFactor:F1}% phạt\nNhiệt độ: {dataLine.TempFactor:F1}% phạt"
-                : $"CPU Penalty: {dataLine.CpuFactor:F1}% | RAM Penalty: {dataLine.MemoryFactor:F1}%\nTemp Penalty: {dataLine.TempFactor:F1}%";
+            string details = isVi
+                ? $"Cách tính: 100 - điểm phạt CPU/RAM/Nhiệt.\nCPU: {dataLine.CpuFactor:F1}% | RAM: {dataLine.MemoryFactor:F1}% | Nhiệt: {dataLine.TempFactor:F1}% (mốc: CPU 40/60/80, RAM 60/75/90, Temp 65/75/85°C)"
+                : $"Formula: 100 - CPU/RAM/Temp penalties.\nCPU: {dataLine.CpuFactor:F1}% | RAM: {dataLine.MemoryFactor:F1}% | Temp: {dataLine.TempFactor:F1}% (thresholds: CPU 40/60/80, RAM 60/75/90, Temp 65/75/85°C)";
 
             lblDetails.Text = details;
 

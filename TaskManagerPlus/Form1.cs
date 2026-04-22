@@ -27,6 +27,7 @@ namespace TaskManagerPlus
         private bool _preloaded = false;
         private bool _allowClose = false;
         private bool _isPaused = false;
+        private ToolTip _healthHelpTooltip;
         private NotifyIcon trayIcon;
         private ContextMenuStrip trayMenu;
         private ToolStripMenuItem trayOpenItem;
@@ -188,6 +189,7 @@ namespace TaskManagerPlus
             // Apply theo Tag cho toàn bộ control tree + menu/toolstrip...
             UILocalizer.Apply(this);
             UpdateTrayMenuLanguage();
+            UpdateHealthHelpTooltip();
 
             // lblStatus theo state (không gắn Tag cố định)
             if (!chkAutoRefresh.Checked)
@@ -205,6 +207,29 @@ namespace TaskManagerPlus
             // checked trạng thái menu
             menuLangVI.Checked = (LocalizationService.CurrentLanguage == AppLanguage.VI);
             menuLangEN.Checked = (LocalizationService.CurrentLanguage == AppLanguage.EN);
+
+            UpdateHudButtonText();
+        }
+
+        private void UpdateHealthHelpTooltip()
+        {
+            if (btnHealthHelp == null) return;
+
+            if (_healthHelpTooltip == null)
+            {
+                _healthHelpTooltip = new ToolTip
+                {
+                    ShowAlways = true,
+                    InitialDelay = 250,
+                    ReshowDelay = 150
+                };
+            }
+
+            string tip = LocalizationService.CurrentLanguage == AppLanguage.VI
+                ? "Health được tính từ CPU, RAM và nhiệt độ. Bấm để xem chi tiết cách chấm điểm."
+                : "Health score is based on CPU, RAM, and temperature. Click to view scoring details.";
+
+            _healthHelpTooltip.SetToolTip(btnHealthHelp, tip);
         }
 
         private void ApplyLanguageToAllTabs()
@@ -574,12 +599,35 @@ namespace TaskManagerPlus
              {
                  HardwareMonitor hw = new HardwareMonitor();
                  miniWidgetForm = new Controls.MiniWidgetForm(processMonitor, hw);
+                 miniWidgetForm.FormClosed += (s, args) =>
+                 {
+                     miniWidgetForm = null;
+                     UpdateHudButtonText();
+                 };
                  miniWidgetForm.Show();
              }
              else
              {
                  miniWidgetForm.Close();
+                 miniWidgetForm = null;
              }
+
+             UpdateHudButtonText();
+        }
+
+        private void UpdateHudButtonText()
+        {
+            if (btnToggleHUD == null) return;
+
+            bool hudOn = miniWidgetForm != null && !miniWidgetForm.IsDisposed;
+            if (hudOn)
+            {
+                btnToggleHUD.Text = LocalizationService.CurrentLanguage == AppLanguage.VI ? "🎮 Tắt HUD" : "🎮 Hide HUD";
+            }
+            else
+            {
+                btnToggleHUD.Text = LocalizationService.CurrentLanguage == AppLanguage.VI ? "🎮 Bật HUD" : "🎮 Show HUD";
+            }
         }
 
         private void btnOptimizeRam_Click(object sender, EventArgs e)

@@ -55,5 +55,11 @@ namespace TaskManagerPlus.Services
             if (_dict.TryGetValue(key, out val)) return val;
             return "[" + key + "]";
         }
+
+        // Backward-compatible alias for newly added controls that call GetString.
+        public static string GetString(string key)
+        {
+            return T(key);
+        }
     }
 }
