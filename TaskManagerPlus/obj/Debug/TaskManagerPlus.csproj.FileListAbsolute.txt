@@ -108,3 +108,5 @@ D:\TaskManager\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.exe
 D:\TaskManager\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.pdb
 D:\TaskManager\TaskManagerPlus\TaskManagerPlus\bin\Debug\Help\TaskManagerPlusHelp_EN.chm
 D:\TaskManager\TaskManagerPlus\TaskManagerPlus\bin\Debug\Help\TaskManagerPlusHelp_VI.chm
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\bin\Debug\Help\TaskManagerPlusHelp_EN.chm
+E:\WF\TaskManagerPlus\TaskManagerPlus\TaskManagerPlus\bin\Debug\Help\TaskManagerPlusHelp_VI.chm
