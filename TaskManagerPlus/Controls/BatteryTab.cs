@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Management;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -16,12 +17,17 @@ namespace TaskManagerPlus.Controls
     {
         private BatteryInfo currentBatteryInfo;
         private Timer updateTimer;
+        private readonly ProcessMonitor _processMonitor;
+        private readonly AppUsageDatabase _usageDatabase;
+        private Button btnOptimizeBattery;
         private Panel tipsContainer;
         private Label tipsTitle;
         private FlowLayoutPanel tipsListPanel;
 
-        public BatteryTab()
+        public BatteryTab(ProcessMonitor processMonitor = null)
         {
+            _processMonitor = processMonitor;
+            _usageDatabase = new AppUsageDatabase();
             InitializeComponent();
             currentBatteryInfo = new BatteryInfo();
             SetupLocalizationTags();
@@ -67,6 +73,23 @@ namespace TaskManagerPlus.Controls
             
             panelScroll.Controls.Add(cardPanel);
             cardPanel.BringToFront();
+
+            btnOptimizeBattery = new Button
+            {
+                AutoSize = false,
+                Size = new Size(180, 34),
+                Location = new Point(panelScroll.Width - 200, 14),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                BackColor = ThemeService.Primary,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = ThemeService.BoldFont,
+                Text = LocalizationService.T("battery_optimize_button")
+            };
+            btnOptimizeBattery.FlatAppearance.BorderSize = 0;
+            btnOptimizeBattery.Click += async (s, e) => await OptimizeBatteryAsync();
+            panelScroll.Controls.Add(btnOptimizeBattery);
+            btnOptimizeBattery.BringToFront();
         }
 
         public void Initialize()
@@ -141,6 +164,9 @@ namespace TaskManagerPlus.Controls
 
             // 6) Top CPU process (short sample)
             TryReadTopCpuProcess(info);
+
+                // 7) Top apps likely draining battery today
+                info.TopBatteryApps = GetTopBatteryApps();
             }
             catch (Exception ex)
             {
@@ -379,6 +405,102 @@ namespace TaskManagerPlus.Controls
             {
                 // ignore
             }
+        }
+
+        private List<AppHistoryItem> GetTopBatteryApps()
+        {
+            try
+            {
+                var todayApps = _usageDatabase.GetAppHistory(DateTime.Today, DateTime.Today);
+                return todayApps
+                    .Where(a => !string.IsNullOrWhiteSpace(a.ProcessName))
+                    .OrderByDescending(a => (a.AverageCpu * 2.0) + (a.AverageMemory / (1024.0 * 1024.0) * 0.35) + (a.IsRunning ? 10.0 : 0.0))
+                    .Take(5)
+                    .ToList();
+            }
+            catch
+            {
+                return new List<AppHistoryItem>();
+            }
+        }
+
+        private async Task OptimizeBatteryAsync()
+        {
+            if (btnOptimizeBattery != null)
+                btnOptimizeBattery.Enabled = false;
+
+            try
+            {
+                int suspendedCount = await Task.Run(() => OptimizeBatteryNow());
+                await UpdateBatteryInfoAsync();
+                MessageBox.Show(
+                    string.Format(LocalizationService.T("battery_optimize_done"), suspendedCount),
+                    LocalizationService.T("common_success_title"),
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    string.Format(LocalizationService.T("battery_optimize_failed"), ex.Message),
+                    LocalizationService.T("common_error_title"),
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            finally
+            {
+                if (btnOptimizeBattery != null)
+                    btnOptimizeBattery.Enabled = true;
+            }
+        }
+
+        private int OptimizeBatteryNow()
+        {
+            int suspended = 0;
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "powercfg",
+                    Arguments = "/setactive a1841308-3541-4fab-bc81-f71556f20b4a",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                })?.WaitForExit(3000);
+            }
+            catch { }
+
+            if (_processMonitor == null)
+                return suspended;
+
+            var currentPid = Process.GetCurrentProcess().Id;
+            var safeNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "explorer", "taskmanagerplus", "system", "idle", "csrss", "smss",
+                "wininit", "winlogon", "services", "lsass", "svchost"
+            };
+
+            foreach (var proc in _processMonitor.GetAllProcesses(true))
+            {
+                try
+                {
+                    if (proc.ProcessId == currentPid)
+                        continue;
+                    if (proc.HasWindow)
+                        continue;
+                    if (safeNames.Contains(proc.ProcessName))
+                        continue;
+                    if (string.IsNullOrWhiteSpace(proc.FilePath))
+                        continue;
+
+                    _processMonitor.SuspendProcess(proc.ProcessId);
+                    suspended++;
+                }
+                catch { }
+            }
+
+            return suspended;
         }
 
         private void ComputeHealthWearCondition(BatteryInfo info)
@@ -628,6 +750,38 @@ namespace TaskManagerPlus.Controls
             // Wear bar (chai pin)
             yPos += 70;
             DrawWearBar(g, leftCol, yPos, width - 60, currentBatteryInfo.WearLevel);
+
+            if (currentBatteryInfo.TopBatteryApps != null && currentBatteryInfo.TopBatteryApps.Count > 0)
+            {
+                yPos += 90;
+
+                using (Font titleFont = new Font("Segoe UI Semibold", 13F, FontStyle.Bold))
+                using (SolidBrush titleBrush = new SolidBrush(ThemeService.Primary))
+                {
+                    g.DrawString(LocalizationService.T("battery_top_apps_title"), titleFont, titleBrush, leftCol, yPos);
+                }
+
+                yPos += 28;
+
+                using (Font appFont = new Font("Segoe UI", 9.5F))
+                using (Font appBoldFont = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold))
+                using (SolidBrush labelBrush = new SolidBrush(ThemeService.TextMuted))
+                using (SolidBrush valueBrush = new SolidBrush(ThemeService.Text))
+                {
+                    for (int i = 0; i < Math.Min(5, currentBatteryInfo.TopBatteryApps.Count); i++)
+                    {
+                        var app = currentBatteryInfo.TopBatteryApps[i];
+                        string scoreText = $"CPU {app.AverageCpu:F1}% | RAM {app.FormattedMemory}";
+                        string statusText = app.IsRunning ? LocalizationService.T("battery_app_running") : app.FormattedDuration;
+                        string line = $"{i + 1}. {app.ProcessName}";
+
+                        g.DrawString(line, appBoldFont, valueBrush, leftCol, yPos);
+                        g.DrawString(scoreText, appFont, labelBrush, leftCol + 220, yPos + 1);
+                        g.DrawString(statusText, appFont, labelBrush, leftCol + 220, yPos + 16);
+                        yPos += 34;
+                    }
+                }
+            }
         }
 
         private int CalculateDetailsPanelHeight()
@@ -833,6 +987,9 @@ namespace TaskManagerPlus.Controls
             yPos += 70; // health bar block
             yPos += 70; // wear bar block
 
+            if (currentBatteryInfo.TopBatteryApps != null && currentBatteryInfo.TopBatteryApps.Count > 0)
+                yPos += 118 + (Math.Min(5, currentBatteryInfo.TopBatteryApps.Count) * 34);
+
             return yPos;
         }
 
@@ -991,6 +1148,7 @@ namespace TaskManagerPlus.Controls
             public int ScreenBrightness { get; set; } = -1;
             public string TopCpuProcessName { get; set; }
             public int TopCpuPercent { get; set; }
+            public List<AppHistoryItem> TopBatteryApps { get; set; } = new List<AppHistoryItem>();
 
             public string ErrorMessage { get; set; }
         }

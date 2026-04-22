@@ -23,6 +23,11 @@
   "btn_export_report": "⬇ Export Report",
   "btn_toggle_hud": "🎮 Mini HUD",
   "btn_optimize_ram": "🧹 Clean RAM",
+  "battery_optimize_button": "Optimize Battery",
+  "battery_optimize_done": "Battery optimized; suspended {0} background processes.",
+  "battery_optimize_failed": "Could not optimize battery: {0}",
+  "battery_top_apps_title": "Top battery-hungry apps",
+  "battery_app_running": "Running",
 
   "status_updating": "Updating...",
   "status_loading": "Loading data...",

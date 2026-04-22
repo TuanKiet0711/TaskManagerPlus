@@ -149,7 +149,7 @@ namespace TaskManagerPlus.Controls
         private void ExecuteContextMenuAction(string action)
         {
             if (dataGridViewProcesses.SelectedRows.Count == 0) return;
-            var procRow = dataGridViewProcesses.SelectedRows[0].DataBoundItem as ProcessInfoRow;
+            var procRow = dataGridViewProcesses.SelectedRows[0].DataBoundItem as ProcessInfo;
             if (procRow == null) return;
 
             int pid = procRow.ProcessId;
@@ -158,11 +158,11 @@ namespace TaskManagerPlus.Controls
             {
                 switch (action)
                 {
-                    case "kill": _pm.KillProcess(pid); break;
-                    case "suspend": _pm.SuspendProcess(pid); break;
-                    case "resume": _pm.ResumeProcess(pid); break;
-                    case "eco": _pm.ChangePriority(pid, System.Diagnostics.ProcessPriorityClass.Idle); break;
-                    case "turbo": _pm.ChangePriority(pid, System.Diagnostics.ProcessPriorityClass.High); break;
+                    case "kill": processMonitor.KillProcess(pid); break;
+                    case "suspend": processMonitor.SuspendProcess(pid); break;
+                    case "resume": processMonitor.ResumeProcess(pid); break;
+                    case "eco": processMonitor.ChangePriority(pid, System.Diagnostics.ProcessPriorityClass.Idle); break;
+                    case "turbo": processMonitor.ChangePriority(pid, System.Diagnostics.ProcessPriorityClass.High); break;
                 }
             }
             catch (Exception ex)
@@ -909,10 +909,6 @@ namespace TaskManagerPlus.Controls
         {
             UILocalizer.Apply(this);
             dataGridViewProcesses.Refresh();
-            
-            lblShowProcesses.Text = LocalizationService.T("processes_show_procs");
-            radAllProcesses.Text = LocalizationService.T("processes_all_procs");
-            radUserProcesses.Text = LocalizationService.T("processes_user_procs");
             btnKillProcess.Text = LocalizationService.T("processes_end_task");
 
             if (processContextMenu != null && processContextMenu.Items.Count >= 7)

@@ -119,6 +119,9 @@
     <Compile Include="Controls\OverviewTab.Designer.cs">
       <DependentUpon>OverviewTab.cs</DependentUpon>
     </Compile>
+    <Compile Include="Controls\MiniWidgetForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -224,3 +227,4 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
+

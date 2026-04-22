@@ -86,7 +86,7 @@ namespace TaskManagerPlus.Services
                     {
                         // Apply AutoRules if it matches
                         var rule = AutoRules.Find(r => r.ProcessName.Equals(p.ProcessName, StringComparison.OrdinalIgnoreCase));
-                        if (rule != null && ((p.CpuUsage > rule.CpuThreshold && rule.CpuThreshold > 0) || (p.MemoryWorkingSet / 1024 / 1024 > rule.RamThresholdMB && rule.RamThresholdMB > 0)))
+                        if (rule != null && ((p.CpuUsage > rule.CpuThreshold && rule.CpuThreshold > 0) || (p.MemoryBytes / 1024 / 1024 > rule.RamThresholdMB && rule.RamThresholdMB > 0)))
                         {
                             ApplyAutoRuleAction(rule, p.ProcessId);
                             _highCpuTracker.TryRemove(p.ProcessId, out _);
@@ -178,3 +178,4 @@ namespace TaskManagerPlus.Services
         }
     }
 }
+

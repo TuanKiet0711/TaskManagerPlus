@@ -106,3 +106,5 @@ D:\TaskManager\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.csproj.
 D:\TaskManager\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskMana.651D2760.Up2Date
 D:\TaskManager\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.exe
 D:\TaskManager\TaskManagerPlus\TaskManagerPlus\obj\Debug\TaskManagerPlus.pdb
+D:\TaskManager\TaskManagerPlus\TaskManagerPlus\bin\Debug\Help\TaskManagerPlusHelp_EN.chm
+D:\TaskManager\TaskManagerPlus\TaskManagerPlus\bin\Debug\Help\TaskManagerPlusHelp_VI.chm

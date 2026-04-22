@@ -22,13 +22,13 @@ namespace TaskManagerPlus.Services
                     {
                         var processes = processMonitor.GetAllProcesses(true).OrderByDescending(p => p.CpuUsage).ToList();
                         var tempStats = hardwareMonitor.GetTemperatureStats();
-                        var hwInfo = Models.HardwareInfo.GetSystemInfo();
+                        SystemInfo hwInfo = processMonitor.GetSystemInfo();
 
                         StringBuilder sb = new StringBuilder();
                         
                         // Header
                         sb.AppendLine($"Task Manager+ System Report, {DateTime.Now}");
-                        sb.AppendLine($"OS: {hwInfo.OSName}, Total Memory: {hwInfo.TotalMemoryMB} MB");
+                        sb.AppendLine($"OS: {hwInfo.OSName}, Total Memory: {hwInfo.TotalRAM} MB");
                         sb.AppendLine($"Max Temp: {tempStats.MaxTemp:F1} C, Avg Temp: {tempStats.AvgTemp:F1} C");
                         sb.AppendLine();
                         
@@ -38,7 +38,7 @@ namespace TaskManagerPlus.Services
                         // Data
                         foreach (var p in processes)
                         {
-                            sb.AppendLine($"{p.ProcessId},\"{p.ProcessName}\",\"{p.Status}\",{p.CpuUsage:F2},{p.MemoryWorkingSet / 1024.0 / 1024.0:F2},{p.DiskUsageBytesPerSec},{p.IsBackground}");
+                            sb.AppendLine($"{p.ProcessId},\"{p.ProcessName}\",\"{p.Status}\",{p.CpuUsage:F2},{p.MemoryBytes / 1024.0 / 1024.0:F2},{0},{(!p.HasWindow)}");
                         }
 
                         File.WriteAllText(sfd.FileName, sb.ToString(), Encoding.UTF8);
@@ -53,3 +53,5 @@ namespace TaskManagerPlus.Services
         }
     }
 }
+
+

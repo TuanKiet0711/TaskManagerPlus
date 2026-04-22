@@ -23,6 +23,11 @@
   "btn_export_report": "⬇ Xuất báo cáo",
   "btn_toggle_hud": "🎮 Bật HUD",
   "btn_optimize_ram": "🧹 Dọn RAM",
+  "battery_optimize_button": "Tối ưu pin",
+  "battery_optimize_done": "Đã tối ưu pin, tạm dừng {0} tiến trình nền.",
+  "battery_optimize_failed": "Không thể tối ưu pin: {0}",
+  "battery_top_apps_title": "Ứng dụng ngốn pin hôm nay",
+  "battery_app_running": "Đang chạy",
 
   "status_updating": "\u0110ang c\u1EADp nh\u1EADt...",
   "status_loading": "\u0110ang t\u1EA3i d\u1EEF li\u1EC7u...",

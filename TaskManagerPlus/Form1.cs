@@ -260,15 +260,23 @@ namespace TaskManagerPlus
         private void ShowHelpForm()
         {
             string langCode = LocalizationService.CurrentLanguage == AppLanguage.VI ? "VI" : "EN";
-            string filePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Help", $"TaskManagerPlusHelp_{langCode}.chm");
+            string htmlPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Help", $"help_{langCode.ToLowerInvariant()}.html");
+            string chmPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Help", $"TaskManagerPlusHelp_{langCode}.chm");
 
-            if (System.IO.File.Exists(filePath))
+            if (System.IO.File.Exists(htmlPath))
             {
-                Help.ShowHelp(this, filePath);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(htmlPath)
+                {
+                    UseShellExecute = true
+                });
+            }
+            else if (System.IO.File.Exists(chmPath))
+            {
+                Help.ShowHelp(this, chmPath);
             }
             else
             {
-                MessageBox.Show($"CHM Help file not found at: {filePath}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Help file not found at: {htmlPath}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -380,7 +388,7 @@ namespace TaskManagerPlus
             temperatureTab = new TemperatureTab();
             temperatureTab.Dock = DockStyle.Fill;
 
-            batteryTab = new BatteryTab();
+            batteryTab = new BatteryTab(processMonitor);
             batteryTab.Dock = DockStyle.Fill;
 
             appHistoryTab = new AppHistoryTab();

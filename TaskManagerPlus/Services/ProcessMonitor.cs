@@ -445,6 +445,8 @@ namespace TaskManagerPlus.Services
 
             try
             {
+                info.OSName = Environment.OSVersion.VersionString;
+
                 if (_sysCpuCounter == null)
                 {
                     _sysCpuCounter = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
@@ -507,17 +509,9 @@ namespace TaskManagerPlus.Services
         // ADVANCED WIN32 API SECTION
         // ===========================
 
-        private class NativeMethods
-        {
-            [DllImport("ntdll.dll", PreserveSig = false)]
-            public static extern void NtSuspendProcess(IntPtr processHandle);
+        public double GetTotalCpuUsage() { return GetSystemInfo().CpuUsage; }
 
-            [DllImport("ntdll.dll", PreserveSig = false)]
-            public static extern void NtResumeProcess(IntPtr processHandle);
-
-            [DllImport("psapi.dll")]
-            public static extern bool EmptyWorkingSet(IntPtr hProcess);
-        }
+        public long GetTotalMemoryUsage() { return (long)(GetSystemInfo().UsedRAM * 1024 * 1024); }
 
         public int OptimizeMemory()
         {
@@ -525,7 +519,7 @@ namespace TaskManagerPlus.Services
             try
             {
                 var processes = Process.GetProcesses();
-                long before = GetTotalMemoryUsage();
+                long before = (long)(GetSystemInfo().UsedRAM * 1024 * 1024);
 
                 foreach (var process in processes)
                 {
@@ -544,7 +538,7 @@ namespace TaskManagerPlus.Services
                 }
                 
                 System.Threading.Thread.Sleep(500); // Allow OS GC/Paging to reflect
-                long after = GetTotalMemoryUsage();
+                long after = (long)(GetSystemInfo().UsedRAM * 1024 * 1024);
                 
                 freedMB = (int)((before - after) / 1024 / 1024);
                 if (freedMB < 0) freedMB = 0;
@@ -824,6 +818,7 @@ namespace TaskManagerPlus.Services
 
     public class SystemInfo
     {
+        public string OSName { get; set; }
         public double CpuUsage { get; set; }
         public float TotalRAM { get; set; }
         public float UsedRAM { get; set; }
@@ -832,3 +827,4 @@ namespace TaskManagerPlus.Services
         public int ThreadCount { get; set; }
     }
 }
+

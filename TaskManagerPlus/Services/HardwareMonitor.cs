@@ -279,6 +279,16 @@ namespace TaskManagerPlus.Services
             return networks;
         }
 
+        public class TemperatureStats { public double MaxTemp { get; set; } public double AvgTemp { get; set; } }
+
+        public TemperatureStats GetTemperatureStats()
+        {
+            var readings = GetAllTemperatureReadings();
+            double max = 0;
+            foreach (var r in readings) { if (r.Reading.Current > max) max = r.Reading.Current; }
+            return new TemperatureStats { MaxTemp = max, AvgTemp = max };
+        }
+
         public List<TemperatureEntry> GetAllTemperatureReadings()
         {
             List<SensorReading> sensors = GetTemperatureSensors();
@@ -733,3 +743,4 @@ namespace TaskManagerPlus.Services
         }
     }
 }
+
