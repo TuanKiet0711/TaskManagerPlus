@@ -19,6 +19,7 @@ namespace TaskManagerPlus.Controls
         private ProcessMonitor _procMon;
         private HardwareMonitor _hwMon;
         private Timer _timer;
+        private bool _isCompact = false;
 
         // Make window movable
         public const int WM_NCLBUTTONDOWN = 0xA1;
@@ -76,9 +77,13 @@ namespace TaskManagerPlus.Controls
             lblNet.MouseDown += Widget_MouseDown;
             lblTemp.MouseDown += Widget_MouseDown;
             
-            // Double click to close
-            this.DoubleClick += (s, e) => this.Close();
-            lblCpu.DoubleClick += (s, e) => this.Close();
+            this.DoubleClick += ToggleCompact;
+            lblCpu.DoubleClick += ToggleCompact;
+            lblRam.DoubleClick += ToggleCompact;
+            lblGpu.DoubleClick += ToggleCompact;
+            lblDisk.DoubleClick += ToggleCompact;
+            lblNet.DoubleClick += ToggleCompact;
+            lblTemp.DoubleClick += ToggleCompact;
 
             // Setup update timer
             _timer = new Timer();
@@ -87,8 +92,46 @@ namespace TaskManagerPlus.Controls
             _timer.Start();
 
             ThemeService.ApplyRounding(this, 10);
+            UpdateLayout();
             
             this.ResumeLayout(false);
+        }
+
+        private void ToggleCompact(object sender, EventArgs e)
+        {
+            _isCompact = !_isCompact;
+            UpdateLayout();
+        }
+
+        private void UpdateLayout()
+        {
+            if (_isCompact)
+            {
+                this.Size = new Size(380, 40);
+                lblCpu.Location = new Point(10, 10);
+                lblGpu.Location = new Point(140, 10);
+                lblRam.Location = new Point(270, 10);
+                
+                // Hide unnecessary labels
+                lblDisk.Visible = false;
+                lblNet.Visible = false;
+                lblTemp.Visible = false;
+            }
+            else
+            {
+                this.Size = new Size(290, 170);
+                lblCpu.Location = new Point(12, 12);
+                lblGpu.Location = new Point(12, 36);
+                lblRam.Location = new Point(12, 60);
+                lblDisk.Location = new Point(12, 84);
+                lblNet.Location = new Point(12, 108);
+                lblTemp.Location = new Point(12, 132);
+
+                lblDisk.Visible = true;
+                lblNet.Visible = true;
+                lblTemp.Visible = true;
+            }
+            ThemeService.ApplyRounding(this, 10);
         }
 
         private void Widget_MouseDown(object sender, MouseEventArgs e)
@@ -117,12 +160,21 @@ namespace TaskManagerPlus.Controls
                 
                 var tempStats = _hwMon.GetTemperatureStats();
 
-                lblCpu.Text = $"CPU : {cpu:F1}% | {(cpuInfo.Temperature > 0 ? cpuInfo.Temperature.ToString("F0") + "°C" : "--°C")}";
-                lblGpu.Text = $"GPU : {(gpuInfo != null ? gpuInfo.Usage.ToString("F1") + "%" : "--% ")} | {(gpuInfo != null && gpuInfo.Temperature > 0 ? gpuInfo.Temperature.ToString("F0") + "°C" : "--°C")}";
-                lblRam.Text = $"RAM : {ramPercent:F1}%";
-                lblDisk.Text = $"DISK: {(diskInfo != null ? diskInfo.ActiveTime.ToString("F1") + "%" : "--% ")} | {(diskInfo != null && diskInfo.Temperature > 0 ? diskInfo.Temperature.ToString("F0") + "°C" : "--°C")}";
-                lblNet.Text = $"NET : {(netInfo != null ? netInfo.UsageText : "--")}";
-                lblTemp.Text = $"TEMP: {(tempStats.MaxTemp > 0 ? tempStats.MaxTemp.ToString("F0") : "--")}°C";
+                if (_isCompact)
+                {
+                    lblCpu.Text = $"C:{cpu:F0}%|{(cpuInfo.Temperature > 0 ? cpuInfo.Temperature.ToString("F0") + "°" : "--°")}";
+                    lblGpu.Text = $"G:{(gpuInfo != null ? gpuInfo.Usage.ToString("F0") + "%" : "--% ")}|{(gpuInfo != null && gpuInfo.Temperature > 0 ? gpuInfo.Temperature.ToString("F0") + "°" : "--°")}";
+                    lblRam.Text = $"R:{ramPercent:F0}%";
+                }
+                else
+                {
+                    lblCpu.Text = $"CPU : {cpu:F1}% | {(cpuInfo.Temperature > 0 ? cpuInfo.Temperature.ToString("F0") + "°C" : "--°C")}";
+                    lblGpu.Text = $"GPU : {(gpuInfo != null ? gpuInfo.Usage.ToString("F1") + "%" : "--% ")} | {(gpuInfo != null && gpuInfo.Temperature > 0 ? gpuInfo.Temperature.ToString("F0") + "°C" : "--°C")}";
+                    lblRam.Text = $"RAM : {ramPercent:F1}%";
+                    lblDisk.Text = $"DISK: {(diskInfo != null ? diskInfo.ActiveTime.ToString("F1") + "%" : "--% ")} | {(diskInfo != null && diskInfo.Temperature > 0 ? diskInfo.Temperature.ToString("F0") + "°C" : "--°C")}";
+                    lblNet.Text = $"NET : {(netInfo != null ? netInfo.UsageText : "--")}";
+                    lblTemp.Text = $"TEMP: {(tempStats.MaxTemp > 0 ? tempStats.MaxTemp.ToString("F0") : "--")}°C";
+                }
             }
             catch { }
         }

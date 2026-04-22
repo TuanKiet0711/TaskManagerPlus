@@ -12,5 +12,9 @@
         <param name="Name" value="Basic Guide">
         <param name="Local" value="help_en.html">
         </OBJECT>
+    <LI> <OBJECT type="text/sitemap">
+        <param name="Name" value="Disk Cleaner">
+        <param name="Local" value="disk_en.html">
+        </OBJECT>
 </UL>
 </BODY></HTML>

@@ -12,5 +12,9 @@
         <param name="Name" value="Hướng dẫn cơ bản">
         <param name="Local" value="help_vi.html">
         </OBJECT>
+    <LI> <OBJECT type="text/sitemap">
+        <param name="Name" value="Disk Cleaner (Dọn dẹp đĩa)">
+        <param name="Local" value="disk_vi.html">
+        </OBJECT>
 </UL>
 </BODY></HTML>

@@ -165,6 +165,7 @@ namespace TaskManagerPlus
             tabBattery.Tag = "tab_battery";
             tabStartup.Tag = "tab_startup";
             tabAppHistory.Tag = "tab_app_history";
+            tabDisk.Tag = "tab_disk_cleaner";
 
             // Bottom
             btnRefresh.Tag = "btn_refresh";
@@ -215,6 +216,7 @@ namespace TaskManagerPlus
             if (temperatureTab != null) temperatureTab.ApplyLocalization();
             if (batteryTab != null) batteryTab.ApplyLocalization();
             if (appHistoryTab != null) appHistoryTab.ApplyLocalization();
+            if (diskTabControl != null) diskTabControl.ApplyLocalization();
         }
 
         // ===== Menu language events =====
@@ -590,6 +592,14 @@ namespace TaskManagerPlus
             MessageBox.Show(msg, "Memory Optimizer", MessageBoxButtons.OK, MessageBoxIcon.Information);
             btnOptimizeRam.Enabled = true;
             UpdateAllDataAsync(); // Refresh info
+        }
+
+        private void btnHealthHelp_Click(object sender, EventArgs e)
+        {
+            using (var dlg = new Controls.HealthInsightsForm(healthScoreService, processMonitor))
+            {
+                dlg.ShowDialog(this);
+            }
         }
 
         private void numRefreshInterval_ValueChanged(object sender, EventArgs e)

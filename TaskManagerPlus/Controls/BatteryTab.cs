@@ -638,6 +638,10 @@ namespace TaskManagerPlus.Controls
             if (pictureBoxBattery.Height < contentBottom)
             {
                 pictureBoxBattery.Height = contentBottom;
+                if (pictureBoxBattery.Parent != null)
+                {
+                    pictureBoxBattery.Parent.Height = contentBottom;
+                }
             }
         }
 

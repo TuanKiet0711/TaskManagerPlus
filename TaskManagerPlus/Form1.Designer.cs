@@ -37,12 +37,15 @@ namespace TaskManagerPlus
             this.tabBattery = new System.Windows.Forms.TabPage();
             this.tabStartup = new System.Windows.Forms.TabPage();
             this.tabAppHistory = new System.Windows.Forms.TabPage();
+            this.tabDisk = new System.Windows.Forms.TabPage();
+            this.diskTabControl = new TaskManagerPlus.Controls.DiskTab();
 
             this.panelTop = new System.Windows.Forms.Panel();
             this.lblTitle = new System.Windows.Forms.Label();
             this.pictureBoxLogo = new System.Windows.Forms.PictureBox();
             this.btnToggleLanguage = new System.Windows.Forms.Button();
             this.lblHealthScore = new System.Windows.Forms.Label();
+            this.btnHealthHelp = new System.Windows.Forms.Button();
 
             this.panelBottom = new System.Windows.Forms.Panel();
             this.lblStatus = new System.Windows.Forms.Label();
@@ -126,6 +129,7 @@ namespace TaskManagerPlus
             this.tabControl.Controls.Add(this.tabBattery);
             this.tabControl.Controls.Add(this.tabStartup);
             this.tabControl.Controls.Add(this.tabAppHistory);
+            this.tabControl.Controls.Add(this.tabDisk);
             this.tabControl.Font = new System.Drawing.Font("Segoe UI", 9.75F);
             this.tabControl.ItemSize = new System.Drawing.Size(120, 32);
             this.tabControl.Location = new System.Drawing.Point(0, 93); // 28 menu + 65 top panel
@@ -210,6 +214,28 @@ namespace TaskManagerPlus
             this.tabAppHistory.Text = "App history";
 
             // 
+            // tabDisk
+            // 
+            this.tabDisk.BackColor = System.Drawing.Color.White;
+            this.tabDisk.Controls.Add(this.diskTabControl);
+            this.tabDisk.Location = new System.Drawing.Point(4, 37);
+            this.tabDisk.Name = "tabDisk";
+            this.tabDisk.Padding = new System.Windows.Forms.Padding(3);
+            this.tabDisk.Size = new System.Drawing.Size(1276, 597);
+            this.tabDisk.TabIndex = 7;
+            this.tabDisk.Text = "Disk Cleaner";
+
+            // 
+            // diskTabControl
+            // 
+            this.diskTabControl.BackColor = System.Drawing.Color.White;
+            this.diskTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.diskTabControl.Location = new System.Drawing.Point(3, 3);
+            this.diskTabControl.Name = "diskTabControl";
+            this.diskTabControl.Size = new System.Drawing.Size(1270, 591);
+            this.diskTabControl.TabIndex = 0;
+
+            // 
             // panelTop
             // 
             this.panelTop.BackColor = System.Drawing.Color.White;
@@ -218,6 +244,7 @@ namespace TaskManagerPlus
             this.panelTop.Controls.Add(this.pictureBoxLogo);
             this.panelTop.Controls.Add(this.btnToggleLanguage);
             this.panelTop.Controls.Add(this.lblHealthScore);
+            this.panelTop.Controls.Add(this.btnHealthHelp);
             this.panelTop.Dock = System.Windows.Forms.DockStyle.Top;
             this.panelTop.Location = new System.Drawing.Point(0, 28); // dưới menu
             this.panelTop.Name = "panelTop";
@@ -273,6 +300,23 @@ namespace TaskManagerPlus
             this.lblHealthScore.Size = new System.Drawing.Size(120, 28);
             this.lblHealthScore.TabIndex = 3;
             this.lblHealthScore.Text = "Health: 100%";
+
+            // 
+            // btnHealthHelp
+            // 
+            this.btnHealthHelp.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnHealthHelp.BackColor = System.Drawing.Color.Transparent;
+            this.btnHealthHelp.FlatAppearance.BorderSize = 0;
+            this.btnHealthHelp.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnHealthHelp.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.btnHealthHelp.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.btnHealthHelp.Location = new System.Drawing.Point(970, 18);
+            this.btnHealthHelp.Name = "btnHealthHelp";
+            this.btnHealthHelp.Size = new System.Drawing.Size(25, 28);
+            this.btnHealthHelp.TabIndex = 4;
+            this.btnHealthHelp.Text = "?";
+            this.btnHealthHelp.UseVisualStyleBackColor = false;
+            this.btnHealthHelp.Click += new System.EventHandler(this.btnHealthHelp_Click);
 
             // 
             // panelBottom
@@ -465,6 +509,8 @@ namespace TaskManagerPlus
         private System.Windows.Forms.TabPage tabBattery;
         private System.Windows.Forms.TabPage tabStartup;
         private System.Windows.Forms.TabPage tabAppHistory;
+        private System.Windows.Forms.TabPage tabDisk;
+        private TaskManagerPlus.Controls.DiskTab diskTabControl;
         private System.Windows.Forms.Panel panelTop;
         private System.Windows.Forms.PictureBox pictureBoxLogo;
         private System.Windows.Forms.Label lblTitle;
@@ -477,8 +523,10 @@ namespace TaskManagerPlus
         private System.Windows.Forms.Timer timerRefresh;
         private System.Windows.Forms.Label lblStatus;
         private System.Windows.Forms.Label lblHealthScore;
+        private System.Windows.Forms.Button btnHealthHelp;
         private System.Windows.Forms.Button btnExportReport;
         private System.Windows.Forms.Button btnToggleHUD;
         private System.Windows.Forms.Button btnOptimizeRam;
+        private System.Windows.Forms.Button btnHealthHelp;
     }
 }

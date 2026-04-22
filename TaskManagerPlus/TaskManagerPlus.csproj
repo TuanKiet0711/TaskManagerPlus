@@ -113,6 +113,12 @@
     <Compile Include="Controls\BatteryTab.Designer.cs">
       <DependentUpon>BatteryTab.cs</DependentUpon>
     </Compile>
+    <Compile Include="Controls\DiskTab.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\HealthInsightsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Controls\OverviewTab.cs">
       <SubType>UserControl</SubType>
     </Compile>
