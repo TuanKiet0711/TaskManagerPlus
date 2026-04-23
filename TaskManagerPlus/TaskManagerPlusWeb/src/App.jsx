@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 const DOWNLOADS = {
-  installer: "/downloads/TaskManagerPlus-Setup.exe",
-  portable: "/downloads/TaskManagerPlus-Portable.zip",
+  installer: "/downloads/TaskManagerPlus-win-x64-2.0.zip",
+  portable: "/downloads/TaskManagerPlus-win-x64-2.0.zip",
   readme: "/downloads/README.txt",
   sha256: "sha256-placeholder",
 };
@@ -90,7 +90,7 @@ function App() {
   const faq = [
     {
       q: "TaskManagerPlus có miễn phí không?",
-      a: "Tuỳ bạn: ghi rõ bản miễn phí / bản pro / giấy phép tại đây.",
+      a: "Hoàn toàn miễn phí nhé!",
     },
     {
       q: "Ứng dụng có cần quyền admin không?",
@@ -262,7 +262,7 @@ function App() {
                 </div>
               </div>
 
-              
+
             </div>
           </div>
         </section>
@@ -318,12 +318,12 @@ function App() {
                   <a className="btn btn-primary" href={DOWNLOADS.installer} download>
                     Tải bản cài đặt
                   </a>
-                  
+
                 </div>
                 <ul className="download-meta">
                   <li>Yêu cầu: Windows 10/11</li>
                   <li>CPU/RAM: tuỳ máy</li>
-                 
+
                 </ul>
               </div>
 
@@ -348,7 +348,7 @@ function App() {
               </div>
             </div>
 
-           
+
           </div>
         </section>
 
@@ -388,7 +388,7 @@ function App() {
         </section>
       </main>
 
-     
+
     </>
   );
 }
