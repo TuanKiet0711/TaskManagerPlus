@@ -8,3 +8,8 @@
 /out/
 /TaskManagerPlus/bin/
 TaskManagerPlus/obj/
+*.pfx
+*.snk
+*.suo
+*.user
+TaskManagerPlus/dist/
